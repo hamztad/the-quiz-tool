@@ -4,6 +4,7 @@ import {
   CLIENT_EVENTS,
   ROOM_ERROR_CODES,
   SERVER_EVENTS,
+  validateTeamName,
   type ServerErrorPayload,
 } from '@quiz-tool/shared';
 import { ParticipantPageShell } from '../components/layout/ParticipantPageShell';
@@ -41,8 +42,13 @@ export function JoinPage() {
   }, [hasPresetCode]);
 
   const join = () => {
-    if (!joinCode.trim() || !teamName.trim()) {
-      setError(hasPresetCode ? 'Skriv inn lagnavn.' : 'Fyll inn romkode og lagnavn.');
+    const nameResult = validateTeamName(teamName);
+    if (!joinCode.trim()) {
+      setError(hasPresetCode ? 'Romkoden mangler.' : 'Fyll inn romkode.');
+      return;
+    }
+    if (!nameResult.ok) {
+      setError(nameResult.message);
       return;
     }
     setLoading(true);
@@ -76,7 +82,7 @@ export function JoinPage() {
 
     socket.emit(
       CLIENT_EVENTS.ROOM_JOIN,
-      { joinCode: normalizeJoinCode(joinCode.trim()), teamName: teamName.trim() },
+      { joinCode: normalizeJoinCode(joinCode.trim()), teamName: nameResult.name },
       (res: { roomId: string; teamId: string; teamToken: string } | undefined) => {
         if (res?.roomId) onJoined(res);
       },
@@ -116,8 +122,9 @@ export function JoinPage() {
             ref={teamNameRef}
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
-            placeholder="F.eks. Quiz Kings"
+            placeholder="F.eks. Ekstebjørn"
             autoComplete="off"
+            spellCheck={false}
             className="min-h-[52px] text-lg"
             onKeyDown={(e) => {
               if (e.key === 'Enter') join();

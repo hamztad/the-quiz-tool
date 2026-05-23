@@ -1,6 +1,6 @@
 import type { Question, RoomState } from '@quiz-tool/shared';
 import { isQuestionRevealedToTeam, redactQuestionForTeam } from '@quiz-tool/shared';
-import { MAX_TEAMS, validateQuestionsForSave } from '@quiz-tool/shared';
+import { MAX_TEAMS, validateQuestionsForSave, validateTeamName } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
 import { generateId, generateJoinCode, generateToken } from '../utils/id.js';
 
@@ -38,10 +38,11 @@ export function joinTeam(room: RoomRecord, teamName: string): { room: RoomRecord
     throw new Error('Maks antall lag er nådd.');
   }
 
-  const trimmed = teamName.trim();
-  if (!trimmed) {
-    throw new Error('Lagnavn kan ikke være tomt.');
+  const nameResult = validateTeamName(teamName);
+  if (!nameResult.ok) {
+    throw new Error(nameResult.message);
   }
+  const trimmed = nameResult.name;
 
   const teamId = generateId('team');
   const teamToken = generateToken();
