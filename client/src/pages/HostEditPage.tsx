@@ -15,10 +15,14 @@ import {
   createOpenQuestion,
   isQuestionIncomplete,
   normalizeQuestionsForSave,
+  stampImportedQuestions,
 } from '../lib/questionFactory';
 import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
 
 const HIGHLIGHT_MS = 4500;
+const REPLACE_CONFIRM_WORD = 'ERSTAT';
+
+type ParsedImportQuestion = Parameters<typeof stampImportedQuestions>[0][number];
 
 export function HostEditPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -48,7 +52,7 @@ export function HostEditPage() {
   useEffect(() => {
     if (room?.questions && !dirty) {
       setDraftQuestions(room.questions);
-      setExpandedIds(new Set(room.questions.map((q) => q.id)));
+      setExpandedIds(new Set());
     }
   }, [room?.questions, dirty]);
 
@@ -91,7 +95,6 @@ export function HostEditPage() {
       socket.emit(CLIENT_EVENTS.QUIZ_QUESTIONS_SET, { questions: normalized });
       setDraftQuestions(normalized);
       setDirty(false);
-      setExpandedIds(new Set(normalized.map((q) => q.id)));
       setSaveMessage('Spørsmål lagret til quizen!');
       setTimeout(() => setSaveMessage(null), 4000);
       return true;
@@ -112,7 +115,7 @@ export function HostEditPage() {
         : createMcQuestion(draftQuestions.length);
     const nextList = [...draftQuestions, nextQuestion];
     updateDraft(nextList);
-    setExpandedIds((prev) => new Set([...prev, nextQuestion.id]));
+    setExpandedIds(new Set([nextQuestion.id]));
     flashHighlight(nextQuestion.id, nextList.length - 1);
   };
 
@@ -142,20 +145,32 @@ export function HostEditPage() {
     });
   };
 
-  const handleImport = (questions: Question[]) => {
-    if (
-      draftQuestions.length > 0 &&
-      !window.confirm('Dette erstatter alle spørsmål i editoren. Fortsette?')
-    ) {
-      return;
-    }
-    setDraftQuestions(questions);
-    setDirty(true);
-    setExpandedIds(new Set(questions.map((q) => q.id)));
-    persistQuestions(questions);
+  const appendImportedQuestions = (parsed: ParsedImportQuestion[]) => {
+    const startIndex = draftQuestions.length;
+    const stamped = stampImportedQuestions(parsed, startIndex);
+    const nextList = [...draftQuestions, ...stamped];
+    updateDraft(nextList);
+    setExpandedIds(new Set(stamped.map((q) => q.id)));
     setImportOpen(false);
-    if (questions.length > 0) {
-      flashHighlight(questions[questions.length - 1].id, questions.length - 1);
+    document.getElementById('editor-section')?.scrollIntoView({ behavior: 'smooth' });
+    if (stamped.length > 0) {
+      flashHighlight(stamped[0].id, startIndex);
+    }
+  };
+
+  const replaceAllQuestions = (parsed: ParsedImportQuestion[]) => {
+    const typed = window.prompt(
+      `Dette sletter alle ${draftQuestions.length} spørsmål i listen og erstatter dem med importen.\n\nSkriv ${REPLACE_CONFIRM_WORD} for å bekrefte:`,
+    );
+    if (typed !== REPLACE_CONFIRM_WORD) return;
+
+    const stamped = stampImportedQuestions(parsed, 0);
+    updateDraft(stamped);
+    setExpandedIds(new Set(stamped.map((q) => q.id)));
+    setImportOpen(false);
+    document.getElementById('editor-section')?.scrollIntoView({ behavior: 'smooth' });
+    if (stamped.length > 0) {
+      flashHighlight(stamped[0].id, 0);
     }
   };
 
@@ -183,7 +198,6 @@ export function HostEditPage() {
         </p>
       )}
 
-      {/* Saved vs draft status */}
       <div
         className={`mb-6 rounded-xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 ${
           isSynced
@@ -205,11 +219,10 @@ export function HostEditPage() {
         )}
       </div>
 
-      {/* ——— 1. EDITOR (primary) ——— */}
       <EditSection
         id="editor-section"
         title="1. Rediger spørsmål"
-        description="Nye spørsmål legges alltid til nederst i listen under knappene. Utvid kortet for å redigere."
+        description="Én felles liste — manuelt og import. Klikk på et kort for å utvide; nye spørsmål åpnes automatisk."
         variant="editor"
       >
         <div className="rounded-xl bg-quiz-bg/60 border border-quiz-accent/20 p-4 mb-6">
@@ -233,14 +246,36 @@ export function HostEditPage() {
           )}
         </div>
 
-        <div ref={editorListRef} className="space-y-4 min-h-[120px]">
-          <div className="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
+        <div ref={editorListRef} className="space-y-3 min-h-[120px]">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/10">
             <h3 className="text-base font-bold">Spørsmålsliste ({draftQuestions.length})</h3>
-            {incompleteCount > 0 && (
-              <span className="text-xs text-slate-300 bg-slate-500/20 px-2 py-1 rounded-full">
-                {incompleteCount} utkast
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {incompleteCount > 0 && (
+                <span className="text-xs text-slate-300 bg-slate-500/20 px-2 py-1 rounded-full">
+                  {incompleteCount} utkast
+                </span>
+              )}
+              {draftQuestions.length > 0 && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setExpandedIds(new Set())}
+                  >
+                    Skjul alle
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setExpandedIds(new Set(draftQuestions.map((q) => q.id)))}
+                  >
+                    Vis alle
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {draftQuestions.length === 0 ? (
@@ -278,12 +313,11 @@ export function HostEditPage() {
         </div>
       </EditSection>
 
-      {/* ——— 2. IMPORT (secondary) ——— */}
       <div className="mt-8 mb-28">
         <EditSection
           id="import-section"
           title="2. Hurtigimport (valgfritt)"
-          description="Separat fra redigeringen. Forhåndsvisning viser hvordan teksten tolkes — ingenting lagres før du erstatter."
+          description="Legger til i samme liste som over. Lagre når du er ferdig — ingenting sendes til server før da."
           variant="import"
         >
           <button
@@ -293,11 +327,16 @@ export function HostEditPage() {
           >
             {importOpen ? '▼ Skjul import' : '▶ Vis hurtigimport'}
           </button>
-          {importOpen && <QuickImportPanel onImport={handleImport} />}
+          {importOpen && (
+            <QuickImportPanel
+              existingCount={draftQuestions.length}
+              onAppend={appendImportedQuestions}
+              onReplaceAll={replaceAllQuestions}
+            />
+          )}
         </EditSection>
       </div>
 
-      {/* Sticky save */}
       {draftQuestions.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md px-4 py-4 shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
           <div className="max-w-lg mx-auto md:max-w-4xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -322,7 +361,7 @@ export function HostEditPage() {
                 onClick={() => {
                   if (room?.questions) {
                     setDraftQuestions(room.questions);
-                    setExpandedIds(new Set(room.questions.map((q) => q.id)));
+                    setExpandedIds(new Set());
                     setDirty(false);
                     setSaveMessage(null);
                   }

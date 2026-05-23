@@ -39,7 +39,7 @@ export function HostQuestionEditorCard({
   const titleRef = titleInputRef ?? localTitleRef;
   const incomplete = isQuestionIncomplete(question);
   const bodyLines = question.lines.slice(1).map((l) => l.text).join('\n');
-  const titlePreview = getQuestionTitleTrimmed(question) || 'Uten tittel';
+  const titlePreview = getQuestionTitleTrimmed(question) || '(Uten tittel — klikk for å redigere)';
 
   useEffect(() => {
     if (isHighlighted && isExpanded) {
@@ -71,57 +71,67 @@ export function HostQuestionEditorCard({
     onChange({ ...question, maxPoints: Math.max(0, maxPoints) });
   };
 
+  const typeLabel = question.type === 'open' ? 'Åpent svar' : 'Flervalg';
+
   return (
     <article
       id={`question-editor-${question.id}`}
-      className={`rounded-2xl border-2 bg-quiz-surface shadow-md transition-all duration-500 ${
+      className={`rounded-2xl border-2 bg-quiz-surface shadow-md transition-all duration-300 overflow-hidden ${
         isHighlighted
-          ? 'border-quiz-accent ring-4 ring-quiz-accent/40 scale-[1.01]'
+          ? 'border-quiz-accent ring-4 ring-quiz-accent/40'
           : incomplete
             ? 'border-slate-400/50 border-dashed'
-            : 'border-quiz-accent/30'
+            : 'border-quiz-border'
       }`}
     >
       {isHighlighted && (
-        <div className="rounded-t-[14px] bg-quiz-accent px-4 py-2 text-center text-sm font-semibold text-white animate-pulse">
-          Nytt spørsmål — rediger her
+        <div className="bg-quiz-accent px-4 py-2 text-center text-sm font-semibold text-white">
+          Nylig lagt til — rediger her
         </div>
       )}
 
-      <header className="flex items-start gap-3 p-4 pb-3 border-b border-quiz-border/80">
+      {/* Accordion header — always visible */}
+      <div className="flex items-stretch gap-2 p-3 bg-quiz-surface-elevated/50">
         <button
           type="button"
           onClick={onToggleExpand}
-          className="shrink-0 mt-1 h-9 w-9 rounded-lg border border-quiz-border bg-quiz-surface-elevated text-quiz-muted hover:text-quiz-text"
+          className="flex-1 flex items-center gap-3 min-w-0 text-left rounded-xl px-3 py-2 hover:bg-quiz-surface-elevated transition-colors"
           aria-expanded={isExpanded}
-          aria-label={isExpanded ? 'Skjul redigering' : 'Vis redigering'}
         >
-          {isExpanded ? '▾' : '▸'}
-        </button>
-
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-quiz-accent mb-1">
-            Spørsmål {index + 1} · Rediger
-          </p>
-          {!isExpanded && (
-            <p className="text-base font-medium truncate text-quiz-text">{titlePreview}</p>
-          )}
-          <div className="flex flex-wrap items-center gap-2 mt-1">
-            <Badge variant="neutral">{question.type === 'open' ? 'Åpent svar' : 'Flervalg'}</Badge>
-            {incomplete && <Badge variant="draft">Utkast</Badge>}
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-quiz-accent/20 text-sm font-bold text-quiz-accent"
+            aria-hidden
+          >
+            {index + 1}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-semibold truncate text-quiz-text">{titlePreview}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <Badge variant="neutral">{typeLabel}</Badge>
+              {incomplete && <Badge variant="draft">Utkast</Badge>}
+              <HostQuestionStatusBadge status={displayStatus} />
+            </div>
           </div>
-        </div>
-
-        <div className="flex flex-col items-end gap-2 shrink-0">
-          <HostQuestionStatusBadge status={displayStatus} />
-          <Button type="button" variant="danger" size="sm" onClick={onDelete}>
-            Slett
-          </Button>
-        </div>
-      </header>
+          <span className="shrink-0 text-quiz-muted text-lg px-1" aria-hidden>
+            {isExpanded ? '▾' : '▸'}
+          </span>
+        </button>
+        <Button
+          type="button"
+          variant="danger"
+          size="sm"
+          className="shrink-0 self-center min-w-[4.5rem]"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          Slett
+        </Button>
+      </div>
 
       {isExpanded && (
-        <div className="p-5 pt-4 space-y-5 bg-quiz-surface-elevated/30 rounded-b-2xl">
+        <div className="p-5 pt-2 space-y-5 border-t border-quiz-border/80 bg-quiz-bg/40">
           <div>
             <label className="block text-sm font-semibold text-quiz-text mb-2">Spørsmål</label>
             <Input
@@ -175,11 +185,9 @@ export function HostQuestionEditorCard({
             <McOptionsEditor question={question} onChange={onChange} />
           )}
 
-          <div className="pt-2">
-            <Button type="button" variant="danger" className="w-full" onClick={onDelete}>
-              Slett dette spørsmålet
-            </Button>
-          </div>
+          <Button type="button" variant="danger" className="w-full" onClick={onDelete}>
+            Slett dette spørsmålet
+          </Button>
         </div>
       )}
     </article>

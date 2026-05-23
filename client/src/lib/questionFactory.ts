@@ -28,6 +28,18 @@ export function createMcQuestion(order: number): Question {
   };
 }
 
+/** Assign fresh ids and sequential order when appending parsed import to a list */
+export function stampImportedQuestions(
+  parsed: Array<Omit<Question, 'id' | 'order'> | Question>,
+  startOrder: number,
+): Question[] {
+  return parsed.map((q, i) => ({
+    ...q,
+    id: generateId('q'),
+    order: startOrder + i,
+  }));
+}
+
 /** Raw title text — use for controlled inputs (do not trim). */
 export function getQuestionTitle(question: Question): string {
   return question.lines[0]?.text ?? '';
