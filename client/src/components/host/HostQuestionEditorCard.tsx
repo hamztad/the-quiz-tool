@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Question } from '@quiz-tool/shared';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
@@ -39,13 +39,23 @@ export function HostQuestionEditorCard({
   const titleRef = titleInputRef ?? localTitleRef;
   const incomplete = isQuestionIncomplete(question);
   const bodyLines = question.lines.slice(1).map((l) => l.text).join('\n');
+  const hasHint = Boolean(question.hint?.trim());
+  const hasBody = bodyLines.trim().length > 0;
   const titlePreview = getQuestionTitleTrimmed(question) || '(Uten tittel — klikk for å redigere)';
+
+  const [moreOpen, setMoreOpen] = useState(hasHint || hasBody);
 
   useEffect(() => {
     if (isHighlighted && isExpanded) {
       titleRef.current?.focus();
     }
   }, [isHighlighted, isExpanded, titleRef]);
+
+  useEffect(() => {
+    if (hasHint || hasBody) {
+      setMoreOpen(true);
+    }
+  }, [question.id, hasHint, hasBody]);
 
   const updateTitle = (text: string) => {
     const lines = [...question.lines];
@@ -76,44 +86,55 @@ export function HostQuestionEditorCard({
   return (
     <article
       id={`question-editor-${question.id}`}
-      className={`max-w-full min-w-0 rounded-2xl border-2 bg-quiz-surface shadow-md transition-all duration-300 overflow-hidden ${
+      className={`max-w-full min-w-0 rounded-xl border bg-quiz-surface shadow-sm transition-all duration-300 overflow-hidden ${
         isHighlighted
-          ? 'border-quiz-accent ring-4 ring-quiz-accent/40'
+          ? 'border-quiz-accent ring-2 ring-quiz-accent/40'
           : incomplete
             ? 'border-slate-400/50 border-dashed'
             : 'border-quiz-border'
       }`}
     >
       {isHighlighted && (
-        <div className="bg-quiz-accent px-4 py-2 text-center text-sm font-semibold text-white">
-          Nylig lagt til — rediger her
+        <div className="bg-quiz-accent px-3 py-1.5 text-center text-xs font-semibold text-white">
+          Nylig lagt til
         </div>
       )}
 
-      <div className="flex flex-col gap-2 p-3 bg-quiz-surface-elevated/50 min-w-0 sm:flex-row sm:items-stretch sm:gap-2">
+      <div className="flex flex-col gap-1.5 p-2 bg-quiz-surface-elevated/50 min-w-0 sm:flex-row sm:items-stretch">
         <button
           type="button"
           onClick={onToggleExpand}
-          className="flex-1 flex items-start gap-3 min-w-0 text-left rounded-xl px-3 py-2 hover:bg-quiz-surface-elevated transition-colors"
+          className="flex-1 flex items-start gap-2 min-w-0 text-left rounded-lg px-2 py-2 hover:bg-quiz-surface-elevated transition-colors min-h-[44px]"
           aria-expanded={isExpanded}
         >
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-quiz-accent/20 text-sm font-bold text-quiz-accent"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-quiz-accent/20 text-xs font-bold text-quiz-accent"
             aria-hidden
           >
             {index + 1}
           </span>
           <div className="min-w-0 flex-1 overflow-hidden">
-            <p className="text-base font-semibold text-quiz-text break-words [overflow-wrap:anywhere] line-clamp-3 sm:line-clamp-2">
+            <p className="text-sm font-semibold text-quiz-text break-words [overflow-wrap:anywhere] line-clamp-2">
               {titlePreview}
             </p>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
               <Badge variant="neutral">{typeLabel}</Badge>
+              <PointsChip points={question.maxPoints} />
               {incomplete && <Badge variant="draft">Utkast</Badge>}
-              <HostQuestionStatusBadge status={displayStatus} />
+              {hasHint && (
+                <span className="text-[10px] font-medium text-quiz-muted px-1.5 py-0.5 rounded-full bg-quiz-bg border border-quiz-border/60">
+                  Har hint
+                </span>
+              )}
+              {hasBody && (
+                <span className="text-[10px] font-medium text-quiz-muted px-1.5 py-0.5 rounded-full bg-quiz-bg border border-quiz-border/60">
+                  Ekstra tekst
+                </span>
+              )}
+              <HostQuestionStatusBadge status={displayStatus} className="!flex-row" />
             </div>
           </div>
-          <span className="shrink-0 text-quiz-muted text-lg px-1 self-center" aria-hidden>
+          <span className="shrink-0 text-quiz-muted text-base px-0.5 self-center" aria-hidden>
             {isExpanded ? '▾' : '▸'}
           </span>
         </button>
@@ -121,7 +142,7 @@ export function HostQuestionEditorCard({
           type="button"
           variant="danger"
           size="sm"
-          className="w-full shrink-0 sm:w-auto sm:self-center sm:min-w-[4.5rem]"
+          className="w-full shrink-0 sm:w-auto sm:self-center sm:min-h-[44px]"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
@@ -132,54 +153,17 @@ export function HostQuestionEditorCard({
       </div>
 
       {isExpanded && (
-        <div className="p-4 sm:p-5 pt-2 space-y-5 border-t border-quiz-border/80 bg-quiz-bg/40 min-w-0 max-w-full overflow-x-hidden">
+        <div className="px-3 pb-3 pt-1 space-y-3 border-t border-quiz-border/80 bg-quiz-bg/40 min-w-0 max-w-full overflow-x-hidden">
           <div className="min-w-0">
-            <label className="block text-sm font-semibold text-quiz-text mb-2">Spørsmål</label>
+            <label className="block text-xs font-semibold text-quiz-text mb-1">Spørsmål</label>
             <EditorTextArea
               ref={titleRef}
               value={getQuestionTitle(question)}
               onChange={(e) => updateTitle(e.target.value)}
               placeholder="Skriv spørsmål her..."
-              minRows={2}
-              className="text-base sm:text-lg font-medium bg-quiz-bg border-quiz-accent/30"
+              minRows={1}
+              className="text-sm sm:text-base font-medium bg-quiz-bg border-quiz-accent/30 py-2"
             />
-          </div>
-
-          <div className="min-w-0">
-            <label className="block text-sm font-medium text-quiz-muted mb-2">
-              Tilleggslinjer (valgfritt)
-            </label>
-            <EditorTextArea
-              value={bodyLines}
-              onChange={(e) => updateBody(e.target.value)}
-              placeholder="Ekstra info, flere linjer…"
-              minRows={2}
-              className="bg-quiz-bg"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
-            <div className="min-w-0">
-              <label className="block text-sm font-medium text-quiz-muted mb-2">Hint</label>
-              <EditorTextArea
-                value={question.hint ?? ''}
-                onChange={(e) => updateHint(e.target.value)}
-                placeholder="F.eks. begynner med P"
-                minRows={1}
-                className="bg-quiz-bg"
-              />
-            </div>
-            <div className="min-w-0 w-full sm:max-w-[8rem]">
-              <label className="block text-sm font-medium text-quiz-muted mb-2">Poeng</label>
-              <Input
-                type="number"
-                min={0}
-                max={20}
-                value={question.maxPoints}
-                onChange={(e) => updatePoints(Number(e.target.value))}
-                className="bg-quiz-bg"
-              />
-            </div>
           </div>
 
           {question.type === 'open' ? (
@@ -188,12 +172,75 @@ export function HostQuestionEditorCard({
             <McOptionsEditor question={question} onChange={onChange} />
           )}
 
-          <Button type="button" variant="danger" className="w-full" onClick={onDelete}>
-            Slett dette spørsmålet
-          </Button>
+          <details
+            open={moreOpen}
+            onToggle={(e) => setMoreOpen((e.target as HTMLDetailsElement).open)}
+            className="rounded-lg border border-quiz-border/70 bg-quiz-surface/50 min-w-0 max-w-full overflow-hidden group"
+          >
+            <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-medium text-quiz-muted hover:text-quiz-text min-h-[44px] flex items-center gap-2 [&::-webkit-details-marker]:hidden">
+              <span className="text-quiz-muted group-open:rotate-180 transition-transform shrink-0" aria-hidden>
+                ▸
+              </span>
+              <span className="min-w-0 break-words">
+                Flere valg: hint, tilleggstekst og poeng
+              </span>
+              {(hasHint || hasBody) && !moreOpen && (
+                <span className="text-[10px] text-quiz-accent shrink-0">(utfylt)</span>
+              )}
+            </summary>
+            <div className="space-y-3 px-3 pb-3 pt-0 border-t border-quiz-border/50">
+              <div className="min-w-0">
+                <label className="block text-xs font-medium text-quiz-muted mb-1">Hint</label>
+                <EditorTextArea
+                  value={question.hint ?? ''}
+                  onChange={(e) => updateHint(e.target.value)}
+                  placeholder="F.eks. begynner med P"
+                  minRows={1}
+                  className="bg-quiz-bg py-2 text-sm"
+                />
+              </div>
+
+              <div className="min-w-0">
+                <label className="block text-xs font-medium text-quiz-muted mb-1">
+                  Tilleggstekst (valgfritt)
+                </label>
+                <EditorTextArea
+                  value={bodyLines}
+                  onChange={(e) => updateBody(e.target.value)}
+                  placeholder="Ekstra info under spørsmålet…"
+                  minRows={1}
+                  className="bg-quiz-bg py-2 text-sm"
+                />
+              </div>
+
+              <div className="min-w-0 max-w-[8rem]">
+                <label className="block text-xs font-medium text-quiz-muted mb-1">Poeng</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={question.maxPoints}
+                  onChange={(e) => updatePoints(Number(e.target.value))}
+                  className="bg-quiz-bg py-2 min-h-[44px]"
+                  aria-label="Poeng for spørsmålet"
+                />
+              </div>
+            </div>
+          </details>
         </div>
       )}
     </article>
+  );
+}
+
+function PointsChip({ points }: { points: number }) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full bg-quiz-accent/15 border border-quiz-accent/30 px-2 py-0.5 text-[10px] font-bold tabular-nums text-quiz-accent shrink-0"
+      title="Poeng"
+    >
+      {points}p
+    </span>
   );
 }
 
@@ -225,22 +272,22 @@ function OpenAnswersEditor({
   };
 
   return (
-    <div className="rounded-xl bg-green-500/10 border-2 border-green-500/30 p-4 space-y-3 min-w-0 max-w-full overflow-x-hidden">
-      <p className="text-sm font-semibold text-green-300">Godkjente svar (fasit)</p>
+    <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 space-y-2 min-w-0 max-w-full overflow-x-hidden">
+      <p className="text-xs font-semibold text-green-300">Godkjente svar (fasit)</p>
       {answers.map((a, i) => (
-        <div key={i} className="flex gap-2 items-start min-w-0">
+        <div key={i} className="flex gap-1.5 items-start min-w-0">
           <EditorTextArea
             value={a}
             onChange={(e) => setAnswer(i, e.target.value)}
-            placeholder="Skriv godkjent svar..."
+            placeholder="Godkjent svar…"
             minRows={1}
-            className="flex-1 min-w-0 bg-quiz-bg"
+            className="flex-1 min-w-0 bg-quiz-bg py-2 text-sm"
           />
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="shrink-0 mt-1"
+            className="shrink-0 min-h-[44px] min-w-[44px] px-0"
             onClick={() => removeAnswer(i)}
             disabled={answers.length <= 1}
             aria-label="Fjern svar"
@@ -249,7 +296,7 @@ function OpenAnswersEditor({
           </Button>
         </div>
       ))}
-      <Button type="button" variant="secondary" size="sm" onClick={addAnswer}>
+      <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={addAnswer}>
         + Flere godkjente svar
       </Button>
     </div>
@@ -297,14 +344,14 @@ function McOptionsEditor({
   };
 
   return (
-    <div className="rounded-xl border-2 border-quiz-border bg-quiz-bg p-4 space-y-3 min-w-0 max-w-full overflow-x-hidden">
-      <p className="text-sm font-semibold text-quiz-text">Svaralternativer — trykk for riktig svar</p>
+    <div className="rounded-lg border border-quiz-border bg-quiz-bg p-3 space-y-2 min-w-0 max-w-full overflow-x-hidden">
+      <p className="text-xs font-semibold text-quiz-text">Svaralternativer — trykk for riktig</p>
       {options.map((opt, i) => (
-        <div key={opt.id} className="flex gap-2 items-start min-w-0">
+        <div key={opt.id} className="flex gap-1.5 items-start min-w-0">
           <button
             type="button"
             onClick={() => setCorrect(opt.id)}
-            className={`shrink-0 mt-1 h-11 w-11 rounded-full border-2 text-sm font-bold transition-colors ${
+            className={`shrink-0 h-11 w-11 rounded-full border-2 text-xs font-bold transition-colors ${
               opt.isCorrect
                 ? 'border-green-500 bg-green-500/25 text-green-200'
                 : 'border-quiz-border text-quiz-muted hover:border-quiz-muted'
@@ -316,23 +363,24 @@ function McOptionsEditor({
           <EditorTextArea
             value={opt.text}
             onChange={(e) => setOptionText(opt.id, e.target.value)}
-            placeholder={`Skriv alternativ ${i + 1}...`}
+            placeholder={`Alternativ ${i + 1}…`}
             minRows={1}
-            className="flex-1 min-w-0 bg-quiz-surface"
+            className="flex-1 min-w-0 bg-quiz-surface py-2 text-sm"
           />
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="shrink-0 mt-1"
+            className="shrink-0 min-h-[44px] min-w-[44px] px-0"
             onClick={() => removeOption(opt.id)}
             disabled={options.length <= 2}
+            aria-label="Fjern alternativ"
           >
             ×
           </Button>
         </div>
       ))}
-      <Button type="button" variant="secondary" size="sm" onClick={addOption}>
+      <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={addOption}>
         + Alternativ
       </Button>
     </div>
