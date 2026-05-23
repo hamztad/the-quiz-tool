@@ -255,7 +255,7 @@ export function HostEditPage() {
           )}
         </div>
 
-        <div ref={editorListRef} className="space-y-3 min-h-[120px]">
+        <div ref={editorListRef} className="space-y-3 min-h-[120px] min-w-0 max-w-full overflow-x-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/10">
             <h3 className="text-base font-bold">Spørsmålsliste ({draftQuestions.length})</h3>
             <div className="flex flex-wrap items-center gap-2">

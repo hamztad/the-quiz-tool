@@ -3,7 +3,7 @@ import type { Question } from '@quiz-tool/shared';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { Input, TextArea } from '../ui/Input';
+import { EditorTextArea, Input } from '../ui/Input';
 import {
   getQuestionTitle,
   getQuestionTitleTrimmed,
@@ -21,7 +21,7 @@ interface HostQuestionEditorCardProps {
   onToggleExpand: () => void;
   onChange: (question: Question) => void;
   onDelete: () => void;
-  titleInputRef?: React.RefObject<HTMLInputElement | null>;
+  titleInputRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 export function HostQuestionEditorCard({
@@ -35,7 +35,7 @@ export function HostQuestionEditorCard({
   onDelete,
   titleInputRef,
 }: HostQuestionEditorCardProps) {
-  const localTitleRef = useRef<HTMLInputElement>(null);
+  const localTitleRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = titleInputRef ?? localTitleRef;
   const incomplete = isQuestionIncomplete(question);
   const bodyLines = question.lines.slice(1).map((l) => l.text).join('\n');
@@ -76,7 +76,7 @@ export function HostQuestionEditorCard({
   return (
     <article
       id={`question-editor-${question.id}`}
-      className={`rounded-2xl border-2 bg-quiz-surface shadow-md transition-all duration-300 overflow-hidden ${
+      className={`max-w-full min-w-0 rounded-2xl border-2 bg-quiz-surface shadow-md transition-all duration-300 overflow-hidden ${
         isHighlighted
           ? 'border-quiz-accent ring-4 ring-quiz-accent/40'
           : incomplete
@@ -90,8 +90,7 @@ export function HostQuestionEditorCard({
         </div>
       )}
 
-      {/* Accordion header — always visible */}
-      <div className="flex items-stretch gap-2 p-3 bg-quiz-surface-elevated/50">
+      <div className="flex items-stretch gap-2 p-3 bg-quiz-surface-elevated/50 min-w-0">
         <button
           type="button"
           onClick={onToggleExpand}
@@ -131,42 +130,44 @@ export function HostQuestionEditorCard({
       </div>
 
       {isExpanded && (
-        <div className="p-5 pt-2 space-y-5 border-t border-quiz-border/80 bg-quiz-bg/40">
-          <div>
+        <div className="p-4 sm:p-5 pt-2 space-y-5 border-t border-quiz-border/80 bg-quiz-bg/40 min-w-0 max-w-full overflow-x-hidden">
+          <div className="min-w-0">
             <label className="block text-sm font-semibold text-quiz-text mb-2">Spørsmål</label>
-            <Input
+            <EditorTextArea
               ref={titleRef}
               value={getQuestionTitle(question)}
               onChange={(e) => updateTitle(e.target.value)}
               placeholder="Skriv spørsmål her..."
-              className="text-lg bg-quiz-bg border-quiz-accent/30"
+              minRows={2}
+              className="text-base sm:text-lg font-medium bg-quiz-bg border-quiz-accent/30"
             />
           </div>
 
-          <div>
+          <div className="min-w-0">
             <label className="block text-sm font-medium text-quiz-muted mb-2">
               Tilleggslinjer (valgfritt)
             </label>
-            <TextArea
+            <EditorTextArea
               value={bodyLines}
               onChange={(e) => updateBody(e.target.value)}
               placeholder="Ekstra info, flere linjer…"
-              rows={2}
-              className="min-h-[72px] bg-quiz-bg"
+              minRows={2}
+              className="bg-quiz-bg"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+            <div className="min-w-0">
               <label className="block text-sm font-medium text-quiz-muted mb-2">Hint</label>
-              <Input
+              <EditorTextArea
                 value={question.hint ?? ''}
                 onChange={(e) => updateHint(e.target.value)}
                 placeholder="F.eks. begynner med P"
+                minRows={1}
                 className="bg-quiz-bg"
               />
             </div>
-            <div>
+            <div className="min-w-0 sm:max-w-[8rem]">
               <label className="block text-sm font-medium text-quiz-muted mb-2">Poeng</label>
               <Input
                 type="number"
@@ -222,20 +223,22 @@ function OpenAnswersEditor({
   };
 
   return (
-    <div className="rounded-xl bg-green-500/10 border-2 border-green-500/30 p-4 space-y-3">
+    <div className="rounded-xl bg-green-500/10 border-2 border-green-500/30 p-4 space-y-3 min-w-0 max-w-full overflow-x-hidden">
       <p className="text-sm font-semibold text-green-300">Godkjente svar (fasit)</p>
       {answers.map((a, i) => (
-        <div key={i} className="flex gap-2">
-          <Input
+        <div key={i} className="flex gap-2 items-start min-w-0">
+          <EditorTextArea
             value={a}
             onChange={(e) => setAnswer(i, e.target.value)}
             placeholder="Skriv godkjent svar..."
-            className="flex-1 bg-quiz-bg"
+            minRows={1}
+            className="flex-1 min-w-0 bg-quiz-bg"
           />
           <Button
             type="button"
             variant="ghost"
             size="sm"
+            className="shrink-0 mt-1"
             onClick={() => removeAnswer(i)}
             disabled={answers.length <= 1}
             aria-label="Fjern svar"
@@ -292,14 +295,14 @@ function McOptionsEditor({
   };
 
   return (
-    <div className="rounded-xl border-2 border-quiz-border bg-quiz-bg p-4 space-y-3">
+    <div className="rounded-xl border-2 border-quiz-border bg-quiz-bg p-4 space-y-3 min-w-0 max-w-full overflow-x-hidden">
       <p className="text-sm font-semibold text-quiz-text">Svaralternativer — trykk for riktig svar</p>
       {options.map((opt, i) => (
-        <div key={opt.id} className="flex gap-2 items-center">
+        <div key={opt.id} className="flex gap-2 items-start min-w-0">
           <button
             type="button"
             onClick={() => setCorrect(opt.id)}
-            className={`shrink-0 h-11 w-11 rounded-full border-2 text-sm font-bold transition-colors ${
+            className={`shrink-0 mt-1 h-11 w-11 rounded-full border-2 text-sm font-bold transition-colors ${
               opt.isCorrect
                 ? 'border-green-500 bg-green-500/25 text-green-200'
                 : 'border-quiz-border text-quiz-muted hover:border-quiz-muted'
@@ -308,16 +311,18 @@ function McOptionsEditor({
           >
             {opt.isCorrect ? '✓' : i + 1}
           </button>
-          <Input
+          <EditorTextArea
             value={opt.text}
             onChange={(e) => setOptionText(opt.id, e.target.value)}
             placeholder={`Skriv alternativ ${i + 1}...`}
-            className="flex-1 bg-quiz-surface"
+            minRows={1}
+            className="flex-1 min-w-0 bg-quiz-surface"
           />
           <Button
             type="button"
             variant="ghost"
             size="sm"
+            className="shrink-0 mt-1"
             onClick={() => removeOption(opt.id)}
             disabled={options.length <= 2}
           >
