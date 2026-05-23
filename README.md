@@ -29,8 +29,8 @@ npm run dev
 
 ## Flyt
 
-1. **Quizmaster:** Opprett quiz på forsiden → del join-kode/QR
-2. **Lag:** Gå til `/join`, skriv kode og lagnavn
+1. **Quizmaster:** Gå til `/host` og opprett quiz → del QR-kode (peker til `/join/:kode`)
+2. **Lag:** Skann QR eller gå til `/join` — kun lagnavn og romkode, ingen admin-funksjoner
 3. **Quizmaster:** Rediger spørsmål (hurtigimport eller skjema) → Start quiz
 4. **Åpne/lås** spørsmål manuelt; lag svarer og kan redigere til låsing
 5. **MC** rettes automatisk ved innsending

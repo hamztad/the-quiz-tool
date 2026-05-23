@@ -24,6 +24,7 @@ export function createRoom(title?: string): RoomRecord {
     settings: { showLeaderboard: false },
     hostToken,
     teamTokens: {},
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
   };
 
   void title;

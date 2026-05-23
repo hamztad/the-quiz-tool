@@ -1,41 +1,61 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CLIENT_EVENTS, SERVER_EVENTS } from '@quiz-tool/shared';
+import { Link, useNavigate } from 'react-router-dom';
+import { buildParticipantJoinPath } from '../lib/joinUrls';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import { PageShell } from '../components/layout/PageShell';
-import { useSocket } from '../hooks/useSocket';
-import { saveHostSession } from '../lib/tokens';
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { socket, connected } = useSocket();
-  const [loading, setLoading] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
 
-  const createQuiz = () => {
-    setLoading(true);
-    const onCreated = (data: { roomId: string; hostToken: string }) => {
-      setLoading(false);
-      saveHostSession({ roomId: data.roomId, hostToken: data.hostToken });
-      navigate(`/host/${data.roomId}`);
-    };
-    socket.once(SERVER_EVENTS.ROOM_CREATED, onCreated);
-    socket.emit(CLIENT_EVENTS.ROOM_CREATE, {}, (res: { roomId: string; hostToken: string } | undefined) => {
-      if (res?.roomId) onCreated(res);
-    });
+  const goToJoin = () => {
+    navigate(buildParticipantJoinPath(joinCode));
   };
 
   return (
-    <PageShell title="The Quiz Tool" subtitle="Moderne live pubquiz — ikke Kahoot">
+    <PageShell title="The Quiz Tool" subtitle="Live pubquiz for quizmaster og lag">
       <div className="space-y-4">
-        <Button size="lg" className="w-full" onClick={createQuiz} disabled={!connected || loading}>
-          {loading ? 'Oppretter…' : 'Opprett quiz'}
-        </Button>
-        <Button variant="secondary" size="lg" className="w-full" onClick={() => navigate('/join')}>
-          Bli med som lag
-        </Button>
-        {!connected && (
-          <p className="text-sm text-quiz-muted text-center">Kobler til server…</p>
-        )}
+        <Link
+          to="/host"
+          className="block rounded-2xl border-2 border-quiz-accent/40 bg-quiz-surface-elevated p-5 text-left transition-colors hover:border-quiz-accent hover:bg-quiz-surface"
+        >
+          <p className="text-lg font-bold text-quiz-text">Quizmaster</p>
+          <p className="mt-1 text-sm text-quiz-muted">
+            Opprett quiz, vis QR-kode og styr spørsmål underveis.
+          </p>
+          <span className="mt-3 inline-block text-sm font-medium text-quiz-accent">
+            Gå til quizmaster →
+          </span>
+        </Link>
+
+        <div className="rounded-2xl border border-quiz-border bg-quiz-surface-elevated p-5 space-y-4">
+          <div>
+            <p className="text-lg font-bold text-quiz-text">Deltaker</p>
+            <p className="mt-1 text-sm text-quiz-muted">
+              Skann QR-koden eller skriv inn romkode og lagnavn.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="landing-join-code" className="text-sm text-quiz-muted mb-1 block">
+              Romkode (valgfritt)
+            </label>
+            <Input
+              id="landing-join-code"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="ABC123"
+              maxLength={8}
+              className="text-center tracking-widest font-semibold"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') goToJoin();
+              }}
+            />
+          </div>
+          <Button size="lg" variant="secondary" className="w-full" onClick={goToJoin}>
+            Bli med som lag
+          </Button>
+        </div>
       </div>
     </PageShell>
   );

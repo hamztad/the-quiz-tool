@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Question, type PublicRoomState } from '@quiz-tool/shared';
 import { AcceptedAnswersList } from '../components/question/AcceptedAnswersList';
@@ -9,28 +9,29 @@ import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input, TextArea } from '../components/ui/Input';
-import { useRoomState } from '../hooks/useRoomState';
+import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
+import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
-import { getTeamSession } from '../lib/tokens';
+import { formatTeamAnswerDisplay } from '../lib/teamAnswerDisplay';
+
+const HIGHLIGHT_MS = 5000;
 
 export function TeamPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const { socket, connected } = useSocket();
-  const { room, error } = useRoomState(socket);
+  const { room, unavailable, loading, noSession, operationalError, teamSession } = useRoomGate(
+    roomId,
+    'team',
+    socket,
+    connected,
+  );
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [protestMessage, setProtestMessage] = useState('');
+  const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const teamSession = roomId ? getTeamSession(roomId) : null;
   const teamId = teamSession?.teamId;
-
-  useEffect(() => {
-    if (!roomId || !connected || !teamSession) return;
-    socket.emit(CLIENT_EVENTS.ROOM_RECONNECT, {
-      roomId,
-      teamToken: teamSession.teamToken,
-    });
-  }, [roomId, socket, connected, teamSession]);
 
   useEffect(() => {
     if (!room || !teamId) return;
@@ -42,42 +43,88 @@ export function TeamPage() {
     }
   }, [activeQuestionId, room, teamId]);
 
-  if (!roomId || !teamSession) {
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    };
+  }, []);
+
+  const flashHighlight = useCallback((questionId: string) => {
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    setHighlightedQuestionId(questionId);
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightedQuestionId(null);
+      highlightTimerRef.current = null;
+    }, HIGHLIGHT_MS);
+  }, []);
+
+  useEffect(() => {
+    if (!highlightedQuestionId || activeQuestionId) return;
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`team-question-${highlightedQuestionId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }, [highlightedQuestionId, activeQuestionId]);
+
+  if (!roomId) return null;
+
+  if (unavailable) {
+    return <RoomUnavailableView reason={unavailable} />;
+  }
+
+  if (noSession) {
+    return <RoomUnavailableView reason="not_found" />;
+  }
+
+  if (loading || !room) {
     return (
-      <PageShell title="Lag">
-        <p className="text-quiz-muted">Ingen lag-session. Gå til /join for å bli med.</p>
+      <PageShell title="Lag" subtitle="Kobler til quizrom…">
+        <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
       </PageShell>
     );
   }
 
-  const myTeam = room?.teams.find((t) => t.id === teamId);
-  const assignment = room?.gradingAssignments.find((a) => a.graderTeamId === teamId);
+  const myTeam = room.teams.find((t) => t.id === teamId);
+  const assignment = room.gradingAssignments.find((a) => a.graderTeamId === teamId);
 
   const getMyAnswer = (questionId: string) =>
-    room?.answers.find((a) => a.teamId === teamId && a.questionId === questionId);
+    room.answers.find((a) => a.teamId === teamId && a.questionId === questionId);
 
   const hasAnswered = (questionId: string) =>
-    (room?.answeredByTeam[teamId ?? ''] ?? []).includes(questionId);
+    (room.answeredByTeam[teamId ?? ''] ?? []).includes(questionId);
 
   const submitAnswer = (question: Question) => {
+    const trimmed = answerText.trim();
+    if (!trimmed) return;
+
     const existing = getMyAnswer(question.id);
     const event = existing ? CLIENT_EVENTS.ANSWER_UPDATE : CLIENT_EVENTS.ANSWER_SUBMIT;
-    const value =
-      question.type === 'mc'
-        ? answerText
-        : answerText;
-    socket.emit(event, { questionId: question.id, value });
+    socket.emit(event, { questionId: question.id, value: trimmed });
+    setActiveQuestionId(null);
+    flashHighlight(question.id);
   };
 
-  const activeQuestion = room?.questions.find((q) => q.id === activeQuestionId);
+  const openQuestion = (q: Question) => {
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+    setHighlightedQuestionId(null);
+    setActiveQuestionId(q.id);
+    const ans = getMyAnswer(q.id);
+    setAnswerText(ans?.value && ans.value !== '[hidden]' ? ans.value : '');
+  };
 
-  if (room?.phase === 'grading' && assignment) {
+  const activeQuestion = room.questions.find((q) => q.id === activeQuestionId);
+
+  if (room.phase === 'grading' && assignment) {
     return (
       <GradingView
         room={room}
         assignment={assignment}
         teamName={myTeam?.name ?? 'Lag'}
-        error={error}
+        error={operationalError}
         onProtest={(questionId) => {
           socket.emit(CLIENT_EVENTS.PROTEST_SUBMIT, {
             questionId,
@@ -91,87 +138,126 @@ export function TeamPage() {
     );
   }
 
-  if (room?.phase === 'leaderboard' || room?.settings.showLeaderboard) {
+  if (room.phase === 'leaderboard' || room.settings.showLeaderboard) {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Leaderboard">
-        {error && <p className="text-red-400 mb-4">{error}</p>}
-        {room && <Leaderboard room={room} />}
+        {operationalError && <p className="text-red-400 mb-4">{operationalError}</p>}
+        <Leaderboard room={room} />
       </PageShell>
     );
   }
 
   return (
-    <PageShell title={myTeam?.name ?? 'Lag'} subtitle={`Fase: ${room?.phase ?? '…'}`}>
-      {error && <p className="text-red-400 mb-4">{error}</p>}
+    <PageShell title={myTeam?.name ?? 'Lag'} subtitle={`Fase: ${room.phase}`}>
+      {operationalError && <p className="text-red-400 mb-4">{operationalError}</p>}
 
-      {room && (
-        <div className="space-y-4">
+      <div className="space-y-4">
           {activeQuestion ? (
-            <Card className="ring-2 ring-quiz-active">
+            <Card className="ring-2 ring-quiz-active p-3 sm:p-4">
               <QuestionBody question={activeQuestion} />
-              {activeQuestion.type === 'open' ? (
-                <TextArea
-                  className="mt-4"
-                  value={answerText}
-                  onChange={(e) => setAnswerText(e.target.value)}
-                  placeholder="Ditt svar…"
-                  disabled={room.questionStatus[activeQuestion.id] !== 'open'}
-                />
-              ) : (
-                <div className="mt-4 space-y-2">
-                  {activeQuestion.options?.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setAnswerText(opt.id)}
-                      className={`w-full rounded-xl border px-4 py-3 text-left min-h-[44px] transition-colors ${
-                        answerText === opt.id
-                          ? 'border-quiz-accent bg-quiz-accent/20'
-                          : 'border-quiz-border bg-quiz-surface-elevated'
-                      }`}
-                      disabled={room.questionStatus[activeQuestion.id] !== 'open'}
+              {(() => {
+                const qStatus = room.questionStatus[activeQuestion.id] ?? 'locked';
+                const isEditable = qStatus === 'open';
+                const displayAnswer = formatTeamAnswerDisplay(activeQuestion, answerText);
+
+                if (!isEditable) {
+                  return (
+                    <>
+                      {displayAnswer ? (
+                        <div className="mt-4 rounded-xl border border-quiz-border/70 bg-quiz-surface-elevated px-3 py-2.5">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-quiz-muted sm:text-xs">
+                            Deres svar
+                          </p>
+                          <p className="mt-1 text-sm font-medium text-quiz-text break-words">
+                            {displayAnswer}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="mt-4 text-sm text-quiz-muted">Ingen svar sendt inn.</p>
+                      )}
+                      <p className="mt-3 text-xs text-quiz-muted">
+                        Spørsmålet er låst. Svaret kan ikke endres.
+                      </p>
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    {activeQuestion.type === 'open' ? (
+                      <TextArea
+                        className="mt-4"
+                        value={answerText}
+                        onChange={(e) => setAnswerText(e.target.value)}
+                        placeholder="Ditt svar…"
+                      />
+                    ) : (
+                      <div className="mt-4 space-y-2">
+                        {activeQuestion.options?.map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setAnswerText(opt.id)}
+                            className={`w-full rounded-xl border px-4 py-3 text-left min-h-[44px] transition-colors ${
+                              answerText === opt.id
+                                ? 'border-quiz-accent bg-quiz-accent/20'
+                                : 'border-quiz-border bg-quiz-surface-elevated'
+                            }`}
+                          >
+                            {opt.text}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <Button
+                      className="w-full mt-4"
+                      onClick={() => submitAnswer(activeQuestion)}
+                      disabled={!answerText.trim()}
                     >
-                      {opt.text}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {room.questionStatus[activeQuestion.id] === 'open' && (
-                <Button className="w-full mt-4" onClick={() => submitAnswer(activeQuestion)}>
-                  {getMyAnswer(activeQuestion.id) ? 'Oppdater svar' : 'Send inn svar'}
-                </Button>
-              )}
-              <Button variant="ghost" className="w-full mt-2" onClick={() => setActiveQuestionId(null)}>
+                      {getMyAnswer(activeQuestion.id) ? 'Oppdater svar' : 'Send inn svar'}
+                    </Button>
+                  </>
+                );
+              })()}
+              <Button
+                variant="ghost"
+                className="w-full mt-2"
+                onClick={() => setActiveQuestionId(null)}
+              >
                 Tilbake til oversikt
               </Button>
             </Card>
           ) : (
             <>
-              <p className="text-sm text-quiz-muted">Trykk på et spørsmål for å svare eller redigere.</p>
+              <p className="text-sm text-quiz-muted">
+                Trykk på et spørsmål for å svare eller redigere. Låste spørsmål kan åpnes for å se
+                svaret.
+              </p>
               {room.questions.map((q) => {
                 const status = room.questionStatus[q.id] ?? 'locked';
                 const answered = hasAnswered(q.id);
+                const myAnswer = getMyAnswer(q.id);
+                const answerPreview = formatTeamAnswerDisplay(q, myAnswer?.value);
+                const canOpen = status === 'open' || answered;
+
                 return (
-                  <Fragment key={q.id}>
+                  <div key={q.id} id={`team-question-${q.id}`}>
                     <QuestionCard
                       question={q}
                       status={status}
                       answered={answered}
-                      onClick={() => {
-                        if (status === 'open' || answered) {
-                          setActiveQuestionId(q.id);
-                          const ans = getMyAnswer(q.id);
-                          setAnswerText(ans?.value && ans.value !== '[hidden]' ? ans.value : '');
-                        }
-                      }}
+                      viewMode="team"
+                      highlighted={highlightedQuestionId === q.id}
+                      teamAnswerPreview={answerPreview}
+                      onClick={canOpen ? () => openQuestion(q) : undefined}
+                      className={canOpen ? 'cursor-pointer hover:bg-quiz-surface-elevated' : ''}
                     />
-                  </Fragment>
+                  </div>
                 );
               })}
             </>
           )}
         </div>
-      )}
     </PageShell>
   );
 }

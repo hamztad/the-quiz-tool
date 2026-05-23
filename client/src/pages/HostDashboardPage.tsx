@@ -1,55 +1,65 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Protest, type PublicRoomState } from '@quiz-tool/shared';
 import { JoinCodeDisplay } from '../components/host/JoinCodeDisplay';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
 import { QuestionCard } from '../components/question/QuestionCard';
+import { buildParticipantJoinUrl } from '../lib/joinUrls';
 import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
 import { isQuestionIncomplete } from '../lib/questionFactory';
+import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import { useRoomState } from '../hooks/useRoomState';
+import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
-import { getHostSession } from '../lib/tokens';
 
 export function HostDashboardPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const { socket, connected } = useSocket();
-  const { room, error } = useRoomState(socket);
+  const { room, unavailable, loading, noSession, operationalError } = useRoomGate(
+    roomId,
+    'host',
+    socket,
+    connected,
+  );
   const [overridePoints, setOverridePoints] = useState('1');
-
-  useEffect(() => {
-    if (!roomId || !connected) return;
-    const session = getHostSession(roomId);
-    if (session) {
-      socket.emit(CLIENT_EVENTS.ROOM_RECONNECT, {
-        roomId,
-        hostToken: session.hostToken,
-      });
-    }
-  }, [roomId, socket, connected]);
 
   if (!roomId) return null;
 
-  const joinUrl = `${window.location.origin}/join/${room?.joinCode ?? ''}`;
+  if (unavailable) {
+    return <RoomUnavailableView reason={unavailable} />;
+  }
+
+  if (noSession) {
+    return <RoomUnavailableView reason="not_found" />;
+  }
+
+  if (loading || !room) {
+    return (
+      <PageShell title="Quizmaster" subtitle="Kobler til quizrom…">
+        <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
+      </PageShell>
+    );
+  }
+
+  const joinUrl = buildParticipantJoinUrl(room.joinCode);
 
   const emit = (event: string, payload?: object) => {
     socket.emit(event, payload ?? {});
   };
 
   const teamAnswered = (teamId: string, questionId: string) =>
-    (room?.answeredByTeam[teamId] ?? []).includes(questionId);
+    room.answeredByTeam[teamId]?.includes(questionId) ?? false;
 
-  const pendingProtests = room?.protests.filter((p) => p.status === 'pending') ?? [];
+  const pendingProtests = room.protests.filter((p) => p.status === 'pending');
 
   return (
-    <PageShell title="Quizmaster" subtitle={room ? `Kode: ${room.joinCode} · Fase: ${room.phase}` : 'Laster…'}>
-      {error && <p className="text-red-400 mb-4">{error}</p>}
+    <PageShell title="Quizmaster" subtitle={`Kode: ${room.joinCode} · Fase: ${room.phase}`}>
+      {operationalError && <p className="text-red-400 mb-4">{operationalError}</p>}
 
-      {room && (
-        <div className="space-y-6">
+      <div className="space-y-6">
           <JoinCodeDisplay joinCode={room.joinCode} joinUrl={joinUrl} />
 
           <div className="flex flex-wrap gap-2">
@@ -58,6 +68,19 @@ export function HostDashboardPage() {
                 {room.questions.length === 0 ? 'Opprett spørsmål' : 'Rediger spørsmål'}
               </Button>
             </Link>
+            {room.phase !== 'ended' && (
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => {
+                  if (window.confirm('Avslutte quizen for alle lag? Dette kan ikke angres.')) {
+                    emit(CLIENT_EVENTS.ROOM_CLOSE);
+                  }
+                }}
+              >
+                Avslutt quiz
+              </Button>
+            )}
             {room.phase === 'lobby' && (
               <Button size="sm" onClick={() => emit(CLIENT_EVENTS.QUIZ_START)}>
                 Start quiz
@@ -258,7 +281,6 @@ export function HostDashboardPage() {
             )}
           </section>
         </div>
-      )}
     </PageShell>
   );
 }

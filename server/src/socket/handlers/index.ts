@@ -1,5 +1,6 @@
 import type { Server, Socket } from 'socket.io';
-import { CLIENT_EVENTS, SERVER_EVENTS, type Question } from '@quiz-tool/shared';
+import { CLIENT_EVENTS, ROOM_ERROR_CODES, SERVER_EVENTS, type Question } from '@quiz-tool/shared';
+import { checkRoomAccess } from '../../domain/roomAccess.js';
 import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import {
   buildGradingAssignments,
@@ -16,6 +17,17 @@ import { emitRoomStateToAll, emitRoomStateToSocket } from '../emitRoomState.js';
 
 function emitError(socket: Socket, message: string, code = 'ERROR') {
   socket.emit(SERVER_EVENTS.ERROR, { code, message });
+}
+
+function emitRoomAccessError(socket: Socket, code: string) {
+  const messages: Record<string, string> = {
+    [ROOM_ERROR_CODES.ROOM_NOT_FOUND]: 'Rommet finnes ikke.',
+    [ROOM_ERROR_CODES.ROOM_ENDED]: 'Quizen er avsluttet.',
+    [ROOM_ERROR_CODES.ROOM_EXPIRED]: 'Rommet har utløpt.',
+    [ROOM_ERROR_CODES.JOIN_CODE_INVALID]: 'Ugyldig join-kode.',
+    [ROOM_ERROR_CODES.SESSION_INVALID]: 'Økten er ugyldig.',
+  };
+  emitError(socket, messages[code] ?? 'Rommet er ikke tilgjengelig.', code);
 }
 
 function requireHost(socket: Socket, roomId: string): boolean {
@@ -66,18 +78,26 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     (payload: { joinCode: string; teamName: string }, ack?: (res: unknown) => void) => {
       try {
         const room = roomStore.getByJoinCode(payload.joinCode.trim().toUpperCase());
-        if (!room) {
-          emitError(socket, 'Ugyldig join-kode.');
+        const access = checkRoomAccess(room);
+        if (!access.ok) {
+          if (access.code === ROOM_ERROR_CODES.ROOM_EXPIRED && room) {
+            roomStore.delete(room.id);
+          }
+          if (!room) {
+            emitRoomAccessError(socket, ROOM_ERROR_CODES.JOIN_CODE_INVALID);
+          } else {
+            emitRoomAccessError(socket, access.code);
+          }
           return;
         }
 
-        const { room: updated, teamId, teamToken } = joinTeam(room, payload.teamName);
-        roomStore.update(room.id, () => updated);
-        attachSocket(socket, room.id, 'secretary', teamId);
+        const { room: updated, teamId, teamToken } = joinTeam(access.room, payload.teamName);
+        roomStore.update(access.room.id, () => updated);
+        attachSocket(socket, access.room.id, 'secretary', teamId);
 
-        const joined = { roomId: room.id, teamId, teamToken };
+        const joined = { roomId: access.room.id, teamId, teamToken };
         socket.emit(SERVER_EVENTS.ROOM_JOINED, joined);
-        emitRoomStateToAll(io, room.id);
+        emitRoomStateToAll(io, access.room.id);
         ack?.(joined);
       } catch (e) {
         emitError(socket, e instanceof Error ? e.message : 'Kunne ikke bli med');
@@ -90,38 +110,59 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     (payload: { roomId: string; hostToken?: string; teamToken?: string }, ack?: (res: unknown) => void) => {
       try {
         const room = roomStore.get(payload.roomId);
-        if (!room) {
-          emitError(socket, 'Rom finnes ikke.');
+        const access = checkRoomAccess(room);
+        if (!access.ok) {
+          if (access.code === ROOM_ERROR_CODES.ROOM_EXPIRED && room) {
+            roomStore.delete(room.id);
+          }
+          emitRoomAccessError(socket, access.code);
           return;
         }
 
-        if (payload.hostToken && payload.hostToken === room.hostToken) {
-          attachSocket(socket, room.id, 'host');
-          emitRoomStateToSocket(socket, room.id);
+        const activeRoom = access.room;
+
+        if (payload.hostToken && payload.hostToken === activeRoom.hostToken) {
+          attachSocket(socket, activeRoom.id, 'host');
+          emitRoomStateToSocket(socket, activeRoom.id);
           ack?.({ ok: true, role: 'host' });
-          emitRoomStateToAll(io, room.id);
+          emitRoomStateToAll(io, activeRoom.id);
           return;
         }
 
         if (payload.teamToken) {
-          const teamId = Object.entries(room.teamTokens).find(([, t]) => t === payload.teamToken)?.[0];
+          const teamId = Object.entries(activeRoom.teamTokens).find(
+            ([, t]) => t === payload.teamToken,
+          )?.[0];
           if (!teamId) {
-            emitError(socket, 'Ugyldig lag-token.');
+            emitRoomAccessError(socket, ROOM_ERROR_CODES.SESSION_INVALID);
             return;
           }
-          attachSocket(socket, room.id, 'secretary', teamId);
-          emitRoomStateToSocket(socket, room.id);
+          attachSocket(socket, activeRoom.id, 'secretary', teamId);
+          emitRoomStateToSocket(socket, activeRoom.id);
           ack?.({ ok: true, role: 'secretary', teamId });
-          emitRoomStateToAll(io, room.id);
+          emitRoomStateToAll(io, activeRoom.id);
           return;
         }
 
-        emitError(socket, 'Mangler gyldig token.');
+        emitRoomAccessError(socket, ROOM_ERROR_CODES.SESSION_INVALID);
       } catch (e) {
         emitError(socket, e instanceof Error ? e.message : 'Reconnect feilet');
       }
     },
   );
+
+  socket.on(CLIENT_EVENTS.ROOM_CLOSE, () => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+    const room = roomStore.get(roomId);
+    const access = checkRoomAccess(room);
+    if (!access.ok) {
+      emitRoomAccessError(socket, access.code);
+      return;
+    }
+    roomStore.update(roomId, (r) => ({ ...r, phase: 'ended' }));
+    emitRoomStateToAll(io, roomId);
+  });
 
   socket.on(CLIENT_EVENTS.QUIZ_QUESTIONS_SET, (payload: { questions: Question[] }) => {
     const roomId = socket.data.roomId as string;

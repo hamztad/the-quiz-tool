@@ -5,11 +5,11 @@ import { EditSection } from '../components/host/EditSection';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
 import { HostQuestionEditorCard } from '../components/host/HostQuestionEditorCard';
 import { QuickImportPanel } from '../components/host/QuickImportPanel';
+import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
-import { useRoomState } from '../hooks/useRoomState';
+import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
-import { getHostSession } from '../lib/tokens';
 import {
   createMcQuestion,
   createOpenQuestion,
@@ -27,7 +27,12 @@ type ParsedImportQuestion = Parameters<typeof stampImportedQuestions>[0][number]
 export function HostEditPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const { socket, connected } = useSocket();
-  const { room, error } = useRoomState(socket);
+  const { room, unavailable, loading, noSession, operationalError } = useRoomGate(
+    roomId,
+    'host',
+    socket,
+    connected,
+  );
   const [draftQuestions, setDraftQuestions] = useState<Question[]>([]);
   const [dirty, setDirty] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -37,17 +42,6 @@ export function HostEditPage() {
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const editorListRef = useRef<HTMLDivElement>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!roomId || !connected) return;
-    const session = getHostSession(roomId);
-    if (session) {
-      socket.emit(CLIENT_EVENTS.ROOM_RECONNECT, {
-        roomId,
-        hostToken: session.hostToken,
-      });
-    }
-  }, [roomId, socket, connected]);
 
   useEffect(() => {
     if (room?.questions && !dirty) {
@@ -178,11 +172,26 @@ export function HostEditPage() {
   const savedCount = room?.questions.length ?? 0;
   const isSynced = !dirty && draftQuestions.length === savedCount;
 
+  if (!roomId) return null;
+
+  if (unavailable) {
+    return <RoomUnavailableView reason={unavailable} />;
+  }
+
+  if (noSession) {
+    return <RoomUnavailableView reason="not_found" />;
+  }
+
+  if (loading || !room) {
+    return (
+      <PageShell title="Bygg quiz" subtitle="Kobler til quizrom…">
+        <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
+      </PageShell>
+    );
+  }
+
   return (
-    <PageShell
-      title="Bygg quiz"
-      subtitle={room ? `Rom ${room.joinCode}` : 'Laster…'}
-    >
+    <PageShell title="Bygg quiz" subtitle={`Rom ${room.joinCode}`}>
       <div className="mb-6">
         <Link
           to={`/host/${roomId}`}
@@ -192,9 +201,9 @@ export function HostEditPage() {
         </Link>
       </div>
 
-      {error && (
+      {operationalError && (
         <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          {error}
+          {operationalError}
         </p>
       )}
 

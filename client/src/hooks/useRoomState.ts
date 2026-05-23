@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
-import { SERVER_EVENTS, type PublicRoomState } from '@quiz-tool/shared';
+import { SERVER_EVENTS, type PublicRoomState, type ServerErrorPayload } from '@quiz-tool/shared';
 import type { AppSocket } from './useSocket';
 
 export function useRoomState(socket: AppSocket) {
   const [room, setRoom] = useState<PublicRoomState | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [roomError, setRoomError] = useState<ServerErrorPayload | null>(null);
 
   useEffect(() => {
     const onState = (state: PublicRoomState) => {
       setRoom(state);
-      setError(null);
+      setRoomError(null);
     };
-    const onError = (payload: { message: string }) => {
-      setError(payload.message);
+    const onError = (payload: ServerErrorPayload) => {
+      setRoomError(payload);
     };
 
     socket.on(SERVER_EVENTS.ROOM_STATE, onState);
@@ -24,5 +24,8 @@ export function useRoomState(socket: AppSocket) {
     };
   }, [socket]);
 
-  return { room, error, setError };
+  /** @deprecated Prefer roomError — kept for non-room errors */
+  const error = roomError?.message ?? null;
+
+  return { room, roomError, error, setRoomError };
 }

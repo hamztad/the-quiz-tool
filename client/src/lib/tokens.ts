@@ -41,3 +41,11 @@ export function getTeamSession(roomId: string): TeamSession | null {
     return null;
   }
 }
+
+export function clearHostSession() {
+  localStorage.removeItem(HOST_KEY);
+}
+
+export function clearTeamSession() {
+  localStorage.removeItem(TEAM_KEY);
+}

@@ -72,7 +72,7 @@ export interface GradingAssignment {
   questionIds: string[];
 }
 
-export type RoomPhase = 'lobby' | 'live' | 'grading' | 'leaderboard';
+export type RoomPhase = 'lobby' | 'live' | 'grading' | 'leaderboard' | 'ended';
 
 export interface RoomSettings {
   showLeaderboard: boolean;
