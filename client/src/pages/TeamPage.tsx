@@ -4,16 +4,15 @@ import {
   CLIENT_EVENTS,
   isQuestionRevealedToTeam,
   type Question,
-  type PublicRoomState,
 } from '@quiz-tool/shared';
-import { AcceptedAnswersList } from '../components/question/AcceptedAnswersList';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
+import { PeerGradingView } from '../components/grading/PeerGradingView';
 import { QuestionBody } from '../components/question/QuestionBody';
 import { QuestionCard } from '../components/question/QuestionCard';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { Input, TextArea } from '../components/ui/Input';
+import { TextArea } from '../components/ui/Input';
 import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
@@ -192,7 +191,7 @@ export function TeamPage() {
 
   if (room.phase === 'grading' && assignment) {
     return (
-      <GradingView
+      <PeerGradingView
         room={room}
         assignment={assignment}
         graderTeamId={teamId!}
@@ -323,252 +322,6 @@ export function TeamPage() {
             </>
           )}
         </div>
-    </PageShell>
-  );
-}
-
-function clampPeerPoints(value: number, max: number): number {
-  if (Number.isNaN(value)) return 0;
-  return Math.max(0, Math.min(max, Math.round(value)));
-}
-
-function GradingQuestionCard({
-  question: q,
-  room,
-  assignment,
-  graderTeamId,
-  protestMessage,
-  setProtestMessage,
-  onProtest,
-}: {
-  question: Question;
-  room: PublicRoomState;
-  assignment: { targetTeamId: string; questionIds: string[] };
-  graderTeamId: string;
-  protestMessage: string;
-  setProtestMessage: (v: string) => void;
-  onProtest: (questionId: string) => void;
-}) {
-  const { socket } = useSocket();
-  const existingGrade = room.peerGrades.find(
-    (pg) =>
-      pg.graderTeamId === graderTeamId &&
-      pg.targetTeamId === assignment.targetTeamId &&
-      pg.questionId === q.id,
-  );
-  const [points, setPoints] = useState(() =>
-    existingGrade !== undefined ? String(existingGrade.points) : String(q.maxPoints),
-  );
-  const [pendingPoints, setPendingPoints] = useState<number | null>(null);
-  const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
-  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const targetAnswer = room.answers.find(
-    (a) => a.teamId === assignment.targetTeamId && a.questionId === q.id,
-  );
-
-  const serverPoints = existingGrade?.points;
-  const registeredPoints = pendingPoints ?? serverPoints;
-  const hasRegisteredGrade = registeredPoints !== undefined;
-
-  useEffect(() => {
-    if (serverPoints !== undefined) {
-      setPoints(String(serverPoints));
-    }
-  }, [serverPoints, existingGrade?.submittedAt]);
-
-  useEffect(() => {
-    if (pendingPoints !== null && pendingPoints === serverPoints) {
-      setPendingPoints(null);
-    }
-  }, [pendingPoints, serverPoints]);
-
-  useEffect(() => {
-    return () => {
-      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
-    };
-  }, []);
-
-  const pointsNum = clampPeerPoints(Number(points), q.maxPoints);
-  const pointsInputValid = points.trim() !== '' && !Number.isNaN(Number(points));
-  const matchesRegistered =
-    hasRegisteredGrade && pointsInputValid && pointsNum === registeredPoints;
-
-  const showConfirm = (message = 'Poeng er registrert.') => {
-    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
-    setConfirmMessage(message);
-    confirmTimerRef.current = setTimeout(() => {
-      setConfirmMessage(null);
-      confirmTimerRef.current = null;
-    }, 4000);
-  };
-
-  const submitPoints = (value: number) => {
-    const clamped = clampPeerPoints(value, q.maxPoints);
-    setPoints(String(clamped));
-    setPendingPoints(clamped);
-    socket.emit(CLIENT_EVENTS.PEER_GRADE_SUBMIT, {
-      targetTeamId: assignment.targetTeamId,
-      questionId: q.id,
-      points: clamped,
-    });
-    showConfirm(clamped === 0 ? 'Null poeng er registrert.' : 'Poeng er registrert.');
-  };
-
-  const scoreOptions =
-    q.maxPoints <= 6 ? Array.from({ length: q.maxPoints + 1 }, (_, i) => i) : null;
-
-  let submitLabel = 'Gi poeng';
-  if (matchesRegistered) {
-    submitLabel = 'Poeng gitt';
-  } else if (hasRegisteredGrade) {
-    submitLabel = 'Endre poeng';
-  }
-
-  return (
-    <Card
-      className={`space-y-3 transition-colors ${
-        matchesRegistered ? 'ring-2 ring-green-500/50 border-green-500/30' : ''
-      }`}
-    >
-      <QuestionBody question={q} />
-      <AcceptedAnswersList answers={q.acceptedAnswers ?? []} />
-      <div className="rounded-xl bg-quiz-surface-elevated p-3">
-        <p className="text-xs text-quiz-muted mb-1">Lagets svar</p>
-        <p className="font-medium">{targetAnswer?.value ?? '—'}</p>
-      </div>
-
-      <div className="space-y-3">
-        {scoreOptions && (
-          <div className="flex flex-wrap gap-2">
-            {scoreOptions.map((p) => {
-              const selected = pointsInputValid && pointsNum === p;
-              const isRegisteredChoice = hasRegisteredGrade && registeredPoints === p;
-              return (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPoints(String(p))}
-                  className={`min-h-[44px] min-w-[44px] rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
-                    selected
-                      ? isRegisteredChoice
-                        ? 'border-green-500 bg-green-500/25 text-green-100 ring-2 ring-green-500/40'
-                        : 'border-quiz-accent bg-quiz-accent/20 text-quiz-text ring-2 ring-quiz-accent/40'
-                      : 'border-quiz-border bg-quiz-surface-elevated text-quiz-muted hover:border-quiz-accent/50'
-                  }`}
-                >
-                  {p}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2 items-center">
-          <Input
-            type="number"
-            min={0}
-            max={q.maxPoints}
-            value={points}
-            onChange={(e) => setPoints(e.target.value)}
-            className={`w-24 ${
-              matchesRegistered
-                ? 'border-green-500/60 ring-2 ring-green-500/30'
-                : hasRegisteredGrade && !matchesRegistered
-                  ? 'border-yellow-500/50 ring-1 ring-yellow-500/30'
-                  : ''
-            }`}
-            aria-label={`Poeng (0–${q.maxPoints})`}
-          />
-          <Button
-            variant={matchesRegistered ? 'secondary' : 'primary'}
-            disabled={!pointsInputValid || matchesRegistered}
-            onClick={() => submitPoints(pointsNum)}
-          >
-            {submitLabel}
-          </Button>
-          {hasRegisteredGrade && registeredPoints > 0 && (
-            <Button type="button" variant="ghost" size="sm" onClick={() => submitPoints(0)}>
-              Fjern poeng
-            </Button>
-          )}
-        </div>
-
-        {matchesRegistered && (
-          <p className="text-sm font-medium text-green-400">
-            {registeredPoints} poeng gitt
-          </p>
-        )}
-        {hasRegisteredGrade && !matchesRegistered && (
-          <p className="text-sm text-yellow-200/90">
-            Du har gitt {registeredPoints} poeng — trykk «Endre poeng» for å oppdatere.
-          </p>
-        )}
-        {confirmMessage && (
-          <p className="text-sm text-green-400" role="status" aria-live="polite">
-            {confirmMessage}
-          </p>
-        )}
-      </div>
-
-      <TextArea
-        placeholder="Protest? (valgfritt melding)"
-        value={protestMessage}
-        onChange={(e) => setProtestMessage(e.target.value)}
-        rows={2}
-      />
-      <Button variant="ghost" size="sm" onClick={() => onProtest(q.id)}>
-        Send protest
-      </Button>
-    </Card>
-  );
-}
-
-function GradingView({
-  room,
-  assignment,
-  graderTeamId,
-  teamName,
-  error,
-  onProtest,
-  protestMessage,
-  setProtestMessage,
-}: {
-  room: PublicRoomState;
-  assignment: { targetTeamId: string; questionIds: string[] };
-  graderTeamId: string;
-  teamName: string;
-  error: string | null;
-  onProtest: (questionId: string) => void;
-  protestMessage: string;
-  setProtestMessage: (v: string) => void;
-}) {
-  const targetTeam = room.teams.find((t) => t.id === assignment.targetTeamId);
-  const openQuestions = room.questions.filter(
-    (q) => q.type === 'open' && assignment.questionIds.includes(q.id),
-  );
-
-  return (
-    <PageShell title={teamName} subtitle={`Retter: ${targetTeam?.name ?? '…'}`}>
-      {error && <p className="text-red-400 mb-4">{error}</p>}
-      <p className="text-sm text-quiz-muted mb-4">
-        Gi poeng basert på godkjente svar. MC rettes automatisk og vises ikke her.
-      </p>
-
-      <div className="space-y-4">
-        {openQuestions.map((q) => (
-          <GradingQuestionCard
-            key={q.id}
-            question={q}
-            room={room}
-            assignment={assignment}
-            graderTeamId={graderTeamId}
-            protestMessage={protestMessage}
-            setProtestMessage={setProtestMessage}
-            onProtest={onProtest}
-          />
-        ))}
-      </div>
     </PageShell>
   );
 }

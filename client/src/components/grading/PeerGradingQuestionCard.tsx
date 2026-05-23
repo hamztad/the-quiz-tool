@@ -1,0 +1,191 @@
+import { useEffect, useState } from 'react';
+import { CLIENT_EVENTS, type Question, type PublicRoomState } from '@quiz-tool/shared';
+import { QuestionBody } from '../question/QuestionBody';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { TextArea } from '../ui/Input';
+import { useSocket } from '../../hooks/useSocket';
+
+function clampPeerPoints(value: number, max: number): number {
+  if (Number.isNaN(value)) return 0;
+  return Math.max(0, Math.min(max, Math.round(value)));
+}
+
+interface PeerGradingQuestionCardProps {
+  question: Question;
+  room: PublicRoomState;
+  assignment: { targetTeamId: string; questionIds: string[] };
+  graderTeamId: string;
+  protestMessage: string;
+  setProtestMessage: (v: string) => void;
+  onProtest: (questionId: string) => void;
+  onGraded: (questionId: string) => void;
+}
+
+export function PeerGradingQuestionCard({
+  question: q,
+  room,
+  assignment,
+  graderTeamId,
+  protestMessage,
+  setProtestMessage,
+  onProtest,
+  onGraded,
+}: PeerGradingQuestionCardProps) {
+  const { socket } = useSocket();
+  const existingGrade = room.peerGrades.find(
+    (pg) =>
+      pg.graderTeamId === graderTeamId &&
+      pg.targetTeamId === assignment.targetTeamId &&
+      pg.questionId === q.id,
+  );
+
+  const [pendingPoints, setPendingPoints] = useState<number | null>(null);
+  const [showProtest, setShowProtest] = useState(false);
+
+  const serverPoints = existingGrade?.points;
+  const registeredPoints = pendingPoints ?? serverPoints;
+  const isGraded = registeredPoints !== undefined;
+
+  useEffect(() => {
+    if (pendingPoints !== null && pendingPoints === serverPoints) {
+      setPendingPoints(null);
+    }
+  }, [pendingPoints, serverPoints]);
+
+  const targetAnswer = room.answers.find(
+    (a) => a.teamId === assignment.targetTeamId && a.questionId === q.id,
+  );
+  const acceptedAnswers = (q.acceptedAnswers ?? []).filter((a) => a.trim().length > 0);
+  const scoreOptions = Array.from({ length: q.maxPoints + 1 }, (_, i) => i);
+
+  const selectPoints = (points: number) => {
+    const clamped = clampPeerPoints(points, q.maxPoints);
+    setPendingPoints(clamped);
+    onGraded(q.id);
+    socket.emit(CLIENT_EVENTS.PEER_GRADE_SUBMIT, {
+      targetTeamId: assignment.targetTeamId,
+      questionId: q.id,
+      points: clamped,
+    });
+  };
+
+  return (
+    <Card
+      className={`space-y-5 p-4 sm:p-5 transition-all duration-200 ${
+        isGraded
+          ? 'bg-green-950/40 border-green-500/60 ring-2 ring-green-500/35 shadow-lg shadow-green-900/20'
+          : 'border-quiz-border'
+      }`}
+    >
+      <QuestionBody question={q} />
+
+      <div className="space-y-4">
+        <section className="rounded-xl border-2 border-quiz-border/80 bg-quiz-surface-elevated/80 overflow-hidden">
+          <div className="border-b border-quiz-border/80 bg-quiz-bg/50 px-4 py-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
+              Lagets svar
+            </h3>
+          </div>
+          <p className="px-4 py-4 text-lg sm:text-xl font-semibold text-quiz-text leading-snug">
+            {targetAnswer?.value?.trim() ? targetAnswer.value : '—'}
+          </p>
+        </section>
+
+        {acceptedAnswers.length > 0 && (
+          <section className="rounded-xl border-2 border-green-500/35 bg-green-500/5 overflow-hidden">
+            <div className="border-b border-green-500/25 bg-green-500/10 px-4 py-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-green-300">
+                Godkjente svar
+              </h3>
+            </div>
+            <ul className="divide-y divide-green-500/15">
+              {acceptedAnswers.map((answer, i) => (
+                <li
+                  key={i}
+                  className="px-4 py-3 text-base sm:text-lg font-medium text-green-50/95 leading-snug"
+                >
+                  {answer}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+
+      {isGraded && (
+        <div
+          className="flex items-center gap-3 rounded-xl border-2 border-green-400/50 bg-green-600/25 px-4 py-4"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500/30 text-2xl">
+            ✅
+          </span>
+          <p className="text-lg sm:text-xl font-bold text-green-50">
+            Du ga {registeredPoints} {registeredPoints === 1 ? 'poeng' : 'poeng'}
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <p className="text-sm font-semibold text-quiz-text">
+          {isGraded ? 'Endre poeng' : 'Velg poeng'}
+        </p>
+        <p className="text-xs text-quiz-muted -mt-1">
+          {isGraded
+            ? 'Trykk et annet tall — oppdateres med én gang.'
+            : 'Trykk et tall — registreres med én gang.'}
+        </p>
+
+        <div
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+          role="group"
+          aria-label={`Poeng for spørsmål, 0 til ${q.maxPoints}`}
+        >
+          {scoreOptions.map((p) => {
+            const isSelected = isGraded && registeredPoints === p;
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => selectPoints(p)}
+                aria-pressed={isSelected}
+                className={`min-h-[52px] rounded-xl border-2 px-3 py-3 text-base font-bold transition-all active:scale-[0.98] ${
+                  isSelected
+                    ? 'border-green-300 bg-green-500 text-white shadow-md shadow-green-900/30 ring-2 ring-green-300/50'
+                    : isGraded
+                      ? 'border-quiz-border/60 bg-quiz-surface/60 text-quiz-muted hover:border-green-500/40 hover:bg-green-500/10 hover:text-quiz-text'
+                      : 'border-quiz-border bg-quiz-surface-elevated text-quiz-text hover:border-quiz-accent hover:bg-quiz-accent/15'
+                }`}
+              >
+                {p} poeng
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <details
+        className="rounded-xl border border-quiz-border/50 bg-quiz-surface/30 text-sm"
+        open={showProtest}
+        onToggle={(e) => setShowProtest((e.target as HTMLDetailsElement).open)}
+      >
+        <summary className="cursor-pointer px-4 py-3 text-quiz-muted hover:text-quiz-text">
+          Protest / merknad (valgfritt)
+        </summary>
+        <div className="space-y-2 border-t border-quiz-border/50 px-4 pb-4 pt-3">
+          <TextArea
+            placeholder="Skriv melding til quizmaster…"
+            value={protestMessage}
+            onChange={(e) => setProtestMessage(e.target.value)}
+            rows={2}
+          />
+          <Button variant="ghost" size="sm" onClick={() => onProtest(q.id)}>
+            Send protest
+          </Button>
+        </div>
+      </details>
+    </Card>
+  );
+}
