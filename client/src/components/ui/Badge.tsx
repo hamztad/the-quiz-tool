@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 type BadgeVariant = 'open' | 'locked' | 'submitted' | 'active' | 'neutral';
 
@@ -10,14 +10,17 @@ const styles: Record<BadgeVariant, string> = {
   neutral: 'bg-quiz-surface-elevated text-quiz-muted border-quiz-border',
 };
 
-interface BadgeProps {
+export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   children: ReactNode;
   variant?: BadgeVariant;
 }
 
-export function Badge({ children, variant = 'neutral' }: BadgeProps) {
+export function Badge({ children, variant = 'neutral', className = '', ...props }: BadgeProps) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${styles[variant]}`}>
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${styles[variant]} ${className}`}
+      {...props}
+    >
       {children}
     </span>
   );
