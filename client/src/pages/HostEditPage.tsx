@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Question } from '@quiz-tool/shared';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
@@ -19,7 +19,7 @@ import {
   normalizeQuestionsForSave,
   stampImportedQuestions,
 } from '../lib/questionFactory';
-import { parseBuildEntry, setHostPresenting } from '../lib/hostFlow';
+import { initialEditModeForEntry, parseBuildEntry, setHostPresenting } from '../lib/hostFlow';
 import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
 
 const HIGHLIGHT_MS = 4500;
@@ -38,7 +38,15 @@ export function HostEditPage() {
     socket,
     connected,
   );
-  const [editMode, setEditMode] = useState<QuizEditMode>('editor');
+  const buildEntry = useMemo(
+    () => parseBuildEntry(searchParams.toString()),
+    [searchParams],
+  );
+  const focusEntry = buildEntry !== null;
+
+  const [editMode, setEditMode] = useState<QuizEditMode>(() =>
+    initialEditModeForEntry(parseBuildEntry(window.location.search)),
+  );
   const [draftQuestions, setDraftQuestions] = useState<Question[]>([]);
   const [dirty, setDirty] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -56,10 +64,9 @@ export function HostEditPage() {
   }, [room?.questions, dirty]);
 
   useEffect(() => {
-    const entry = parseBuildEntry(searchParams.toString());
-    if (entry === 'tekst') setEditMode('tekst');
-    else if (entry === 'editor') setEditMode('editor');
-  }, [searchParams]);
+    if (buildEntry === 'tekst') setEditMode('tekst');
+    else if (buildEntry === 'editor') setEditMode('editor');
+  }, [buildEntry]);
 
   useEffect(() => {
     if (!roomId || !room) return;
@@ -199,7 +206,16 @@ export function HostEditPage() {
   const savedCount = room?.questions.length ?? 0;
   const isSynced = !dirty && draftQuestions.length === savedCount;
   const hasExistingQuiz = savedCount > 0 || draftQuestions.length > 0;
-  const autoOpenImport = searchParams.get('import') === '1';
+  const autoOpenImport = buildEntry === 'import';
+  const editorEntryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!focusEntry || buildEntry !== 'editor' || loading || !room) return;
+    const t = window.setTimeout(() => {
+      editorEntryRef.current?.scrollIntoView({ block: 'start' });
+    }, 100);
+    return () => window.clearTimeout(t);
+  }, [focusEntry, buildEntry, loading, room]);
   const canPresent =
     room?.phase === 'lobby' &&
     savedCount > 0 &&
@@ -238,67 +254,56 @@ export function HostEditPage() {
     );
   }
 
-  const pageSubtitle = hasExistingQuiz
-    ? `${draftQuestions.length} spørsmål · lagres til server når du er klar`
-    : 'Velg editor, tekst eller import — ingen invitasjon ennå';
+  const pageSubtitle = focusEntry
+    ? buildEntry === 'tekst'
+      ? 'Lim inn eller skriv quiz som tekst'
+      : buildEntry === 'import'
+        ? 'Velg en JSON-quizfil å importere'
+        : 'Legg til spørsmål i editoren'
+    : hasExistingQuiz
+      ? `${draftQuestions.length} spørsmål · lagres til server når du er klar`
+      : 'Velg editor, tekst eller import — ingen invitasjon ennå';
 
-  return (
-    <PageShell title="Bygg quiz" subtitle={pageSubtitle}>
-      <HostPhaseIndicator active="build" />
-
-      <div className="mb-6">
-        <Link
-          to="/host"
-          className="inline-flex items-center text-sm text-quiz-accent hover:underline"
-        >
-          ← Quizmaster-meny
-        </Link>
+  const syncStatusBanner = (
+    <div
+      className={`rounded-xl border px-4 py-3 flex flex-col gap-2 min-w-0 max-w-full sm:flex-row sm:items-center sm:justify-between ${
+        isSynced
+          ? 'border-green-500/40 bg-green-500/10'
+          : 'border-yellow-500/40 bg-yellow-500/10'
+      }`}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold break-words">
+          {isSynced ? 'Quizen er lagret' : 'Du har ulagrede endringer'}
+        </p>
+        <p className="text-xs text-quiz-muted mt-0.5 break-words">
+          {draftQuestions.length} spørsmål · Editor og Tekst redigerer samme quiz
+        </p>
       </div>
-
-      {operationalError && (
-        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          {operationalError}
+      {room.phase !== 'lobby' && (
+        <p className="text-xs text-yellow-200/90 shrink-0 sm:max-w-[12rem] break-words">
+          Live-quiz: lagring beholder eksisterende svar
         </p>
       )}
+    </div>
+  );
 
-      <div
-        className={`mb-6 rounded-xl border px-4 py-3 flex flex-col gap-2 min-w-0 max-w-full sm:flex-row sm:items-center sm:justify-between ${
-          isSynced
-            ? 'border-green-500/40 bg-green-500/10'
-            : 'border-yellow-500/40 bg-yellow-500/10'
-        }`}
-      >
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold break-words">
-            {isSynced ? 'Quizen er lagret' : 'Du har ulagrede endringer'}
-          </p>
-          <p className="text-xs text-quiz-muted mt-0.5 break-words">
-            {draftQuestions.length} spørsmål · Editor og Tekst redigerer samme quiz
-          </p>
-        </div>
-        {room.phase !== 'lobby' && (
-          <p className="text-xs text-yellow-200/90 shrink-0 sm:max-w-[12rem] break-words">
-            Live-quiz: lagring beholder eksisterende svar
-          </p>
-        )}
-      </div>
+  const backupPanel = (
+    <QuizBackupPanel
+      questions={draftQuestions}
+      quizTitle={room.joinCode}
+      hasUnsavedWork={dirty}
+      onImportQuestions={importFromQuizFile}
+      autoOpenImport={autoOpenImport}
+      variant={buildEntry === 'import' && focusEntry ? 'importPrimary' : 'default'}
+    />
+  );
 
-      <div className="mb-6">
-        <QuizBackupPanel
-          questions={draftQuestions}
-          quizTitle={room.joinCode}
-          hasUnsavedWork={dirty}
-          onImportQuestions={importFromQuizFile}
-          autoOpenImport={autoOpenImport}
-        />
-      </div>
-
-      <div className="mb-6">
-        <QuizEditModeTabs mode={editMode} onChange={setEditMode} />
-      </div>
-
-      {editMode === 'editor' ? (
-        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface ring-1 ring-quiz-accent/20 p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden">
+  const editorSection = (
+        <section
+          ref={editorEntryRef}
+          className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface ring-1 ring-quiz-accent/20 p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden"
+        >
           <div className="rounded-xl bg-quiz-bg/60 border border-quiz-accent/20 p-4 mb-6">
             <p className="text-sm font-medium text-quiz-text mb-3">Legg til spørsmål</p>
             <div className="flex flex-wrap gap-2">
@@ -382,18 +387,75 @@ export function HostEditPage() {
             )}
           </div>
         </section>
-      ) : (
-        <section className="rounded-2xl border border-quiz-border bg-quiz-surface/40 p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden">
-          <p className="text-sm text-quiz-muted mb-5">
-            Skriv eller lim inn quiz som tekst. Nye spørsmål legges til i samme liste som i
-            Editor — bytt fane for å se og finjustere kortene.
-          </p>
+  );
+
+  const tekstSection = (
+        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface ring-1 ring-quiz-accent/20 p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden">
           <QuickImportPanel
             existingCount={draftQuestions.length}
             onAppend={appendImportedQuestions}
             onReplaceAll={replaceAllQuestions}
+            autoFocus={focusEntry && buildEntry === 'tekst'}
+            startEmpty={focusEntry && buildEntry === 'tekst'}
+            helpBelow={focusEntry && buildEntry === 'tekst'}
           />
         </section>
+  );
+
+  const modeTabs = (
+    <div className={focusEntry ? 'mb-4' : 'mb-6'}>
+      <QuizEditModeTabs mode={editMode} onChange={setEditMode} />
+    </div>
+  );
+
+  const mainEditorContent = editMode === 'editor' ? editorSection : tekstSection;
+
+  return (
+    <PageShell title="Bygg quiz" subtitle={pageSubtitle}>
+      {!focusEntry && <HostPhaseIndicator active="build" />}
+
+      <div className={focusEntry ? 'mb-3 flex flex-wrap items-center justify-between gap-2' : 'mb-6'}>
+        <Link
+          to="/host"
+          className="inline-flex items-center text-sm text-quiz-accent hover:underline shrink-0"
+        >
+          ← Quizmaster-meny
+        </Link>
+        {focusEntry && (
+          <span className="text-xs text-quiz-muted truncate">
+            {draftQuestions.length} spørsmål
+          </span>
+        )}
+      </div>
+
+      {operationalError && (
+        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 break-words">
+          {operationalError}
+        </p>
+      )}
+
+      {focusEntry ? (
+        <>
+          {buildEntry === 'import' && (
+            <div className="mb-4 w-full min-w-0 max-w-full">{backupPanel}</div>
+          )}
+
+          {modeTabs}
+          {mainEditorContent}
+
+          <HostEditSecondary>
+            <HostPhaseIndicator active="build" />
+            {syncStatusBanner}
+            {buildEntry !== 'import' && backupPanel}
+          </HostEditSecondary>
+        </>
+      ) : (
+        <>
+          <div className="mb-6">{syncStatusBanner}</div>
+          <div className="mb-6">{backupPanel}</div>
+          {modeTabs}
+          {mainEditorContent}
+        </>
       )}
 
       {draftQuestions.length > 0 && (
@@ -451,5 +513,21 @@ export function HostEditPage() {
         </div>
       )}
     </PageShell>
+  );
+}
+
+function HostEditSecondary({ children }: { children: ReactNode }) {
+  return (
+    <details className="mt-6 w-full min-w-0 max-w-full rounded-xl border border-quiz-border/60 bg-quiz-surface/30 group">
+      <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-quiz-muted hover:text-quiz-text [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center justify-between gap-2">
+          Status, hjelp og sikkerhetskopi
+          <span className="text-quiz-muted group-open:rotate-180 transition-transform" aria-hidden>
+            ▾
+          </span>
+        </span>
+      </summary>
+      <div className="space-y-4 border-t border-quiz-border/40 px-4 pb-4 pt-3">{children}</div>
+    </details>
   );
 }

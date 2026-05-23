@@ -55,3 +55,7 @@ export function buildEditPath(roomId: string, entry: HostBuildEntry): string {
   if (entry === 'tekst') return `/host/${roomId}/edit?mode=tekst`;
   return `/host/${roomId}/edit?mode=editor`;
 }
+
+export function initialEditModeForEntry(entry: HostBuildEntry | null): 'editor' | 'tekst' {
+  return entry === 'tekst' ? 'tekst' : 'editor';
+}

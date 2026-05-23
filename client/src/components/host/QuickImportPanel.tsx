@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { parseQuizText } from '@quiz-tool/shared';
 import { QuestionPreviewStrip } from './QuestionPreviewStrip';
 import { Button } from '../ui/Button';
@@ -18,14 +18,33 @@ interface QuickImportPanelProps {
   existingCount: number;
   onAppend: (parsed: ReturnType<typeof parseQuizText>['questions']) => void;
   onReplaceAll: (parsed: ReturnType<typeof parseQuizText>['questions']) => void;
+  /** Focus textarea on mount (e.g. «Ny quiz med tekst»). */
+  autoFocus?: boolean;
+  /** Start with empty field instead of example text. */
+  startEmpty?: boolean;
+  /** Put syntax help and advanced actions below the main controls. */
+  helpBelow?: boolean;
 }
 
-export function QuickImportPanel({ existingCount, onAppend, onReplaceAll }: QuickImportPanelProps) {
+export function QuickImportPanel({
+  existingCount,
+  onAppend,
+  onReplaceAll,
+  autoFocus = false,
+  startEmpty = false,
+  helpBelow = false,
+}: QuickImportPanelProps) {
   const importTextRef = useRef<HTMLTextAreaElement>(null);
-  const [importText, setImportText] = useState(IMPORT_EXAMPLE);
+  const [importText, setImportText] = useState(startEmpty ? '' : IMPORT_EXAMPLE);
   const [preview, setPreview] = useState<ReturnType<typeof parseQuizText>['questions']>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [showDanger, setShowDanger] = useState(false);
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    const t = window.setTimeout(() => importTextRef.current?.focus(), 150);
+    return () => window.clearTimeout(t);
+  }, [autoFocus]);
 
   const hasImportText = importText.length > 0;
 
@@ -82,20 +101,64 @@ export function QuickImportPanel({ existingCount, onAppend, onReplaceAll }: Quic
     setShowDanger(false);
   };
 
-  return (
-    <div className="space-y-5 min-w-0 max-w-full overflow-hidden">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-quiz-muted mb-2">
-          Quiz-tekst
+  const helpBlock = (
+    <details className="rounded-xl border border-quiz-border/50 bg-quiz-bg/40">
+      <summary className="cursor-pointer px-4 py-3 text-sm text-quiz-muted hover:text-quiz-text">
+        Hjelp: tekstformat og eksempel
+      </summary>
+      <div className="px-4 pb-4 space-y-2 border-t border-quiz-border/40">
+        <p className="text-xs text-quiz-muted pt-3">
+          Bruk <code className="text-quiz-text">Q</code> for spørsmål, <code className="text-quiz-text">A</code>{' '}
+          for svar, <code className="text-quiz-text">MC</code> for flervalg og{' '}
+          <code className="text-quiz-text">*</code> for riktig alternativ.
         </p>
+        <pre className="text-xs font-mono text-quiz-muted whitespace-pre-wrap break-words overflow-x-hidden">
+          {IMPORT_EXAMPLE}
+        </pre>
+      </div>
+    </details>
+  );
+
+  const dangerBlock = (
+    <div className="pt-2 border-t border-quiz-border/60">
+      <button
+        type="button"
+        onClick={() => setShowDanger((v) => !v)}
+        className="text-xs text-quiz-muted hover:text-red-300 underline"
+      >
+        {showDanger ? 'Skjul avansert' : 'Avansert (farlig)'}
+      </button>
+
+      {showDanger && (
+        <div className="mt-3 rounded-xl border-2 border-red-500/50 bg-red-500/10 p-4 space-y-3">
+          <p className="text-sm text-red-200 break-words">
+            Sletter alle {existingCount} spørsmål i listen og erstatter med kun det som er i
+            import-teksten. Manuelt arbeid går tapt.
+          </p>
+          <Button type="button" variant="danger" size="sm" onClick={applyReplaceAll}>
+            Erstatt hele listen (krever bekreftelse)
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4 min-w-0 max-w-full overflow-hidden">
+      <div>
+        {!helpBelow && (
+          <p className="text-xs font-semibold uppercase tracking-wider text-quiz-muted mb-2">
+            Quiz-tekst
+          </p>
+        )}
         <div className="relative">
           <TextArea
             ref={importTextRef}
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
-            rows={8}
-            className={`font-mono text-sm bg-quiz-bg/60 ${hasImportText ? 'pr-14' : ''}`}
-            placeholder="Lim inn quiz med Q, A, MC og * for riktig svar…"
+            rows={helpBelow ? 10 : 8}
+            className={`font-mono text-sm bg-quiz-bg/60 min-h-[200px] ${hasImportText ? 'pr-14' : ''}`}
+            placeholder="Lim inn eller skriv quiz her — Q, A, MC og * for riktig svar…"
           />
           {hasImportText && (
             <button
@@ -129,27 +192,14 @@ export function QuickImportPanel({ existingCount, onAppend, onReplaceAll }: Quic
 
       {preview.length > 0 && <QuestionPreviewStrip questions={preview} />}
 
-      <div className="pt-4 border-t border-quiz-border/60">
-        <button
-          type="button"
-          onClick={() => setShowDanger((v) => !v)}
-          className="text-xs text-quiz-muted hover:text-red-300 underline"
-        >
-          {showDanger ? 'Skjul avansert' : 'Avansert (farlig)'}
-        </button>
-
-        {showDanger && (
-          <div className="mt-3 rounded-xl border-2 border-red-500/50 bg-red-500/10 p-4 space-y-3">
-            <p className="text-sm text-red-200">
-              Sletter alle {existingCount} spørsmål i listen og erstatter med kun det som er i
-              import-teksten. Manuelt arbeid går tapt.
-            </p>
-            <Button type="button" variant="danger" size="sm" onClick={applyReplaceAll}>
-              Erstatt hele listen (krever bekreftelse)
-            </Button>
-          </div>
-        )}
-      </div>
+      {helpBelow ? (
+        <>
+          {helpBlock}
+          {dangerBlock}
+        </>
+      ) : (
+        dangerBlock
+      )}
     </div>
   );
 }
