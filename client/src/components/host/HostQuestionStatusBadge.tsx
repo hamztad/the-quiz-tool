@@ -16,15 +16,19 @@ interface HostQuestionStatusBadgeProps {
   showHint?: boolean;
 }
 
-export function HostQuestionStatusBadge({ status, showHint = false }: HostQuestionStatusBadgeProps) {
+export function HostQuestionStatusBadge({
+  status,
+  showHint = false,
+  className = '',
+}: HostQuestionStatusBadgeProps & { className?: string }) {
   return (
-    <div className="flex flex-col items-end gap-1">
+    <span className={`inline-flex flex-col items-start gap-1 sm:items-end ${className}`}>
       <Badge variant={variantMap[status]}>{hostStatusLabels[status]}</Badge>
       {showHint && (
-        <span className="text-[11px] text-quiz-muted text-right max-w-[140px] leading-tight">
+        <span className="text-[10px] sm:text-[11px] text-quiz-muted leading-tight max-w-full sm:max-w-[140px] sm:text-right">
           {hostStatusDescriptions[status]}
         </span>
       )}
-    </div>
+    </span>
   );
 }

@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Protest, type PublicRoomState } from '@quiz-tool/shared';
 import { JoinCodeDisplay } from '../components/host/JoinCodeDisplay';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
-import { HostQuestionStatusBadge } from '../components/host/HostQuestionStatusBadge';
 import { QuestionCard } from '../components/question/QuestionCard';
 import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
 import { isQuestionIncomplete } from '../lib/questionFactory';
@@ -125,8 +124,8 @@ export function HostDashboardPage() {
           )}
 
           <section className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <div className="min-w-0">
                 <h2 className="text-lg font-bold">Spørsmål</h2>
                 <p className="text-sm text-quiz-muted">
                   {room.questions.length === 0
@@ -134,7 +133,7 @@ export function HostDashboardPage() {
                     : `${room.questions.length} spørsmål i quizen`}
                 </p>
               </div>
-              <Link to={`/host/${roomId}/edit`}>
+              <Link to={`/host/${roomId}/edit`} className="shrink-0 self-start sm:self-center">
                 <Button size="sm" variant="ghost">
                   + / Rediger
                 </Button>
@@ -157,14 +156,12 @@ export function HostDashboardPage() {
                   const incomplete = isQuestionIncomplete(q);
 
                   return (
-                    <div key={q.id} className="relative">
-                      <div className="absolute top-4 right-4 z-10">
-                        <HostQuestionStatusBadge status={displayStatus} />
-                      </div>
+                    <div key={q.id}>
                       <QuestionCard
                         question={q}
                         status={runtimeStatus}
                         answered={answeredCount > 0}
+                        hostDisplayStatus={displayStatus}
                         className={incomplete ? 'border-dashed border-slate-400/40' : ''}
                       >
                         {incomplete && room.phase === 'lobby' && (
@@ -178,7 +175,7 @@ export function HostDashboardPage() {
                           </p>
                         )}
                         {room.phase === 'live' && (
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
                             {runtimeStatus === 'locked' && (
                               <Button
                                 size="sm"
@@ -214,7 +211,7 @@ export function HostDashboardPage() {
                           </div>
                         )}
                         {room.phase !== 'lobby' && room.teams.length > 0 && (
-                          <div className="flex gap-2 mt-3 items-center flex-wrap">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-3">
                             <Input
                               type="number"
                               className="w-20"
