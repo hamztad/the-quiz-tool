@@ -32,7 +32,8 @@ export function App() {
   useFormTypingGuard();
 
   return (
-    <BrowserRouter>
+    <div className="app-shell w-full max-w-full min-w-0 overflow-x-hidden">
+      <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/host" element={<HostLandingPage />} />
@@ -44,6 +45,7 @@ export function App() {
         <Route path="/team/:roomId" element={<TeamPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+      </BrowserRouter>
+    </div>
   );
 }

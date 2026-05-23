@@ -357,8 +357,9 @@ export function HostEditPage() {
       )}
 
       {draftQuestions.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
-          <div className="w-full max-w-lg mx-auto md:max-w-4xl box-border px-4 py-4 flex flex-col gap-3 min-w-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="fixed inset-x-0 bottom-0 z-20 w-full max-w-full min-w-0 border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
+          <div className="mx-auto w-full min-w-0 max-w-full box-border px-4 py-4 md:max-w-4xl flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mx-auto w-full min-w-0 max-w-lg md:max-w-none flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:w-full">
             <div className="text-sm min-w-0 flex-1 break-words">
               {dirty ? (
                 <span className="text-yellow-300 font-medium">Husk å lagre</span>
@@ -398,6 +399,7 @@ export function HostEditPage() {
               >
                 Lagre alle spørsmål
               </Button>
+            </div>
             </div>
           </div>
         </div>

@@ -18,7 +18,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <input
       ref={ref}
-      className={`w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-quiz-accent min-h-[44px] ${className}`}
+      className={`box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-quiz-accent min-h-[44px] [overflow-wrap:anywhere] ${className}`}
       {...props}
     />
   );
@@ -33,7 +33,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
   return (
     <textarea
       ref={ref}
-      className={`w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-quiz-accent min-h-[120px] resize-y overflow-x-hidden [overflow-wrap:anywhere] break-words whitespace-pre-wrap ${className}`}
+      className={`box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-quiz-accent min-h-[120px] resize-y overflow-x-hidden [overflow-wrap:anywhere] break-words whitespace-pre-wrap ${className}`}
       {...props}
     />
   );
@@ -45,7 +45,7 @@ export interface EditorTextAreaProps extends TextareaHTMLAttributes<HTMLTextArea
 }
 
 const editorFieldClasses =
-  'w-full min-w-0 max-w-full resize-none overflow-x-hidden [overflow-wrap:anywhere] break-words whitespace-pre-wrap text-sm sm:text-base leading-relaxed';
+  'box-border w-full min-w-0 max-w-full resize-none overflow-x-hidden [overflow-wrap:anywhere] break-words whitespace-pre-wrap text-sm sm:text-base leading-relaxed';
 
 export const EditorTextArea = forwardRef<HTMLTextAreaElement, EditorTextAreaProps>(
   function EditorTextArea(

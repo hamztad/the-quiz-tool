@@ -98,7 +98,7 @@ export function JoinPage() {
           : 'Skriv romkode og lagnavn for å bli med'
       }
     >
-      <div className="flex flex-col items-center space-y-6">
+      <div className="flex w-full min-w-0 max-w-full flex-col items-center space-y-6">
         <span
           className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-quiz-border bg-quiz-surface-elevated text-3xl"
           aria-hidden
@@ -107,9 +107,11 @@ export function JoinPage() {
         </span>
 
         {hasPresetCode && (
-          <div className="w-full rounded-2xl border-2 border-quiz-accent/40 bg-quiz-accent/10 px-4 py-4 text-center">
+          <div className="w-full min-w-0 max-w-full box-border overflow-hidden rounded-2xl border-2 border-quiz-accent/40 bg-quiz-accent/10 px-4 py-4 text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-quiz-muted">Romkode</p>
-            <p className="mt-2 text-3xl font-bold tracking-wide text-quiz-accent">{joinCode}</p>
+            <p className="mt-2 text-3xl font-bold tracking-wide text-quiz-accent break-all [overflow-wrap:anywhere]">
+              {joinCode}
+            </p>
           </div>
         )}
 

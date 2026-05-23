@@ -15,28 +15,28 @@ export function LandingPage() {
 
   return (
     <PageShell title="The Quiz Tool" subtitle="Live pubquiz for quizmaster og lag">
-      <div className="space-y-4">
+      <div className="w-full min-w-0 max-w-full space-y-4">
         <Link
           to="/host"
-          className="block rounded-2xl border-2 border-quiz-accent/40 bg-quiz-surface-elevated p-5 text-left transition-colors hover:border-quiz-accent hover:bg-quiz-surface"
+          className="block w-full min-w-0 max-w-full box-border overflow-hidden rounded-2xl border-2 border-quiz-accent/40 bg-quiz-surface-elevated p-5 text-left transition-colors hover:border-quiz-accent hover:bg-quiz-surface"
         >
-          <p className="text-lg font-bold text-quiz-text">Quizmaster</p>
-          <p className="mt-1 text-sm text-quiz-muted">
+          <p className="text-lg font-bold text-quiz-text break-words">Quizmaster</p>
+          <p className="mt-1 text-sm text-quiz-muted break-words">
             Opprett quiz, vis QR-kode og styr spørsmål underveis.
           </p>
-          <span className="mt-3 inline-block text-sm font-medium text-quiz-accent">
+          <span className="mt-3 block text-sm font-medium text-quiz-accent break-words">
             Gå til quizmaster →
           </span>
         </Link>
 
-        <div className="rounded-2xl border border-quiz-border bg-quiz-surface-elevated p-5 space-y-4">
+        <div className="w-full min-w-0 max-w-full box-border overflow-hidden rounded-2xl border border-quiz-border bg-quiz-surface-elevated p-5 space-y-4">
           <div>
             <p className="text-lg font-bold text-quiz-text">Deltaker</p>
             <p className="mt-1 text-sm text-quiz-muted">
               Skann QR-koden eller skriv inn romkode og lagnavn.
             </p>
           </div>
-          <div>
+          <div className="w-full min-w-0 max-w-full">
             <label htmlFor="landing-join-code" className="text-sm text-quiz-muted mb-1 block">
               Romkode (valgfritt)
             </label>

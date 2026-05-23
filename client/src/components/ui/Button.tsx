@@ -31,7 +31,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-w-full whitespace-normal text-center ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`box-border inline-flex max-w-full min-w-0 items-center justify-center rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-normal text-center break-words ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {children}
