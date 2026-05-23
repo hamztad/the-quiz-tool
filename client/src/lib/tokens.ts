@@ -42,6 +42,16 @@ export function getTeamSession(roomId: string): TeamSession | null {
   }
 }
 
+export function getStoredHostSession(): HostSession | null {
+  try {
+    const raw = localStorage.getItem(HOST_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as HostSession;
+  } catch {
+    return null;
+  }
+}
+
 export function clearHostSession() {
   localStorage.removeItem(HOST_KEY);
 }

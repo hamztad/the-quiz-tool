@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   parseQuizFile,
   questionsToQuizText,
@@ -12,6 +12,8 @@ interface QuizBackupPanelProps {
   quizTitle?: string;
   hasUnsavedWork: boolean;
   onImportQuestions: (questions: Question[]) => void;
+  /** Open file picker once on mount (e.g. after setup «Importer quizfil»). */
+  autoOpenImport?: boolean;
 }
 
 export function QuizBackupPanel({
@@ -19,10 +21,19 @@ export function QuizBackupPanel({
   quizTitle,
   hasUnsavedWork,
   onImportQuestions,
+  autoOpenImport = false,
 }: QuizBackupPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const autoOpenedRef = useRef(false);
+
+  useEffect(() => {
+    if (!autoOpenImport || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    const t = window.setTimeout(() => fileInputRef.current?.click(), 300);
+    return () => window.clearTimeout(t);
+  }, [autoOpenImport]);
 
   const showFeedback = (message: string) => {
     setFeedback(message);

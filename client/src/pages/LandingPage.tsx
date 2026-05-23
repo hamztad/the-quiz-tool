@@ -22,7 +22,7 @@ export function LandingPage() {
         >
           <p className="text-lg font-bold text-quiz-text break-words">Quizmaster</p>
           <p className="mt-1 text-sm text-quiz-muted break-words">
-            Opprett quiz, vis QR-kode og styr spørsmål underveis.
+            Lag quizen, inviter lag og kjør live — steg for steg.
           </p>
           <span className="mt-3 block text-sm font-medium text-quiz-accent break-words">
             Gå til quizmaster →

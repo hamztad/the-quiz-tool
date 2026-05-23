@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Question } from '@quiz-tool/shared';
+import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
 import { HostQuestionEditorCard } from '../components/host/HostQuestionEditorCard';
 import { QuickImportPanel } from '../components/host/QuickImportPanel';
@@ -18,6 +19,7 @@ import {
   normalizeQuestionsForSave,
   stampImportedQuestions,
 } from '../lib/questionFactory';
+import { parseBuildEntry, setHostPresenting } from '../lib/hostFlow';
 import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
 
 const HIGHLIGHT_MS = 4500;
@@ -27,6 +29,8 @@ type ParsedImportQuestion = Parameters<typeof stampImportedQuestions>[0][number]
 
 export function HostEditPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { socket, connected } = useSocket();
   const { room, unavailable, loading, noSession, operationalError } = useRoomGate(
     roomId,
@@ -50,6 +54,19 @@ export function HostEditPage() {
       setExpandedIds(new Set());
     }
   }, [room?.questions, dirty]);
+
+  useEffect(() => {
+    const entry = parseBuildEntry(searchParams.toString());
+    if (entry === 'tekst') setEditMode('tekst');
+    else if (entry === 'editor') setEditMode('editor');
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!roomId || !room) return;
+    if (room.phase !== 'lobby') {
+      navigate(`/host/${roomId}`, { replace: true });
+    }
+  }, [room, roomId, navigate]);
 
   useEffect(() => {
     return () => {
@@ -182,6 +199,26 @@ export function HostEditPage() {
   const savedCount = room?.questions.length ?? 0;
   const isSynced = !dirty && draftQuestions.length === savedCount;
   const hasExistingQuiz = savedCount > 0 || draftQuestions.length > 0;
+  const autoOpenImport = searchParams.get('import') === '1';
+  const canPresent =
+    room?.phase === 'lobby' &&
+    savedCount > 0 &&
+    isSynced &&
+    incompleteCount === 0;
+
+  const goToPresent = () => {
+    if (!roomId) return;
+    if (dirty) {
+      setSaveMessage('Lagre alle spørsmål før du presenterer.');
+      return;
+    }
+    if (savedCount === 0 || incompleteCount > 0) {
+      setSaveMessage('Lagre minst ett fullført spørsmål før du presenterer.');
+      return;
+    }
+    setHostPresenting(roomId, true);
+    navigate(`/host/${roomId}/present`);
+  };
 
   if (!roomId) return null;
 
@@ -202,17 +239,19 @@ export function HostEditPage() {
   }
 
   const pageSubtitle = hasExistingQuiz
-    ? `Fortsett på denne quizen · ${room.joinCode}`
-    : `Lag ny quiz · ${room.joinCode}`;
+    ? `${draftQuestions.length} spørsmål · lagres til server når du er klar`
+    : 'Velg editor, tekst eller import — ingen invitasjon ennå';
 
   return (
     <PageShell title="Bygg quiz" subtitle={pageSubtitle}>
+      <HostPhaseIndicator active="build" />
+
       <div className="mb-6">
         <Link
-          to={`/host/${roomId}`}
+          to="/host"
           className="inline-flex items-center text-sm text-quiz-accent hover:underline"
         >
-          ← Tilbake til quizmaster
+          ← Quizmaster-meny
         </Link>
       </div>
 
@@ -250,6 +289,7 @@ export function HostEditPage() {
           quizTitle={room.joinCode}
           hasUnsavedWork={dirty}
           onImportQuestions={importFromQuizFile}
+          autoOpenImport={autoOpenImport}
         />
       </div>
 
@@ -374,7 +414,7 @@ export function HostEditPage() {
                 </span>
               )}
             </div>
-            <div className="flex flex-col gap-2 w-full sm:w-auto sm:shrink-0 sm:flex-row">
+            <div className="flex flex-col gap-2 w-full sm:w-auto sm:shrink-0 sm:flex-row sm:flex-wrap sm:justify-end">
               <Button
                 type="button"
                 variant="secondary"
@@ -393,12 +433,18 @@ export function HostEditPage() {
               </Button>
               <Button
                 type="button"
+                variant="secondary"
                 className="w-full sm:w-auto"
                 onClick={() => persistQuestions(draftQuestions)}
                 disabled={!dirty}
               >
                 Lagre alle spørsmål
               </Button>
+              {canPresent && (
+                <Button type="button" className="w-full sm:w-auto" onClick={goToPresent}>
+                  Presenter quiz
+                </Button>
+              )}
             </div>
             </div>
           </div>

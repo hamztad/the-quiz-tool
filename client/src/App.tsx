@@ -4,6 +4,7 @@ import { isShortcutSafeEvent } from './lib/keyboard';
 import { HostDashboardPage } from './pages/HostDashboardPage';
 import { HostEditPage } from './pages/HostEditPage';
 import { HostLandingPage } from './pages/HostLandingPage';
+import { HostLobbyPage } from './pages/HostLobbyPage';
 import { JoinPage } from './pages/JoinPage';
 import { LandingPage } from './pages/LandingPage';
 import { RoomUnavailablePage } from './pages/RoomUnavailablePage';
@@ -41,6 +42,7 @@ export function App() {
         <Route path="/join/:code" element={<JoinPage />} />
         <Route path="/rom-utilgjengelig" element={<RoomUnavailablePage />} />
         <Route path="/host/:roomId" element={<HostDashboardPage />} />
+        <Route path="/host/:roomId/present" element={<HostLobbyPage />} />
         <Route path="/host/:roomId/edit" element={<HostEditPage />} />
         <Route path="/team/:roomId" element={<TeamPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

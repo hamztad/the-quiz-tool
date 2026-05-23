@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Protest, type PublicRoomState } from '@quiz-tool/shared';
-import { JoinCodeDisplay } from '../components/host/JoinCodeDisplay';
+import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
 import { QuestionCard } from '../components/question/QuestionCard';
-import { buildParticipantJoinUrl } from '../lib/joinUrls';
 import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
 import { isQuestionIncomplete } from '../lib/questionFactory';
+import { isHostPresenting } from '../lib/hostFlow';
 import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
@@ -15,8 +15,22 @@ import { Input } from '../components/ui/Input';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 
+function phaseLabel(phase: PublicRoomState['phase']): string {
+  switch (phase) {
+    case 'live':
+      return 'Live';
+    case 'grading':
+      return 'Retterunde';
+    case 'leaderboard':
+      return 'Leaderboard';
+    default:
+      return phase;
+  }
+}
+
 export function HostDashboardPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
   const { socket, connected } = useSocket();
   const { room, unavailable, loading, noSession, operationalError } = useRoomGate(
     roomId,
@@ -25,6 +39,16 @@ export function HostDashboardPage() {
     connected,
   );
   const [overridePoints, setOverridePoints] = useState('1');
+
+  useEffect(() => {
+    if (!roomId || !room) return;
+    if (room.phase === 'lobby') {
+      const target = isHostPresenting(roomId)
+        ? `/host/${roomId}/present`
+        : `/host/${roomId}/edit`;
+      navigate(target, { replace: true });
+    }
+  }, [room, roomId, navigate]);
 
   if (!roomId) return null;
 
@@ -44,7 +68,13 @@ export function HostDashboardPage() {
     );
   }
 
-  const joinUrl = buildParticipantJoinUrl(room.joinCode);
+  if (room.phase === 'lobby') {
+    return (
+      <PageShell title="Kjør quiz" subtitle="Kobler til…">
+        <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
+      </PageShell>
+    );
+  }
 
   const emit = (event: string, payload?: object) => {
     socket.emit(event, payload ?? {});
@@ -56,16 +86,23 @@ export function HostDashboardPage() {
   const pendingProtests = room.protests.filter((p) => p.status === 'pending');
 
   return (
-    <PageShell title="Quizmaster" subtitle={`Kode: ${room.joinCode} · Fase: ${room.phase}`}>
-      {operationalError && <p className="text-red-400 mb-4">{operationalError}</p>}
+    <PageShell title="Kjør quiz" subtitle={`Romkode ${room.joinCode} · ${phaseLabel(room.phase)}`}>
+      <HostPhaseIndicator active="live" />
+
+      {operationalError && (
+        <p className="text-red-400 mb-4 break-words">{operationalError}</p>
+      )}
 
       <div className="space-y-6 min-w-0 max-w-full">
-          <JoinCodeDisplay joinCode={room.joinCode} joinUrl={joinUrl} />
-
           <div className="flex flex-wrap gap-2">
+            <Link to={`/host/${roomId}/present?invite=1`}>
+              <Button variant="ghost" size="sm">
+                Vis invitasjon (QR)
+              </Button>
+            </Link>
             <Link to={`/host/${roomId}/edit`}>
               <Button variant="secondary" size="sm">
-                {room.questions.length === 0 ? 'Bygg quiz' : 'Fortsett på denne quizen'}
+                Rediger quiz
               </Button>
             </Link>
             {room.phase !== 'ended' && (
@@ -79,11 +116,6 @@ export function HostDashboardPage() {
                 }}
               >
                 Avslutt quiz
-              </Button>
-            )}
-            {room.phase === 'lobby' && (
-              <Button size="sm" onClick={() => emit(CLIENT_EVENTS.QUIZ_START)}>
-                Start quiz
               </Button>
             )}
             {room.phase === 'live' && (
@@ -149,27 +181,18 @@ export function HostDashboardPage() {
           )}
 
           <section className="space-y-4 min-w-0 max-w-full">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold">Spørsmål</h2>
-                <p className="text-sm text-quiz-muted">
-                  {room.questions.length === 0
-                    ? 'Bygg quizen før du starter'
-                    : `${room.questions.length} spørsmål i quizen`}
-                </p>
-              </div>
-              <Link to={`/host/${roomId}/edit`} className="shrink-0 self-start sm:self-center">
-                <Button size="sm" variant="ghost">
-                  {room.questions.length === 0 ? 'Bygg quiz' : 'Fortsett på denne quizen'}
-                </Button>
-              </Link>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold">Spørsmål</h2>
+              <p className="text-sm text-quiz-muted">
+                {room.questions.length} spørsmål · åpne, lås og gi poeng underveis
+              </p>
             </div>
 
             {room.questions.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-quiz-border px-6 py-8 text-center">
-                <p className="text-quiz-muted text-sm mb-4">Ingen spørsmål lagt til ennå.</p>
+                <p className="text-quiz-muted text-sm mb-4">Ingen spørsmål i quizen.</p>
                 <Link to={`/host/${roomId}/edit`}>
-                  <Button>Bygg quiz</Button>
+                  <Button>Legg til spørsmål</Button>
                 </Link>
               </div>
             ) : (
@@ -189,16 +212,14 @@ export function HostDashboardPage() {
                         hostDisplayStatus={displayStatus}
                         className={incomplete ? 'border-dashed border-slate-400/40' : ''}
                       >
-                        {incomplete && room.phase === 'lobby' && (
+                        {incomplete && (
                           <p className="text-xs text-slate-300 mt-2 mb-2">
                             Utkast — fullfør i redigeringsvisningen
                           </p>
                         )}
-                        {room.phase !== 'lobby' && (
-                          <p className="text-xs text-quiz-muted mt-3 mb-2">
-                            {answeredCount}/{room.teams.length} lag har svart
-                          </p>
-                        )}
+                        <p className="text-xs text-quiz-muted mt-3 mb-2">
+                          {answeredCount}/{room.teams.length} lag har svart
+                        </p>
                         {room.phase === 'live' && (
                           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
                             {runtimeStatus === 'locked' && (
@@ -235,7 +256,7 @@ export function HostDashboardPage() {
                             )}
                           </div>
                         )}
-                        {room.phase !== 'lobby' && room.teams.length > 0 && (
+                        {room.teams.length > 0 && (
                           <div className="flex flex-col gap-3 mt-3 min-w-0 sm:flex-row sm:flex-wrap sm:items-center">
                             <Input
                               type="number"

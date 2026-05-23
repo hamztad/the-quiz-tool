@@ -1,22 +1,26 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CLIENT_EVENTS, SERVER_EVENTS } from '@quiz-tool/shared';
-import { Button } from '../components/ui/Button';
+import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
+import { HostSetupCard } from '../components/host/HostSetupCard';
 import { PageShell } from '../components/layout/PageShell';
+import { Button } from '../components/ui/Button';
+import { buildEditPath, type HostBuildEntry } from '../lib/hostFlow';
+import { getStoredHostSession, saveHostSession } from '../lib/tokens';
 import { useSocket } from '../hooks/useSocket';
-import { saveHostSession } from '../lib/tokens';
 
 export function HostLandingPage() {
   const navigate = useNavigate();
   const { socket, connected } = useSocket();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<HostBuildEntry | 'continue' | null>(null);
+  const existingSession = getStoredHostSession();
 
-  const createQuiz = () => {
-    setLoading(true);
+  const createQuiz = (entry: HostBuildEntry) => {
+    setLoading(entry);
     const onCreated = (data: { roomId: string; hostToken: string }) => {
-      setLoading(false);
+      setLoading(null);
       saveHostSession({ roomId: data.roomId, hostToken: data.hostToken });
-      navigate(`/host/${data.roomId}/edit`);
+      navigate(buildEditPath(data.roomId, entry));
     };
     socket.once(SERVER_EVENTS.ROOM_CREATED, onCreated);
     socket.emit(CLIENT_EVENTS.ROOM_CREATE, {}, (res: { roomId: string; hostToken: string } | undefined) => {
@@ -24,32 +28,78 @@ export function HostLandingPage() {
     });
   };
 
+  const continueQuiz = () => {
+    if (!existingSession) return;
+    setLoading('continue');
+    navigate(`/host/${existingSession.roomId}`);
+    setLoading(null);
+  };
+
+  const busy = loading !== null;
+
   return (
-    <PageShell title="Quizmaster" subtitle="Opprett og administrer din live-quiz">
-      <div className="space-y-6">
-        <div className="rounded-2xl border border-quiz-border bg-quiz-surface-elevated p-5 space-y-4">
-          <p className="text-sm text-quiz-muted leading-relaxed">
-            Start et nytt quizrom, legg til spørsmål, vis QR-kode for lagene og styr quizen underveis.
-          </p>
-          <Button size="lg" className="w-full" onClick={createQuiz} disabled={!connected || loading}>
-            {loading ? 'Oppretter rom…' : 'Lag ny quiz'}
-          </Button>
-          {!connected && (
-            <p className="text-sm text-quiz-muted text-center">Kobler til server…</p>
-          )}
-        </div>
+    <PageShell
+      title="Quizmaster"
+      subtitle="Først lager du quizen — deretter inviterer du lag og kjører live"
+    >
+      <HostPhaseIndicator active="build" />
 
-        <div className="rounded-2xl border border-dashed border-quiz-border/80 bg-quiz-surface/40 p-5">
-          <p className="text-sm font-semibold text-quiz-muted">Åpne lagret quiz</p>
-          <p className="mt-1 text-xs text-quiz-muted">
-            Kommer snart — lagrede quizer kan åpnes her uten å starte på nytt.
-          </p>
-          <Button size="lg" variant="secondary" className="w-full mt-4" disabled>
-            Åpne lagret quiz
-          </Button>
-        </div>
+      <div className="w-full min-w-0 max-w-full space-y-4">
+        <p className="text-sm text-quiz-muted leading-relaxed break-words">
+          Velg hvordan du vil bygge quizen. QR-kode og romkode vises først når du er klar til å
+          presentere for lagene.
+        </p>
 
-        <p className="text-center text-xs text-quiz-muted">
+        <HostSetupCard
+          title="Ny quiz i editor"
+          description="Legg til spørsmål ett og ett med spørsmålskort."
+          icon="✏️"
+          onClick={() => createQuiz('editor')}
+          disabled={!connected || busy}
+        />
+        <HostSetupCard
+          title="Ny quiz med tekst"
+          description="Lim inn eller skriv hele quizen som tekst."
+          icon="📝"
+          onClick={() => createQuiz('tekst')}
+          disabled={!connected || busy}
+        />
+        <HostSetupCard
+          title="Importer quizfil"
+          description="Last opp en JSON-backup fra The Quiz Tool."
+          icon="📁"
+          onClick={() => createQuiz('import')}
+          disabled={!connected || busy}
+        />
+
+        {loading && loading !== 'continue' && (
+          <p className="text-sm text-quiz-muted text-center" role="status">
+            Oppretter quizrom…
+          </p>
+        )}
+        {!connected && (
+          <p className="text-sm text-quiz-muted text-center">Kobler til server…</p>
+        )}
+
+        {existingSession && (
+          <div className="rounded-2xl border border-quiz-accent/30 bg-quiz-accent/10 p-5 space-y-3">
+            <p className="text-sm font-semibold text-quiz-text">Fortsett påbegynt quiz</p>
+            <p className="text-xs text-quiz-muted break-words">
+              Du har en aktiv quizmaster-økt. Fortsett der du slapp.
+            </p>
+            <Button
+              size="lg"
+              variant="secondary"
+              className="w-full"
+              onClick={continueQuiz}
+              disabled={!connected || busy}
+            >
+              {loading === 'continue' ? 'Åpner…' : 'Fortsett quiz'}
+            </Button>
+          </div>
+        )}
+
+        <p className="text-center text-xs text-quiz-muted pt-2">
           Skal du delta som lag?{' '}
           <Link to="/join" className="text-quiz-muted hover:text-quiz-accent underline-offset-2 hover:underline">
             Deltakerportal

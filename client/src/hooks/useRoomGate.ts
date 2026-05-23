@@ -5,6 +5,7 @@ import {
   parseRoomUnavailableReason,
   type RoomUnavailableReason,
 } from '../lib/roomUnavailable';
+import { clearHostPresenting } from '../lib/hostFlow';
 import {
   clearHostSession,
   clearTeamSession,
@@ -64,9 +65,13 @@ export function useRoomGate(
 
   useEffect(() => {
     if (!unavailable) return;
-    if (mode === 'host') clearHostSession();
-    else clearTeamSession();
-  }, [unavailable, mode]);
+    if (mode === 'host') {
+      if (roomId) clearHostPresenting(roomId);
+      clearHostSession();
+    } else {
+      clearTeamSession();
+    }
+  }, [unavailable, mode, roomId]);
 
   const reconnecting = Boolean(
     roomId && session && connected && !room && !unavailable,
