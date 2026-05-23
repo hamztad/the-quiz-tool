@@ -80,7 +80,7 @@ export function PeerGradingView({
         </p>
       )}
 
-      <div className="mb-6 rounded-2xl border-2 border-quiz-border bg-quiz-surface-elevated p-4 sm:p-5">
+      <div className="mb-6 rounded-2xl border-2 border-quiz-border bg-quiz-surface-elevated p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
         <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
           <p className="text-sm font-semibold text-quiz-text">Rettingsfremgang</p>
           <p

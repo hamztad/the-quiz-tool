@@ -83,7 +83,7 @@ export function QuizBackupPanel({
   };
 
   return (
-    <div className="rounded-2xl border border-quiz-border/80 bg-quiz-surface/40 p-4 sm:p-5">
+    <div className="rounded-2xl border border-quiz-border/80 bg-quiz-surface/40 p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
       <div className="mb-3">
         <p className="text-sm font-semibold text-quiz-text">Sikkerhetskopi</p>
         <p className="text-xs text-quiz-muted mt-1">

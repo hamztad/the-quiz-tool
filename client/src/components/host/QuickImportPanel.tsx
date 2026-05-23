@@ -83,7 +83,7 @@ export function QuickImportPanel({ existingCount, onAppend, onReplaceAll }: Quic
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 min-w-0 max-w-full overflow-hidden">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-quiz-muted mb-2">
           Quiz-tekst

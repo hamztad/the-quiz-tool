@@ -58,7 +58,7 @@ export function QuestionCard({
   return (
     <Card
       onClick={onClick}
-      className={`p-3 sm:p-4 ${active ? 'ring-2 ring-quiz-active' : ''} ${
+      className={`min-w-0 max-w-full overflow-hidden p-3 sm:p-4 ${active ? 'ring-2 ring-quiz-active' : ''} ${
         highlighted
           ? 'ring-2 ring-green-500/45 border-green-500/50 shadow-[0_0_0_1px_rgba(34,197,94,0.15)]'
           : ''

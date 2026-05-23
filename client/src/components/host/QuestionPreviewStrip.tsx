@@ -8,14 +8,14 @@ interface QuestionPreviewStripProps {
 /** Visually distinct from the editor — preview only, not saved */
 export function QuestionPreviewStrip({ questions }: QuestionPreviewStripProps) {
   return (
-    <div className="rounded-xl border-2 border-dashed border-quiz-muted/30 bg-quiz-bg/80 p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-quiz-muted bg-quiz-surface-elevated px-2 py-1 rounded">
+    <div className="rounded-xl border-2 border-dashed border-quiz-muted/30 bg-quiz-bg/80 p-4 space-y-3 min-w-0 max-w-full overflow-hidden">
+      <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 min-w-0">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-quiz-muted bg-quiz-surface-elevated px-2 py-1 rounded shrink-0">
           Kun forhåndsvisning
         </span>
-        <span className="text-xs text-quiz-muted">— lagres ikke før du trykker «Erstatt alle»</span>
+        <span className="text-xs text-quiz-muted break-words">— lagres ikke før du trykker «Erstatt alle»</span>
       </div>
-      <div className="space-y-2 max-h-56 overflow-y-auto opacity-90">
+      <div className="space-y-2 max-h-56 overflow-y-auto overflow-x-hidden opacity-90 min-w-0">
         {questions.map((q, i) => (
           <div
             key={i}

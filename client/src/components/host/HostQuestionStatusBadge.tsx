@@ -22,7 +22,7 @@ export function HostQuestionStatusBadge({
   className = '',
 }: HostQuestionStatusBadgeProps & { className?: string }) {
   return (
-    <span className={`inline-flex flex-col items-start gap-1 sm:items-end ${className}`}>
+    <span className={`inline-flex max-w-full flex-col items-start gap-1 min-w-0 sm:items-end ${className}`}>
       <Badge variant={variantMap[status]}>{hostStatusLabels[status]}</Badge>
       {showHint && (
         <span className="text-[10px] sm:text-[11px] text-quiz-muted leading-tight max-w-full sm:max-w-[140px] sm:text-right">

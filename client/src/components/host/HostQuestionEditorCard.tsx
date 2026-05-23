@@ -90,11 +90,11 @@ export function HostQuestionEditorCard({
         </div>
       )}
 
-      <div className="flex items-stretch gap-2 p-3 bg-quiz-surface-elevated/50 min-w-0">
+      <div className="flex flex-col gap-2 p-3 bg-quiz-surface-elevated/50 min-w-0 sm:flex-row sm:items-stretch sm:gap-2">
         <button
           type="button"
           onClick={onToggleExpand}
-          className="flex-1 flex items-center gap-3 min-w-0 text-left rounded-xl px-3 py-2 hover:bg-quiz-surface-elevated transition-colors"
+          className="flex-1 flex items-start gap-3 min-w-0 text-left rounded-xl px-3 py-2 hover:bg-quiz-surface-elevated transition-colors"
           aria-expanded={isExpanded}
         >
           <span
@@ -103,15 +103,17 @@ export function HostQuestionEditorCard({
           >
             {index + 1}
           </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-base font-semibold truncate text-quiz-text">{titlePreview}</p>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <p className="text-base font-semibold text-quiz-text break-words [overflow-wrap:anywhere] line-clamp-3 sm:line-clamp-2">
+              {titlePreview}
+            </p>
             <div className="flex flex-wrap items-center gap-2 mt-1">
               <Badge variant="neutral">{typeLabel}</Badge>
               {incomplete && <Badge variant="draft">Utkast</Badge>}
               <HostQuestionStatusBadge status={displayStatus} />
             </div>
           </div>
-          <span className="shrink-0 text-quiz-muted text-lg px-1" aria-hidden>
+          <span className="shrink-0 text-quiz-muted text-lg px-1 self-center" aria-hidden>
             {isExpanded ? '▾' : '▸'}
           </span>
         </button>
@@ -119,7 +121,7 @@ export function HostQuestionEditorCard({
           type="button"
           variant="danger"
           size="sm"
-          className="shrink-0 self-center min-w-[4.5rem]"
+          className="w-full shrink-0 sm:w-auto sm:self-center sm:min-w-[4.5rem]"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
@@ -167,7 +169,7 @@ export function HostQuestionEditorCard({
                 className="bg-quiz-bg"
               />
             </div>
-            <div className="min-w-0 sm:max-w-[8rem]">
+            <div className="min-w-0 w-full sm:max-w-[8rem]">
               <label className="block text-sm font-medium text-quiz-muted mb-2">Poeng</label>
               <Input
                 type="number"

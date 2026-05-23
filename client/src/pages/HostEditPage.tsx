@@ -223,22 +223,24 @@ export function HostEditPage() {
       )}
 
       <div
-        className={`mb-6 rounded-xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 ${
+        className={`mb-6 rounded-xl border px-4 py-3 flex flex-col gap-2 min-w-0 max-w-full sm:flex-row sm:items-center sm:justify-between ${
           isSynced
             ? 'border-green-500/40 bg-green-500/10'
             : 'border-yellow-500/40 bg-yellow-500/10'
         }`}
       >
-        <div>
-          <p className="text-sm font-semibold">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold break-words">
             {isSynced ? 'Quizen er lagret' : 'Du har ulagrede endringer'}
           </p>
-          <p className="text-xs text-quiz-muted mt-0.5">
+          <p className="text-xs text-quiz-muted mt-0.5 break-words">
             {draftQuestions.length} spørsmål · Editor og Tekst redigerer samme quiz
           </p>
         </div>
         {room.phase !== 'lobby' && (
-          <p className="text-xs text-yellow-200/90">Live-quiz: lagring beholder eksisterende svar</p>
+          <p className="text-xs text-yellow-200/90 shrink-0 sm:max-w-[12rem] break-words">
+            Live-quiz: lagring beholder eksisterende svar
+          </p>
         )}
       </div>
 
@@ -256,7 +258,7 @@ export function HostEditPage() {
       </div>
 
       {editMode === 'editor' ? (
-        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface ring-1 ring-quiz-accent/20 p-5 sm:p-6 mb-28">
+        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface ring-1 ring-quiz-accent/20 p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden">
           <div className="rounded-xl bg-quiz-bg/60 border border-quiz-accent/20 p-4 mb-6">
             <p className="text-sm font-medium text-quiz-text mb-3">Legg til spørsmål</p>
             <div className="flex flex-wrap gap-2">
@@ -341,7 +343,7 @@ export function HostEditPage() {
           </div>
         </section>
       ) : (
-        <section className="rounded-2xl border border-quiz-border bg-quiz-surface/40 p-5 sm:p-6 mb-28">
+        <section className="rounded-2xl border border-quiz-border bg-quiz-surface/40 p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden">
           <p className="text-sm text-quiz-muted mb-5">
             Skriv eller lim inn quiz som tekst. Nye spørsmål legges til i samme liste som i
             Editor — bytt fane for å se og finjustere kortene.
@@ -355,9 +357,9 @@ export function HostEditPage() {
       )}
 
       {draftQuestions.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md px-4 py-4 shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
-          <div className="max-w-lg mx-auto md:max-w-4xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="text-sm">
+        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
+          <div className="w-full max-w-lg mx-auto md:max-w-4xl box-border px-4 py-4 flex flex-col gap-3 min-w-0 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm min-w-0 flex-1 break-words">
               {dirty ? (
                 <span className="text-yellow-300 font-medium">Husk å lagre</span>
               ) : (
@@ -371,10 +373,11 @@ export function HostEditPage() {
                 </span>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 w-full sm:w-auto sm:shrink-0 sm:flex-row">
               <Button
                 type="button"
                 variant="secondary"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   if (room?.questions) {
                     setDraftQuestions(room.questions);
@@ -389,6 +392,7 @@ export function HostEditPage() {
               </Button>
               <Button
                 type="button"
+                className="w-full sm:w-auto"
                 onClick={() => persistQuestions(draftQuestions)}
                 disabled={!dirty}
               >

@@ -59,7 +59,7 @@ export function HostDashboardPage() {
     <PageShell title="Quizmaster" subtitle={`Kode: ${room.joinCode} · Fase: ${room.phase}`}>
       {operationalError && <p className="text-red-400 mb-4">{operationalError}</p>}
 
-      <div className="space-y-6">
+      <div className="space-y-6 min-w-0 max-w-full">
           <JoinCodeDisplay joinCode={room.joinCode} joinUrl={joinUrl} />
 
           <div className="flex flex-wrap gap-2">
@@ -120,13 +120,15 @@ export function HostDashboardPage() {
             <Leaderboard room={room} />
           )}
 
-          <Card>
+          <Card className="min-w-0">
             <h2 className="font-semibold mb-3">Lag ({room.teams.length})</h2>
             <ul className="space-y-2">
               {room.teams.map((t) => (
-                <li key={t.id} className="text-sm flex justify-between">
-                  <span>{t.name}</span>
-                  <span className="text-quiz-muted">
+                <li key={t.id} className="flex gap-3 justify-between items-start min-w-0 text-sm">
+                  <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere] font-medium">
+                    {t.name}
+                  </span>
+                  <span className="shrink-0 text-quiz-muted tabular-nums">
                     {(room.answeredByTeam[t.id] ?? []).length} besvarte
                   </span>
                 </li>
@@ -146,7 +148,7 @@ export function HostDashboardPage() {
             </Card>
           )}
 
-          <section className="space-y-4">
+          <section className="space-y-4 min-w-0 max-w-full">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <div className="min-w-0">
                 <h2 className="text-lg font-bold">Spørsmål</h2>
@@ -234,19 +236,21 @@ export function HostDashboardPage() {
                           </div>
                         )}
                         {room.phase !== 'lobby' && room.teams.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-3">
+                          <div className="flex flex-col gap-3 mt-3 min-w-0 sm:flex-row sm:flex-wrap sm:items-center">
                             <Input
                               type="number"
-                              className="w-20"
+                              className="w-full max-w-[6rem] shrink-0"
                               value={overridePoints}
                               onChange={(e) => setOverridePoints(e.target.value)}
                               aria-label="Poeng overstyring"
                             />
+                            <div className="flex flex-wrap gap-2 min-w-0">
                             {room.teams.map((t) => (
                               <Button
                                 key={t.id}
                                 size="sm"
                                 variant="ghost"
+                                className="max-w-full"
                                 onClick={() =>
                                   emit(CLIENT_EVENTS.SCORE_OVERRIDE, {
                                     teamId: t.id,
@@ -255,9 +259,12 @@ export function HostDashboardPage() {
                                   })
                                 }
                               >
-                                {t.name.slice(0, 3)}: {overridePoints}p
+                                <span className="break-words [overflow-wrap:anywhere]">
+                                  {t.name}: {overridePoints}p
+                                </span>
                               </Button>
                             ))}
+                            </div>
                           </div>
                         )}
                       </QuestionCard>
@@ -298,12 +305,18 @@ function ProtestRow({
   const question = room.questions.find((q) => q.id === protest.questionId);
 
   return (
-    <div className="border-t border-quiz-border pt-3 mt-3 first:border-0 first:pt-0 first:mt-0">
-      <p className="text-sm">
-        {team?.name} — {question?.lines[0]?.text ?? protest.questionId}
+    <div className="border-t border-quiz-border pt-3 mt-3 first:border-0 first:pt-0 first:mt-0 min-w-0 max-w-full">
+      <p className="text-sm break-words [overflow-wrap:anywhere]">
+        <span className="font-medium">{team?.name ?? 'Lag'}</span>
+        {' — '}
+        {question?.lines[0]?.text ?? protest.questionId}
       </p>
-      {protest.message && <p className="text-xs text-quiz-muted">{protest.message}</p>}
-      <div className="flex gap-2 mt-2">
+      {protest.message && (
+        <p className="text-xs text-quiz-muted mt-1 break-words [overflow-wrap:anywhere]">
+          {protest.message}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2 mt-2">
         <Button
           size="sm"
           onClick={() =>

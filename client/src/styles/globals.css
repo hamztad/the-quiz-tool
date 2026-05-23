@@ -17,5 +17,13 @@
 }
 
 body {
-  @apply bg-quiz-bg text-quiz-text font-sans antialiased min-h-screen;
+  @apply bg-quiz-bg text-quiz-text font-sans antialiased min-h-screen overflow-x-hidden;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+#root {
+  @apply min-h-screen w-full max-w-[100vw] overflow-x-hidden;
 }

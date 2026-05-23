@@ -11,7 +11,7 @@ interface ParticipantPageShellProps {
 export function ParticipantPageShell({ children, title, subtitle }: ParticipantPageShellProps) {
   return (
     <PageShell title={title} subtitle={subtitle}>
-      <div className="mx-auto w-full max-w-md py-4 sm:py-6">{children}</div>
+      <div className="mx-auto w-full min-w-0 max-w-md overflow-x-hidden box-border">{children}</div>
     </PageShell>
   );
 }

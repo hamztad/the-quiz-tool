@@ -72,7 +72,7 @@ export function PeerGradingQuestionCard({
 
   return (
     <Card
-      className={`space-y-5 p-4 sm:p-5 transition-all duration-200 ${
+      className={`space-y-5 p-4 sm:p-5 transition-all duration-200 min-w-0 max-w-full overflow-hidden box-border ${
         isGraded
           ? 'bg-green-950/40 border-green-500/60 ring-2 ring-green-500/35 shadow-lg shadow-green-900/20'
           : 'border-quiz-border'
