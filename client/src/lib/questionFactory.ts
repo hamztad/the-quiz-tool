@@ -28,12 +28,18 @@ export function createMcQuestion(order: number): Question {
   };
 }
 
+/** Raw title text — use for controlled inputs (do not trim). */
 export function getQuestionTitle(question: Question): string {
-  return question.lines[0]?.text?.trim() ?? '';
+  return question.lines[0]?.text ?? '';
+}
+
+/** Trimmed title — use for validation and display previews only. */
+export function getQuestionTitleTrimmed(question: Question): string {
+  return getQuestionTitle(question).trim();
 }
 
 export function isQuestionIncomplete(question: Question): boolean {
-  const title = getQuestionTitle(question);
+  const title = getQuestionTitleTrimmed(question);
   if (!title) return true;
 
   if (question.type === 'open') {

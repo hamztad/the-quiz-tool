@@ -4,7 +4,11 @@ import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input, TextArea } from '../ui/Input';
-import { getQuestionTitle, isQuestionIncomplete } from '../../lib/questionFactory';
+import {
+  getQuestionTitle,
+  getQuestionTitleTrimmed,
+  isQuestionIncomplete,
+} from '../../lib/questionFactory';
 import type { HostQuestionDisplayStatus } from '../../lib/questionDisplayStatus';
 import { generateId } from '../../lib/id';
 
@@ -35,7 +39,7 @@ export function HostQuestionEditorCard({
   const titleRef = titleInputRef ?? localTitleRef;
   const incomplete = isQuestionIncomplete(question);
   const bodyLines = question.lines.slice(1).map((l) => l.text).join('\n');
-  const titlePreview = getQuestionTitle(question) || 'Uten tittel';
+  const titlePreview = getQuestionTitleTrimmed(question) || 'Uten tittel';
 
   useEffect(() => {
     if (isHighlighted && isExpanded) {
@@ -55,16 +59,12 @@ export function HostQuestionEditorCard({
 
   const updateBody = (text: string) => {
     const first = question.lines[0] ?? { text: '', style: 'title' as const };
-    const extra = text
-      .split('\n')
-      .map((t) => t.trim())
-      .filter(Boolean)
-      .map((t) => ({ text: t, style: 'body' as const }));
+    const extra = text.split('\n').map((line) => ({ text: line, style: 'body' as const }));
     onChange({ ...question, lines: [first, ...extra] });
   };
 
   const updateHint = (hint: string) => {
-    onChange({ ...question, hint: hint.trim() || undefined });
+    onChange({ ...question, hint: hint || undefined });
   };
 
   const updatePoints = (maxPoints: number) => {
