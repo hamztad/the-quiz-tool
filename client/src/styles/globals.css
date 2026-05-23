@@ -1,0 +1,20 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --color-quiz-bg: #0f1419;
+  --color-quiz-surface: #1a222d;
+  --color-quiz-surface-elevated: #242d3a;
+  --color-quiz-border: #2e3a4a;
+  --color-quiz-text: #f0f4f8;
+  --color-quiz-muted: #8b9cb3;
+  --color-quiz-accent: #3b82f6;
+  --color-quiz-open: #eab308;
+  --color-quiz-locked: #ef4444;
+  --color-quiz-submitted: #22c55e;
+  --color-quiz-active: #3b82f6;
+}
+
+body {
+  @apply bg-quiz-bg text-quiz-text font-sans antialiased min-h-screen;
+}
