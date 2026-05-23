@@ -1,6 +1,11 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CLIENT_EVENTS, type Question, type PublicRoomState } from '@quiz-tool/shared';
+import {
+  CLIENT_EVENTS,
+  isQuestionRevealedToTeam,
+  type Question,
+  type PublicRoomState,
+} from '@quiz-tool/shared';
 import { AcceptedAnswersList } from '../components/question/AcceptedAnswersList';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
 import { QuestionBody } from '../components/question/QuestionBody';
@@ -59,6 +64,13 @@ export function TeamPage() {
   }, []);
 
   useEffect(() => {
+    if (!room || !activeQuestionId) return;
+    if (!isQuestionRevealedToTeam(room, activeQuestionId)) {
+      setActiveQuestionId(null);
+    }
+  }, [activeQuestionId, room]);
+
+  useEffect(() => {
     if (!highlightedQuestionId || activeQuestionId) return;
     requestAnimationFrame(() => {
       document
@@ -106,6 +118,7 @@ export function TeamPage() {
   };
 
   const openQuestion = (q: Question) => {
+    if (!isQuestionRevealedToTeam(room, q.id)) return;
     if (highlightTimerRef.current) {
       clearTimeout(highlightTimerRef.current);
       highlightTimerRef.current = null;
@@ -230,15 +243,18 @@ export function TeamPage() {
           ) : (
             <>
               <p className="text-sm text-quiz-muted">
-                Trykk på et spørsmål for å svare eller redigere. Låste spørsmål kan åpnes for å se
-                svaret.
+                {room.questions.length} spørsmål i quizen. Spørsmålstekst vises når quizmaster
+                åpner spørsmålet.
               </p>
               {room.questions.map((q) => {
                 const status = room.questionStatus[q.id] ?? 'locked';
                 const answered = hasAnswered(q.id);
+                const revealed = isQuestionRevealedToTeam(room, q.id);
                 const myAnswer = getMyAnswer(q.id);
-                const answerPreview = formatTeamAnswerDisplay(q, myAnswer?.value);
-                const canOpen = status === 'open' || answered;
+                const answerPreview = revealed
+                  ? formatTeamAnswerDisplay(q, myAnswer?.value)
+                  : null;
+                const canOpen = revealed && (status === 'open' || answered);
 
                 return (
                   <div key={q.id} id={`team-question-${q.id}`}>
@@ -247,10 +263,13 @@ export function TeamPage() {
                       status={status}
                       answered={answered}
                       viewMode="team"
+                      teamRevealed={revealed}
                       highlighted={highlightedQuestionId === q.id}
                       teamAnswerPreview={answerPreview}
                       onClick={canOpen ? () => openQuestion(q) : undefined}
-                      className={canOpen ? 'cursor-pointer hover:bg-quiz-surface-elevated' : ''}
+                      className={`${canOpen ? 'cursor-pointer hover:bg-quiz-surface-elevated' : ''} ${
+                        !revealed ? 'border-dashed' : ''
+                      }`}
                     />
                   </div>
                 );

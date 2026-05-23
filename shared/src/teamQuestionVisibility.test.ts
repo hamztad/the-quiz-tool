@@ -1,0 +1,53 @@
+import { describe, expect, it } from 'vitest';
+import type { Question } from './types/room.js';
+import { isQuestionRevealedToTeam, redactQuestionForTeam } from './teamQuestionVisibility.js';
+
+describe('isQuestionRevealedToTeam', () => {
+  it('is false when never activated and locked', () => {
+    expect(
+      isQuestionRevealedToTeam(
+        { questionStatus: { q1: 'locked' }, questionsActivated: { q1: false } },
+        'q1',
+      ),
+    ).toBe(false);
+  });
+
+  it('is true when open', () => {
+    expect(
+      isQuestionRevealedToTeam(
+        { questionStatus: { q1: 'open' }, questionsActivated: { q1: false } },
+        'q1',
+      ),
+    ).toBe(true);
+  });
+
+  it('is true when locked but previously activated', () => {
+    expect(
+      isQuestionRevealedToTeam(
+        { questionStatus: { q1: 'locked' }, questionsActivated: { q1: true } },
+        'q1',
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('redactQuestionForTeam', () => {
+  const question: Question = {
+    id: 'q1',
+    order: 0,
+    type: 'open',
+    lines: [{ text: 'Secret?', style: 'title' }],
+    hint: 'tema',
+    maxPoints: 1,
+  };
+
+  it('strips content when not revealed', () => {
+    const redacted = redactQuestionForTeam(question, false);
+    expect(redacted.lines).toHaveLength(0);
+    expect(redacted.hint).toBeUndefined();
+  });
+
+  it('keeps content when revealed', () => {
+    expect(redactQuestionForTeam(question, true)).toEqual(question);
+  });
+});

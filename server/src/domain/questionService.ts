@@ -7,6 +7,7 @@ export function openQuestion(room: RoomRecord, questionId: string): RoomRecord {
   return {
     ...room,
     questionStatus: { ...room.questionStatus, [questionId]: 'open' },
+    questionsActivated: { ...room.questionsActivated, [questionId]: true },
   };
 }
 

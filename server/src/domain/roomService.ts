@@ -1,4 +1,5 @@
 import type { Question, RoomState } from '@quiz-tool/shared';
+import { isQuestionRevealedToTeam, redactQuestionForTeam } from '@quiz-tool/shared';
 import { MAX_TEAMS, validateQuestionsForSave } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
 import { generateId, generateJoinCode, generateToken } from '../utils/id.js';
@@ -15,6 +16,7 @@ export function createRoom(title?: string): RoomRecord {
     teams: [],
     questions: [],
     questionStatus: {},
+    questionsActivated: {},
     answeredByTeam: {},
     answers: [],
     scores: [],
@@ -80,10 +82,16 @@ export function setQuestions(room: RoomRecord, questions: Question[]): RoomRecor
     questionStatus[q.id] = 'locked';
   });
 
+  const questionsActivated: Record<string, boolean> = {};
+  questions.forEach((q) => {
+    questionsActivated[q.id] = false;
+  });
+
   return {
     ...room,
     questions: questions.map((q, i) => ({ ...q, order: i })),
     questionStatus,
+    questionsActivated,
     answers: [],
     scores: [],
     answeredByTeam: Object.fromEntries(room.teams.map((t) => [t.id, []])),
@@ -102,9 +110,11 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
 
   const newIds = new Set(questions.map((q) => q.id));
   const questionStatus: Record<string, 'locked' | 'open'> = {};
+  const questionsActivated: Record<string, boolean> = {};
 
   for (const q of questions) {
     questionStatus[q.id] = room.questionStatus[q.id] ?? 'locked';
+    questionsActivated[q.id] = room.questionsActivated[q.id] ?? false;
   }
 
   const answers = room.answers.filter((a) => newIds.has(a.questionId));
@@ -122,6 +132,7 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
     ...room,
     questions: questions.map((q, i) => ({ ...q, order: i })),
     questionStatus,
+    questionsActivated,
     answers,
     scores,
     answeredByTeam: recomputeAnsweredByTeam(room.teams, answers),
@@ -169,8 +180,13 @@ export function toPublicState(
     visibleAnswers = [...visibleAnswers, ...targetAnswers];
   }
 
+  const questions = room.questions.map((q) =>
+    redactQuestionForTeam(q, isQuestionRevealedToTeam(room, q.id)),
+  );
+
   return {
     ...room,
+    questions,
     answers: visibleAnswers,
     viewerRole: 'secretary',
     viewerTeamId: teamId,

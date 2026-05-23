@@ -85,6 +85,8 @@ export interface RoomState {
   teams: Team[];
   questions: Question[];
   questionStatus: Record<string, QuestionStatus>;
+  /** True once quizmaster has opened the question at least once (teams may see text after). */
+  questionsActivated: Record<string, boolean>;
   answeredByTeam: Record<string, string[]>;
   answers: Answer[];
   scores: ScoreEntry[];

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { parseQuizText } from '@quiz-tool/shared';
 import { QuestionPreviewStrip } from './QuestionPreviewStrip';
 import { Button } from '../ui/Button';
@@ -21,10 +21,20 @@ interface QuickImportPanelProps {
 }
 
 export function QuickImportPanel({ existingCount, onAppend, onReplaceAll }: QuickImportPanelProps) {
+  const importTextRef = useRef<HTMLTextAreaElement>(null);
   const [importText, setImportText] = useState(IMPORT_EXAMPLE);
   const [preview, setPreview] = useState<ReturnType<typeof parseQuizText>['questions']>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [showDanger, setShowDanger] = useState(false);
+
+  const hasImportText = importText.length > 0;
+
+  const clearImportText = () => {
+    setImportText('');
+    setPreview([]);
+    setParseErrors([]);
+    requestAnimationFrame(() => importTextRef.current?.focus());
+  };
 
   const parseCurrent = () => parseQuizText(importText);
 
@@ -83,13 +93,28 @@ export function QuickImportPanel({ existingCount, onAppend, onReplaceAll }: Quic
         <p className="text-xs font-semibold uppercase tracking-wider text-quiz-muted mb-2">
           Import-tekst
         </p>
-        <TextArea
-          value={importText}
-          onChange={(e) => setImportText(e.target.value)}
-          rows={8}
-          className="font-mono text-sm bg-quiz-bg/60"
-          placeholder="Lim inn quiz med Q, A, MC og * for riktig svar…"
-        />
+        <div className="relative">
+          <TextArea
+            ref={importTextRef}
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            rows={8}
+            className={`font-mono text-sm bg-quiz-bg/60 ${hasImportText ? 'pr-14' : ''}`}
+            placeholder="Lim inn quiz med Q, A, MC og * for riktig svar…"
+          />
+          {hasImportText && (
+            <button
+              type="button"
+              onClick={clearImportText}
+              className="absolute top-2 right-2 flex h-11 w-11 items-center justify-center rounded-xl border border-quiz-border/80 bg-quiz-surface-elevated text-quiz-muted shadow-sm transition-colors hover:border-quiz-muted hover:bg-quiz-surface hover:text-quiz-text active:scale-95"
+              aria-label="Tøm importfelt"
+            >
+              <span className="text-2xl font-light leading-none" aria-hidden>
+                ×
+              </span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

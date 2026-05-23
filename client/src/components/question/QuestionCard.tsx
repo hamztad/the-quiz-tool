@@ -15,6 +15,7 @@ interface QuestionCardProps {
   highlighted?: boolean;
   hostDisplayStatus?: HostQuestionDisplayStatus;
   teamAnswerPreview?: string | null;
+  teamRevealed?: boolean;
   viewMode?: 'default' | 'team';
   onClick?: () => void;
   className?: string;
@@ -29,6 +30,7 @@ export function QuestionCard({
   highlighted = false,
   hostDisplayStatus,
   teamAnswerPreview,
+  teamRevealed = true,
   viewMode = 'default',
   onClick,
   className = '',
@@ -49,6 +51,7 @@ export function QuestionCard({
   const showResponseBadge = hostLabel !== badgeLabel;
 
   const lockedUnanswered = status === 'locked' && !answered;
+  const teamWaiting = viewMode === 'team' && !teamRevealed;
 
   return (
     <Card
@@ -57,11 +60,11 @@ export function QuestionCard({
         highlighted
           ? 'ring-2 ring-green-500/45 border-green-500/50 shadow-[0_0_0_1px_rgba(34,197,94,0.15)]'
           : ''
-      } ${lockedUnanswered ? 'opacity-60' : ''} ${className}`}
+      } ${lockedUnanswered && !teamWaiting ? 'opacity-60' : ''} ${teamWaiting ? 'opacity-90' : ''} ${className}`}
     >
       <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <span className="text-xs font-medium text-quiz-muted sm:text-sm shrink-0">
-          #{question.order + 1}
+          {viewMode === 'team' ? `Spørsmål ${question.order + 1}` : `#${question.order + 1}`}
         </span>
         <div
           className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full min-w-0 sm:w-auto sm:justify-end"
@@ -73,8 +76,14 @@ export function QuestionCard({
           {question.type === 'mc' && <Badge variant="neutral">MC</Badge>}
         </div>
       </div>
-      <QuestionBody question={question} />
-      {teamAnswerPreview && (
+      {viewMode === 'team' && !teamRevealed ? (
+        <p className="text-sm text-quiz-muted italic leading-relaxed">
+          Skjules til quizmaster åpner spørsmålet
+        </p>
+      ) : (
+        <QuestionBody question={question} showHint={viewMode !== 'team' || teamRevealed} />
+      )}
+      {teamRevealed && teamAnswerPreview && (
         <div className="mt-3 rounded-xl border border-quiz-border/70 bg-quiz-surface-elevated px-3 py-2.5">
           <p className="text-[10px] font-medium uppercase tracking-wide text-quiz-muted sm:text-xs">
             Deres svar

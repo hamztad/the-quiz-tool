@@ -17,11 +17,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 
 export type TextAreaProps = TextareaHTMLAttributes<HTMLTextAreaElement>;
 
-export function TextArea({ className = '', ...props }: TextAreaProps) {
+export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function TextArea(
+  { className = '', ...props },
+  ref,
+) {
   return (
     <textarea
+      ref={ref}
       className={`w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-quiz-accent min-h-[120px] resize-y ${className}`}
       {...props}
     />
   );
-}
+});
