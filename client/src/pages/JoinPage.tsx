@@ -76,7 +76,7 @@ export function JoinPage() {
 
     socket.emit(
       CLIENT_EVENTS.ROOM_JOIN,
-      { joinCode: joinCode.trim(), teamName: teamName.trim() },
+      { joinCode: normalizeJoinCode(joinCode.trim()), teamName: teamName.trim() },
       (res: { roomId: string; teamId: string; teamToken: string } | undefined) => {
         if (res?.roomId) onJoined(res);
       },
@@ -103,7 +103,7 @@ export function JoinPage() {
         {hasPresetCode && (
           <div className="w-full rounded-2xl border-2 border-quiz-accent/40 bg-quiz-accent/10 px-4 py-4 text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-quiz-muted">Romkode</p>
-            <p className="mt-2 text-3xl font-bold tracking-[0.2em] text-quiz-accent">{joinCode}</p>
+            <p className="mt-2 text-3xl font-bold tracking-wide text-quiz-accent">{joinCode}</p>
           </div>
         )}
 
@@ -134,10 +134,10 @@ export function JoinPage() {
               id="join-code"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="ABC123"
-              maxLength={8}
+              placeholder="GLAD-TACO"
+              maxLength={24}
               autoComplete="off"
-              className="min-h-[52px] text-center text-lg tracking-[0.2em] font-bold"
+              className="min-h-[52px] text-center text-lg tracking-wide font-bold"
             />
           </div>
         )}

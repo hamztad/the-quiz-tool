@@ -44,9 +44,9 @@ export function LandingPage() {
               id="landing-join-code"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="ABC123"
-              maxLength={8}
-              className="text-center tracking-widest font-semibold"
+              placeholder="GLAD-TACO"
+              maxLength={24}
+              className="text-center tracking-wide font-semibold"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') goToJoin();
               }}

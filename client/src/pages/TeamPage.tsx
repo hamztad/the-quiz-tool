@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   CLIENT_EVENTS,
   isQuestionRevealedToTeam,
@@ -24,12 +24,16 @@ const HIGHLIGHT_MS = 5000;
 export function TeamPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const { socket, connected } = useSocket();
-  const { room, unavailable, loading, noSession, operationalError, teamSession } = useRoomGate(
-    roomId,
-    'team',
-    socket,
-    connected,
-  );
+  const {
+    room,
+    unavailable,
+    reconnecting,
+    reconnectFailed,
+    noSession,
+    operationalError,
+    teamSession,
+    retryReconnect,
+  } = useRoomGate(roomId, 'team', socket, connected);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [protestMessage, setProtestMessage] = useState('');
@@ -67,6 +71,10 @@ export function TeamPage() {
     if (!room || !activeQuestionId) return;
     if (!isQuestionRevealedToTeam(room, activeQuestionId)) {
       setActiveQuestionId(null);
+      return;
+    }
+    if ((room.questionStatus[activeQuestionId] ?? 'locked') !== 'open') {
+      setActiveQuestionId(null);
     }
   }, [activeQuestionId, room]);
 
@@ -81,18 +89,67 @@ export function TeamPage() {
 
   if (!roomId) return null;
 
+  if (reconnectFailed) {
+    return (
+      <PageShell title="Lag" subtitle="Kunne ikke koble til igjen">
+        <div className="py-10 text-center space-y-4 max-w-md mx-auto">
+          <p className="text-sm text-quiz-muted leading-relaxed">
+            Lagtilkoblingen på denne enheten er utløpt eller ugyldig. Dine svar ligger fortsatt på
+            serveren — be quizmaster om romkoden og bli med på nytt med samme lagnavn.
+          </p>
+          <Link to="/join">
+            <Button size="lg" className="w-full max-w-xs">
+              Gå til deltakerportalen
+            </Button>
+          </Link>
+        </div>
+      </PageShell>
+    );
+  }
+
   if (unavailable) {
     return <RoomUnavailableView reason={unavailable} />;
   }
 
   if (noSession) {
-    return <RoomUnavailableView reason="not_found" />;
+    return (
+      <PageShell title="Lag" subtitle="Ingen lag-session funnet">
+        <div className="py-10 text-center space-y-4 max-w-md mx-auto">
+          <p className="text-sm text-quiz-muted leading-relaxed">
+            Du har ikke blitt med som lag i dette rommet på denne enheten. Skriv inn romkoden på
+            deltakerportalen for å bli med.
+          </p>
+          <Link to="/join">
+            <Button size="lg" className="w-full max-w-xs">
+              Gå til deltakerportalen
+            </Button>
+          </Link>
+        </div>
+      </PageShell>
+    );
   }
 
-  if (loading || !room) {
+  if (reconnecting || !room) {
     return (
-      <PageShell title="Lag" subtitle="Kobler til quizrom…">
-        <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
+      <PageShell
+        title="Lag"
+        subtitle={connected ? 'Kobler til laget igjen…' : 'Kobler til server…'}
+      >
+        <div className="py-12 text-center space-y-3 max-w-md mx-auto">
+          <p className="text-sm text-quiz-muted leading-relaxed">
+            {connected
+              ? 'Henter quiz og lagdata. Innsendte svar ligger trygt på serveren.'
+              : 'Venter på nettverkstilkobling…'}
+          </p>
+          {operationalError && (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              <p>{operationalError}</p>
+              <Button type="button" size="sm" className="mt-3" onClick={retryReconnect}>
+                Prøv igjen
+              </Button>
+            </div>
+          )}
+        </div>
       </PageShell>
     );
   }
@@ -130,6 +187,8 @@ export function TeamPage() {
   };
 
   const activeQuestion = room.questions.find((q) => q.id === activeQuestionId);
+  const activeQuestionOpen =
+    activeQuestion && (room.questionStatus[activeQuestion.id] ?? 'locked') === 'open';
 
   if (room.phase === 'grading' && assignment) {
     return (
@@ -154,7 +213,19 @@ export function TeamPage() {
   if (room.phase === 'leaderboard' || room.settings.showLeaderboard) {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Leaderboard">
-        {operationalError && <p className="text-red-400 mb-4">{operationalError}</p>}
+        {!connected && (
+          <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+            Kobler til igjen… Dine innsendte svar er lagret på serveren.
+          </div>
+        )}
+        {operationalError && (
+          <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p>{operationalError}</p>
+            <Button type="button" size="sm" variant="secondary" onClick={retryReconnect}>
+              Prøv igjen
+            </Button>
+          </div>
+        )}
         <Leaderboard room={room} />
       </PageShell>
     );
@@ -162,89 +233,62 @@ export function TeamPage() {
 
   return (
     <PageShell title={myTeam?.name ?? 'Lag'} subtitle={`Fase: ${room.phase}`}>
-      {operationalError && <p className="text-red-400 mb-4">{operationalError}</p>}
+      {!connected && (
+        <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+          Kobler til igjen… Dine innsendte svar er lagret på serveren.
+        </div>
+      )}
+      {operationalError && (
+        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p>{operationalError}</p>
+          <Button type="button" size="sm" variant="secondary" onClick={retryReconnect}>
+            Prøv igjen
+          </Button>
+        </div>
+      )}
 
       <div className="space-y-4">
-          {activeQuestion ? (
+          {activeQuestionOpen ? (
             <Card className="ring-2 ring-quiz-active p-3 sm:p-4">
               <QuestionBody question={activeQuestion} />
-              {(() => {
-                const qStatus = room.questionStatus[activeQuestion.id] ?? 'locked';
-                const isEditable = qStatus === 'open';
-                const displayAnswer = formatTeamAnswerDisplay(activeQuestion, answerText);
-
-                if (!isEditable) {
-                  return (
-                    <>
-                      {displayAnswer ? (
-                        <div className="mt-4 rounded-xl border border-quiz-border/70 bg-quiz-surface-elevated px-3 py-2.5">
-                          <p className="text-[10px] font-medium uppercase tracking-wide text-quiz-muted sm:text-xs">
-                            Deres svar
-                          </p>
-                          <p className="mt-1 text-sm font-medium text-quiz-text break-words">
-                            {displayAnswer}
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="mt-4 text-sm text-quiz-muted">Ingen svar sendt inn.</p>
-                      )}
-                      <p className="mt-3 text-xs text-quiz-muted">
-                        Spørsmålet er låst. Svaret kan ikke endres.
-                      </p>
-                    </>
-                  );
-                }
-
-                return (
-                  <>
-                    {activeQuestion.type === 'open' ? (
-                      <TextArea
-                        className="mt-4"
-                        value={answerText}
-                        onChange={(e) => setAnswerText(e.target.value)}
-                        placeholder="Ditt svar…"
-                      />
-                    ) : (
-                      <div className="mt-4 space-y-2">
-                        {activeQuestion.options?.map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setAnswerText(opt.id)}
-                            className={`w-full rounded-xl border px-4 py-3 text-left min-h-[44px] transition-colors ${
-                              answerText === opt.id
-                                ? 'border-quiz-accent bg-quiz-accent/20'
-                                : 'border-quiz-border bg-quiz-surface-elevated'
-                            }`}
-                          >
-                            {opt.text}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <Button
-                      className="w-full mt-4"
-                      onClick={() => submitAnswer(activeQuestion)}
-                      disabled={!answerText.trim()}
+              {activeQuestion.type === 'open' ? (
+                <TextArea
+                  className="mt-4"
+                  value={answerText}
+                  onChange={(e) => setAnswerText(e.target.value)}
+                  placeholder="Ditt svar…"
+                />
+              ) : (
+                <div className="mt-4 space-y-2">
+                  {activeQuestion.options?.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setAnswerText(opt.id)}
+                      className={`w-full rounded-xl border px-4 py-3 text-left min-h-[44px] transition-colors ${
+                        answerText === opt.id
+                          ? 'border-quiz-accent bg-quiz-accent/20'
+                          : 'border-quiz-border bg-quiz-surface-elevated'
+                      }`}
                     >
-                      {getMyAnswer(activeQuestion.id) ? 'Oppdater svar' : 'Send inn svar'}
-                    </Button>
-                  </>
-                );
-              })()}
+                      {opt.text}
+                    </button>
+                  ))}
+                </div>
+              )}
               <Button
-                variant="ghost"
-                className="w-full mt-2"
-                onClick={() => setActiveQuestionId(null)}
+                className="w-full mt-4"
+                onClick={() => submitAnswer(activeQuestion)}
+                disabled={!answerText.trim()}
               >
-                Tilbake til oversikt
+                Send svar
               </Button>
             </Card>
           ) : (
             <>
               <p className="text-sm text-quiz-muted">
-                {room.questions.length} spørsmål i quizen. Spørsmålstekst vises når quizmaster
-                åpner spørsmålet.
+                {room.questions.length} spørsmål i quizen. Trykk på et åpent spørsmål for å sende
+                svar — du kommer tilbake til listen automatisk.
               </p>
               {room.questions.map((q) => {
                 const status = room.questionStatus[q.id] ?? 'locked';
@@ -254,7 +298,7 @@ export function TeamPage() {
                 const answerPreview = revealed
                   ? formatTeamAnswerDisplay(q, myAnswer?.value)
                   : null;
-                const canOpen = revealed && (status === 'open' || answered);
+                const canOpen = revealed && status === 'open';
 
                 return (
                   <div key={q.id} id={`team-question-${q.id}`}>
@@ -264,6 +308,7 @@ export function TeamPage() {
                       answered={answered}
                       viewMode="team"
                       teamRevealed={revealed}
+                      teamEditableHint={answered && status === 'open'}
                       highlighted={highlightedQuestionId === q.id}
                       teamAnswerPreview={answerPreview}
                       onClick={canOpen ? () => openQuestion(q) : undefined}

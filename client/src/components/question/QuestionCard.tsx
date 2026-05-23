@@ -16,6 +16,7 @@ interface QuestionCardProps {
   hostDisplayStatus?: HostQuestionDisplayStatus;
   teamAnswerPreview?: string | null;
   teamRevealed?: boolean;
+  teamEditableHint?: boolean;
   viewMode?: 'default' | 'team';
   onClick?: () => void;
   className?: string;
@@ -31,6 +32,7 @@ export function QuestionCard({
   hostDisplayStatus,
   teamAnswerPreview,
   teamRevealed = true,
+  teamEditableHint = false,
   viewMode = 'default',
   onClick,
   className = '',
@@ -76,6 +78,11 @@ export function QuestionCard({
           {question.type === 'mc' && <Badge variant="neutral">MC</Badge>}
         </div>
       </div>
+      {viewMode === 'team' && teamEditableHint && (
+        <p className="text-xs text-quiz-muted mb-3 -mt-1 leading-relaxed">
+          Klikk for å endre svaret før spørsmålet låses.
+        </p>
+      )}
       {viewMode === 'team' && !teamRevealed ? (
         <p className="text-sm text-quiz-muted italic leading-relaxed">
           Skjules til quizmaster åpner spørsmålet

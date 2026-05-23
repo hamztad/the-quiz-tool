@@ -1,12 +1,6 @@
-/** Normalize join code from URL param or user input. */
-export function normalizeJoinCode(raw: string | undefined): string {
-  if (!raw) return '';
-  try {
-    return decodeURIComponent(raw).trim().toUpperCase();
-  } catch {
-    return raw.trim().toUpperCase();
-  }
-}
+export { normalizeJoinCode } from '@quiz-tool/shared';
+
+import { normalizeJoinCode } from '@quiz-tool/shared';
 
 /** In-app path for participant join (QR / share links). */
 export function buildParticipantJoinPath(joinCode: string): string {

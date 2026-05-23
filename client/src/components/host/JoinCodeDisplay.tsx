@@ -11,7 +11,7 @@ export function JoinCodeDisplay({ joinCode, joinUrl }: JoinCodeDisplayProps) {
       <QRCodeSVG value={joinUrl} size={160} bgColor="#242d3a" fgColor="#f0f4f8" />
       <div className="text-center">
         <p className="text-sm text-quiz-muted mb-1">Romkode for lag</p>
-        <p className="text-3xl font-bold tracking-[0.2em] text-quiz-accent">{joinCode}</p>
+        <p className="text-2xl sm:text-3xl font-bold tracking-wide text-quiz-accent">{joinCode}</p>
         <p className="text-xs text-quiz-muted mt-2">Skann QR — åpner deltakerportalen</p>
       </div>
       <p className="text-xs text-quiz-muted text-center break-all max-w-full">{joinUrl}</p>

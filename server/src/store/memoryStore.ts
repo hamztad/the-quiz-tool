@@ -1,3 +1,4 @@
+import { normalizeJoinCode } from '@quiz-tool/shared';
 import type { RoomRecord, RoomStore } from './RoomStore.js';
 
 class InMemoryRoomStore implements RoomStore {
@@ -6,7 +7,7 @@ class InMemoryRoomStore implements RoomStore {
 
   create(room: RoomRecord): void {
     this.rooms.set(room.id, room);
-    this.joinCodeIndex.set(room.joinCode, room.id);
+    this.joinCodeIndex.set(normalizeJoinCode(room.joinCode), room.id);
   }
 
   get(roomId: string): RoomRecord | undefined {
@@ -14,7 +15,7 @@ class InMemoryRoomStore implements RoomStore {
   }
 
   getByJoinCode(joinCode: string): RoomRecord | undefined {
-    const roomId = this.joinCodeIndex.get(joinCode.toUpperCase());
+    const roomId = this.joinCodeIndex.get(normalizeJoinCode(joinCode));
     if (!roomId) return undefined;
     return this.rooms.get(roomId);
   }
@@ -30,7 +31,7 @@ class InMemoryRoomStore implements RoomStore {
   delete(roomId: string): void {
     const room = this.rooms.get(roomId);
     if (room) {
-      this.joinCodeIndex.delete(room.joinCode);
+      this.joinCodeIndex.delete(normalizeJoinCode(room.joinCode));
     }
     this.rooms.delete(roomId);
   }

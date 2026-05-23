@@ -1,18 +1,19 @@
 import { randomBytes } from 'crypto';
+import { JOIN_CODE_ADJECTIVES, JOIN_CODE_NOUNS } from '@quiz-tool/shared';
 
 export function generateId(prefix = ''): string {
   const id = randomBytes(8).toString('hex');
   return prefix ? `${prefix}_${id}` : id;
 }
 
+function pickWord<T extends readonly string[]>(words: T): T[number] {
+  const index = randomBytes(1)[0] % words.length;
+  return words[index];
+}
+
+/** Memorable two-word code, e.g. RØD-ELG or GLAD-TACO */
 export function generateJoinCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  const bytes = randomBytes(6);
-  for (let i = 0; i < 6; i++) {
-    code += chars[bytes[i] % chars.length];
-  }
-  return code;
+  return `${pickWord(JOIN_CODE_ADJECTIVES)}-${pickWord(JOIN_CODE_NOUNS)}`;
 }
 
 export function generateToken(): string {

@@ -1,5 +1,5 @@
 import type { Server, Socket } from 'socket.io';
-import { CLIENT_EVENTS, ROOM_ERROR_CODES, SERVER_EVENTS, type Question } from '@quiz-tool/shared';
+import { CLIENT_EVENTS, normalizeJoinCode, ROOM_ERROR_CODES, SERVER_EVENTS, type Question } from '@quiz-tool/shared';
 import { checkRoomAccess } from '../../domain/roomAccess.js';
 import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import {
@@ -25,7 +25,7 @@ function emitRoomAccessError(socket: Socket, code: string) {
     [ROOM_ERROR_CODES.ROOM_ENDED]: 'Quizen er avsluttet.',
     [ROOM_ERROR_CODES.ROOM_EXPIRED]: 'Rommet har utløpt.',
     [ROOM_ERROR_CODES.JOIN_CODE_INVALID]: 'Ugyldig join-kode.',
-    [ROOM_ERROR_CODES.SESSION_INVALID]: 'Økten er ugyldig.',
+    [ROOM_ERROR_CODES.SESSION_INVALID]: 'Kunne ikke koble til laget igjen. Bli med på nytt med romkode og lagnavn.',
   };
   emitError(socket, messages[code] ?? 'Rommet er ikke tilgjengelig.', code);
 }
@@ -56,7 +56,14 @@ function attachSocket(socket: Socket, roomId: string, role: 'host' | 'secretary'
 export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.ROOM_CREATE, (_payload: { title?: string }, ack?: (res: unknown) => void) => {
     try {
-      const room = createRoom();
+      let room = createRoom();
+      for (let attempt = 0; attempt < 25 && roomStore.getByJoinCode(room.joinCode); attempt += 1) {
+        room = createRoom();
+      }
+      if (roomStore.getByJoinCode(room.joinCode)) {
+        emitError(socket, 'Kunne ikke opprette unik romkode. Prøv igjen.');
+        return;
+      }
       roomStore.create(room);
       attachSocket(socket, room.id, 'host');
 
@@ -77,7 +84,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     CLIENT_EVENTS.ROOM_JOIN,
     (payload: { joinCode: string; teamName: string }, ack?: (res: unknown) => void) => {
       try {
-        const room = roomStore.getByJoinCode(payload.joinCode.trim().toUpperCase());
+        const room = roomStore.getByJoinCode(normalizeJoinCode(payload.joinCode));
         const access = checkRoomAccess(room);
         if (!access.ok) {
           if (access.code === ROOM_ERROR_CODES.ROOM_EXPIRED && room) {
