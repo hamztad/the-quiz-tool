@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Question, type PublicRoomState } from '@quiz-tool/shared';
 import { AcceptedAnswersList } from '../components/question/AcceptedAnswersList';
@@ -152,19 +152,20 @@ export function TeamPage() {
                 const status = room.questionStatus[q.id] ?? 'locked';
                 const answered = hasAnswered(q.id);
                 return (
-                  <QuestionCard
-                    key={q.id}
-                    question={q}
-                    status={status}
-                    answered={answered}
-                    onClick={() => {
-                      if (status === 'open' || answered) {
-                        setActiveQuestionId(q.id);
-                        const ans = getMyAnswer(q.id);
-                        setAnswerText(ans?.value && ans.value !== '[hidden]' ? ans.value : '');
-                      }
-                    }}
-                  />
+                  <Fragment key={q.id}>
+                    <QuestionCard
+                      question={q}
+                      status={status}
+                      answered={answered}
+                      onClick={() => {
+                        if (status === 'open' || answered) {
+                          setActiveQuestionId(q.id);
+                          const ans = getMyAnswer(q.id);
+                          setAnswerText(ans?.value && ans.value !== '[hidden]' ? ans.value : '');
+                        }
+                      }}
+                    />
+                  </Fragment>
                 );
               })}
             </>
@@ -268,15 +269,16 @@ function GradingView({
       </p>
 
       {openQuestions.map((q) => (
-        <GradingQuestionCard
-          key={q.id}
-          question={q}
-          room={room}
-          assignment={assignment}
-          protestMessage={protestMessage}
-          setProtestMessage={setProtestMessage}
-          onProtest={onProtest}
-        />
+        <Fragment key={q.id}>
+          <GradingQuestionCard
+            question={q}
+            room={room}
+            assignment={assignment}
+            protestMessage={protestMessage}
+            setProtestMessage={setProtestMessage}
+            onProtest={onProtest}
+          />
+        </Fragment>
       ))}
     </PageShell>
   );
