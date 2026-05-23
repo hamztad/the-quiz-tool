@@ -3,7 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Protest, type PublicRoomState } from '@quiz-tool/shared';
 import { JoinCodeDisplay } from '../components/host/JoinCodeDisplay';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
+import { HostQuestionStatusBadge } from '../components/host/HostQuestionStatusBadge';
 import { QuestionCard } from '../components/question/QuestionCard';
+import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
+import { isQuestionIncomplete } from '../lib/questionFactory';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -53,7 +56,7 @@ export function HostDashboardPage() {
           <div className="flex flex-wrap gap-2">
             <Link to={`/host/${roomId}/edit`}>
               <Button variant="secondary" size="sm">
-                Rediger spørsmål
+                {room.questions.length === 0 ? 'Opprett spørsmål' : 'Rediger spørsmål'}
               </Button>
             </Link>
             {room.phase === 'lobby' && (
@@ -121,84 +124,142 @@ export function HostDashboardPage() {
             </Card>
           )}
 
-          <div className="space-y-3">
-            <h2 className="font-semibold">Spørsmål</h2>
-            {room.questions.map((q) => {
-              const status = room.questionStatus[q.id] ?? 'locked';
-              const answeredCount = room.teams.filter((t) => teamAnswered(t.id, q.id)).length;
-              return (
-                <QuestionCard key={q.id} question={q} status={status} answered={answeredCount > 0}>
-                  <p className="text-xs text-quiz-muted mt-3 mb-2">
-                    {answeredCount}/{room.teams.length} lag har svart
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {status === 'locked' && (
-                      <Button size="sm" onClick={() => emit(CLIENT_EVENTS.QUESTION_OPEN, { questionId: q.id })}>
-                        Åpne
-                      </Button>
-                    )}
-                    {status === 'open' && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => emit(CLIENT_EVENTS.QUESTION_LOCK, { questionId: q.id })}
-                        >
-                          Lås
-                        </Button>
-                      </>
-                    )}
-                    {status === 'locked' && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => emit(CLIENT_EVENTS.QUESTION_UNLOCK, { questionId: q.id })}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold">Spørsmål</h2>
+                <p className="text-sm text-quiz-muted">
+                  {room.questions.length === 0
+                    ? 'Opprett spørsmål før du starter'
+                    : `${room.questions.length} spørsmål i quizen`}
+                </p>
+              </div>
+              <Link to={`/host/${roomId}/edit`}>
+                <Button size="sm" variant="ghost">
+                  + / Rediger
+                </Button>
+              </Link>
+            </div>
+
+            {room.questions.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-quiz-border px-6 py-8 text-center">
+                <p className="text-quiz-muted text-sm mb-4">Ingen spørsmål lagt til ennå.</p>
+                <Link to={`/host/${roomId}/edit`}>
+                  <Button>Opprett spørsmål</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {room.questions.map((q) => {
+                  const runtimeStatus = room.questionStatus[q.id] ?? 'locked';
+                  const displayStatus = getHostQuestionDisplayStatus(room, q, runtimeStatus);
+                  const answeredCount = room.teams.filter((t) => teamAnswered(t.id, q.id)).length;
+                  const incomplete = isQuestionIncomplete(q);
+
+                  return (
+                    <div key={q.id} className="relative">
+                      <div className="absolute top-4 right-4 z-10">
+                        <HostQuestionStatusBadge status={displayStatus} />
+                      </div>
+                      <QuestionCard
+                        question={q}
+                        status={runtimeStatus}
+                        answered={answeredCount > 0}
+                        className={incomplete ? 'border-dashed border-slate-400/40' : ''}
                       >
-                        Lås opp
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-2 items-center">
-                    <Input
-                      type="number"
-                      className="w-20"
-                      value={overridePoints}
-                      onChange={(e) => setOverridePoints(e.target.value)}
-                    />
-                    {room.teams.map((t) => (
-                      <Button
-                        key={t.id}
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          emit(CLIENT_EVENTS.SCORE_OVERRIDE, {
-                            teamId: t.id,
-                            questionId: q.id,
-                            points: Number(overridePoints),
-                          })
-                        }
-                      >
-                        {t.name.slice(0, 3)}: {overridePoints}p
-                      </Button>
-                    ))}
-                  </div>
-                </QuestionCard>
-              );
-            })}
-            {room.questions.length > 0 && (
-              <Button
-                variant="secondary"
-                className="w-full"
-                onClick={() =>
-                  emit(CLIENT_EVENTS.ROUND_LOCK, {
-                    questionIds: room.questions.map((q) => q.id),
-                  })
-                }
-              >
-                Lås alle spørsmål
-              </Button>
+                        {incomplete && room.phase === 'lobby' && (
+                          <p className="text-xs text-slate-300 mt-2 mb-2">
+                            Utkast — fullfør i redigeringsvisningen
+                          </p>
+                        )}
+                        {room.phase !== 'lobby' && (
+                          <p className="text-xs text-quiz-muted mt-3 mb-2">
+                            {answeredCount}/{room.teams.length} lag har svart
+                          </p>
+                        )}
+                        {room.phase === 'live' && (
+                          <div className="flex flex-wrap gap-2">
+                            {runtimeStatus === 'locked' && (
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  emit(CLIENT_EVENTS.QUESTION_OPEN, { questionId: q.id })
+                                }
+                              >
+                                Åpne for lag
+                              </Button>
+                            )}
+                            {runtimeStatus === 'open' && (
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() =>
+                                  emit(CLIENT_EVENTS.QUESTION_LOCK, { questionId: q.id })
+                                }
+                              >
+                                Lås
+                              </Button>
+                            )}
+                            {runtimeStatus === 'locked' && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() =>
+                                  emit(CLIENT_EVENTS.QUESTION_UNLOCK, { questionId: q.id })
+                                }
+                              >
+                                Åpne igjen
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        {room.phase !== 'lobby' && room.teams.length > 0 && (
+                          <div className="flex gap-2 mt-3 items-center flex-wrap">
+                            <Input
+                              type="number"
+                              className="w-20"
+                              value={overridePoints}
+                              onChange={(e) => setOverridePoints(e.target.value)}
+                              aria-label="Poeng overstyring"
+                            />
+                            {room.teams.map((t) => (
+                              <Button
+                                key={t.id}
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  emit(CLIENT_EVENTS.SCORE_OVERRIDE, {
+                                    teamId: t.id,
+                                    questionId: q.id,
+                                    points: Number(overridePoints),
+                                  })
+                                }
+                              >
+                                {t.name.slice(0, 3)}: {overridePoints}p
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      </QuestionCard>
+                    </div>
+                  );
+                })}
+                {room.phase === 'live' && (
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() =>
+                      emit(CLIENT_EVENTS.ROUND_LOCK, {
+                        questionIds: room.questions.map((q) => q.id),
+                      })
+                    }
+                  >
+                    Lås alle spørsmål
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
+          </section>
         </div>
       )}
     </PageShell>

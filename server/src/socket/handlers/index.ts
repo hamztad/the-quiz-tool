@@ -9,7 +9,7 @@ import {
   upsertScore,
 } from '../../domain/gradingService.js';
 import { lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
-import { createRoom, joinTeam, setQuestions, startQuiz } from '../../domain/roomService.js';
+import { createRoom, joinTeam, setQuestions, startQuiz, updateQuestions } from '../../domain/roomService.js';
 import { roomStore } from '../../store/memoryStore.js';
 import { generateId } from '../../utils/id.js';
 import { emitRoomStateToAll, emitRoomStateToSocket } from '../emitRoomState.js';
@@ -132,7 +132,9 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         id: q.id || generateId('q'),
         order: i,
       }));
-      roomStore.update(roomId, (r) => setQuestions(r, withIds));
+      roomStore.update(roomId, (r) =>
+        r.phase === 'lobby' ? setQuestions(r, withIds) : updateQuestions(r, withIds),
+      );
       emitRoomStateToAll(io, roomId);
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke lagre spørsmål');

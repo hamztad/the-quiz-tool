@@ -13,6 +13,7 @@
   --color-quiz-locked: #ef4444;
   --color-quiz-submitted: #22c55e;
   --color-quiz-active: #3b82f6;
+  --color-quiz-draft: #94a3b8;
 }
 
 body {

@@ -53,6 +53,21 @@ export function joinTeam(room: RoomRecord, teamName: string): { room: RoomRecord
   return { room: updated, teamId, teamToken };
 }
 
+function recomputeAnsweredByTeam(
+  teams: RoomRecord['teams'],
+  answers: RoomRecord['answers'],
+): Record<string, string[]> {
+  const map = Object.fromEntries(teams.map((t) => [t.id, [] as string[]]));
+  for (const answer of answers) {
+    const list = map[answer.teamId];
+    if (list && !list.includes(answer.questionId)) {
+      list.push(answer.questionId);
+    }
+  }
+  return map;
+}
+
+/** Lobby / full replace: resets answers and grading state */
 export function setQuestions(room: RoomRecord, questions: Question[]): RoomRecord {
   const validationErrors = validateQuestionsForSave(questions);
   if (validationErrors.length > 0) {
@@ -74,6 +89,44 @@ export function setQuestions(room: RoomRecord, questions: Question[]): RoomRecor
     gradingAssignments: [],
     peerGrades: [],
     protests: [],
+  };
+}
+
+/** Live edit: keep answers/scores for remaining questions */
+export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRecord {
+  const validationErrors = validateQuestionsForSave(questions);
+  if (validationErrors.length > 0) {
+    throw new Error(validationErrors.join(' '));
+  }
+
+  const newIds = new Set(questions.map((q) => q.id));
+  const questionStatus: Record<string, 'locked' | 'open'> = {};
+
+  for (const q of questions) {
+    questionStatus[q.id] = room.questionStatus[q.id] ?? 'locked';
+  }
+
+  const answers = room.answers.filter((a) => newIds.has(a.questionId));
+  const scores = room.scores.filter((s) => newIds.has(s.questionId));
+  const peerGrades = room.peerGrades.filter((pg) => newIds.has(pg.questionId));
+  const protests = room.protests.filter((p) => newIds.has(p.questionId));
+  const gradingAssignments = room.gradingAssignments
+    .map((a) => ({
+      ...a,
+      questionIds: a.questionIds.filter((id) => newIds.has(id)),
+    }))
+    .filter((a) => a.questionIds.length > 0);
+
+  return {
+    ...room,
+    questions: questions.map((q, i) => ({ ...q, order: i })),
+    questionStatus,
+    answers,
+    scores,
+    answeredByTeam: recomputeAnsweredByTeam(room.teams, answers),
+    gradingAssignments,
+    peerGrades,
+    protests,
   };
 }
 
