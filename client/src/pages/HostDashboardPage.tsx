@@ -65,7 +65,7 @@ export function HostDashboardPage() {
           <div className="flex flex-wrap gap-2">
             <Link to={`/host/${roomId}/edit`}>
               <Button variant="secondary" size="sm">
-                {room.questions.length === 0 ? 'Opprett spørsmål' : 'Rediger spørsmål'}
+                {room.questions.length === 0 ? 'Bygg quiz' : 'Fortsett på denne quizen'}
               </Button>
             </Link>
             {room.phase !== 'ended' && (
@@ -152,13 +152,13 @@ export function HostDashboardPage() {
                 <h2 className="text-lg font-bold">Spørsmål</h2>
                 <p className="text-sm text-quiz-muted">
                   {room.questions.length === 0
-                    ? 'Opprett spørsmål før du starter'
+                    ? 'Bygg quizen før du starter'
                     : `${room.questions.length} spørsmål i quizen`}
                 </p>
               </div>
               <Link to={`/host/${roomId}/edit`} className="shrink-0 self-start sm:self-center">
                 <Button size="sm" variant="ghost">
-                  + / Rediger
+                  {room.questions.length === 0 ? 'Bygg quiz' : 'Fortsett på denne quizen'}
                 </Button>
               </Link>
             </div>
@@ -167,7 +167,7 @@ export function HostDashboardPage() {
               <div className="rounded-2xl border border-dashed border-quiz-border px-6 py-8 text-center">
                 <p className="text-quiz-muted text-sm mb-4">Ingen spørsmål lagt til ennå.</p>
                 <Link to={`/host/${roomId}/edit`}>
-                  <Button>Opprett spørsmål</Button>
+                  <Button>Bygg quiz</Button>
                 </Link>
               </div>
             ) : (

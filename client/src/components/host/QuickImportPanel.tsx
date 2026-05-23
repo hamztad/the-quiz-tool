@@ -84,14 +84,9 @@ export function QuickImportPanel({ existingCount, onAppend, onReplaceAll }: Quic
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-quiz-muted">
-        Importerte spørsmål legges til i <strong className="text-quiz-text">samme liste</strong> som
-        manuelt opprettede spørsmål. Husk å lagre når du er ferdig.
-      </p>
-
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-quiz-muted mb-2">
-          Import-tekst
+          Quiz-tekst
         </p>
         <div className="relative">
           <TextArea
@@ -122,7 +117,7 @@ export function QuickImportPanel({ existingCount, onAppend, onReplaceAll }: Quic
           Forhåndsvis
         </Button>
         <Button type="button" size="sm" onClick={applyAppend}>
-          + Legg til i spørsmålslisten ({existingCount} finnes)
+          Legg til i quizen ({existingCount} spørsmål)
         </Button>
       </div>
 
@@ -140,7 +135,7 @@ export function QuickImportPanel({ existingCount, onAppend, onReplaceAll }: Quic
           onClick={() => setShowDanger((v) => !v)}
           className="text-xs text-quiz-muted hover:text-red-300 underline"
         >
-          {showDanger ? 'Skjul avansert' : 'Avansert: erstatt hele listen (farlig)'}
+          {showDanger ? 'Skjul avansert' : 'Avansert (farlig)'}
         </button>
 
         {showDanger && (

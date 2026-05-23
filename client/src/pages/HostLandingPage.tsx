@@ -16,7 +16,7 @@ export function HostLandingPage() {
     const onCreated = (data: { roomId: string; hostToken: string }) => {
       setLoading(false);
       saveHostSession({ roomId: data.roomId, hostToken: data.hostToken });
-      navigate(`/host/${data.roomId}`);
+      navigate(`/host/${data.roomId}/edit`);
     };
     socket.once(SERVER_EVENTS.ROOM_CREATED, onCreated);
     socket.emit(CLIENT_EVENTS.ROOM_CREATE, {}, (res: { roomId: string; hostToken: string } | undefined) => {
@@ -32,11 +32,21 @@ export function HostLandingPage() {
             Start et nytt quizrom, legg til spørsmål, vis QR-kode for lagene og styr quizen underveis.
           </p>
           <Button size="lg" className="w-full" onClick={createQuiz} disabled={!connected || loading}>
-            {loading ? 'Oppretter rom…' : 'Opprett ny quiz'}
+            {loading ? 'Oppretter rom…' : 'Lag ny quiz'}
           </Button>
           {!connected && (
             <p className="text-sm text-quiz-muted text-center">Kobler til server…</p>
           )}
+        </div>
+
+        <div className="rounded-2xl border border-dashed border-quiz-border/80 bg-quiz-surface/40 p-5">
+          <p className="text-sm font-semibold text-quiz-muted">Åpne lagret quiz</p>
+          <p className="mt-1 text-xs text-quiz-muted">
+            Kommer snart — lagrede quizer kan åpnes her uten å starte på nytt.
+          </p>
+          <Button size="lg" variant="secondary" className="w-full mt-4" disabled>
+            Åpne lagret quiz
+          </Button>
         </div>
 
         <p className="text-center text-xs text-quiz-muted">

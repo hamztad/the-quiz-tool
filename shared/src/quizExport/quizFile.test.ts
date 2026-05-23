@@ -1,0 +1,70 @@
+import { describe, expect, it } from 'vitest';
+import type { Question } from '../types/room.js';
+import { buildQuizFileExport, parseQuizFile, QUIZ_FILE_FORMAT } from './quizFile.js';
+import { questionsToQuizText } from './questionsToQuizText.js';
+
+const sampleQuestion: Question = {
+  id: 'q1',
+  order: 0,
+  type: 'open',
+  lines: [{ text: 'Hva er 2+2?', style: 'title' }],
+  acceptedAnswers: ['4'],
+  maxPoints: 1,
+};
+
+describe('buildQuizFileExport', () => {
+  it('builds a valid export envelope', () => {
+    const data = buildQuizFileExport([sampleQuestion], { title: 'Testquiz' });
+    expect(data.format).toBe(QUIZ_FILE_FORMAT);
+    expect(data.version).toBe(1);
+    expect(data.title).toBe('Testquiz');
+    expect(data.questions).toHaveLength(1);
+    expect(data.exportedAt).toBeTruthy();
+  });
+});
+
+describe('parseQuizFile', () => {
+  it('accepts a valid export', () => {
+    const exported = buildQuizFileExport([sampleQuestion]);
+    const parsed = parseQuizFile(exported);
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.data.questions[0].lines[0].text).toBe('Hva er 2+2?');
+    }
+  });
+
+  it('rejects unknown format', () => {
+    const result = parseQuizFile({ format: 'other', version: 1, exportedAt: 'x', questions: [] });
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects empty questions', () => {
+    const exported = buildQuizFileExport([]);
+    const result = parseQuizFile(exported);
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe('questionsToQuizText', () => {
+  it('serializes open and mc questions', () => {
+    const text = questionsToQuizText([
+      sampleQuestion,
+      {
+        id: 'q2',
+        order: 1,
+        type: 'mc',
+        lines: [{ text: 'Størst planet?', style: 'title' }],
+        options: [
+          { id: 'o1', text: 'Jupiter', isCorrect: true },
+          { id: 'o2', text: 'Mars', isCorrect: false },
+        ],
+        maxPoints: 1,
+      },
+    ]);
+    expect(text).toContain('Q Hva er 2+2?');
+    expect(text).toContain('A 4');
+    expect(text).toContain('MC Størst planet?');
+    expect(text).toContain('*Jupiter');
+    expect(text).toContain('Mars');
+  });
+});
