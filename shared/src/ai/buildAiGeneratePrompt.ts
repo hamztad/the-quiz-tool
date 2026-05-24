@@ -38,6 +38,7 @@ JSON-eksempel (bruk nøyaktig denne strukturen for HVERT spørsmål):
 - ALLE ${count} spørsmål skal ha "type": "mc"
 - Hvert spørsmål skal ha nøyaktig 4 "options"
 - Nøyaktig én option med "correct": true, de andre false
+- Plassering av riktig svar i listen spiller ingen rolle (systemet stokker alternativene)
 - FORBUDT: "type": "open", "acceptedAnswers", eller åpne tekstsvar
 - Ikke skriv svar som fri tekst utenfor options
 

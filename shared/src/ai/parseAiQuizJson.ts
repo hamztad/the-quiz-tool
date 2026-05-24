@@ -6,6 +6,7 @@ import {
   AI_GENERATE_QUESTION_MIN,
   type AiQuizQuestionStyle,
 } from './aiQuizTypes.js';
+import { shuffleAiGeneratedMcOptions } from './shuffleMcOptions.js';
 
 const MAX_QUESTION_TEXT = 400;
 const MAX_ANSWER_TEXT = 120;
@@ -181,7 +182,7 @@ export function parseAiQuizJson(
     return { questions: [], errors };
   }
 
-  return { questions, errors: [] };
+  return { questions: shuffleAiGeneratedMcOptions(questions), errors: [] };
 }
 
 export function clampAiQuestionCount(count: number): number {
