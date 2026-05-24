@@ -87,8 +87,30 @@ textarea {
   width: 100%;
 }
 
+/* User-generated / long copy — prevent horizontal page overflow on narrow screens */
+.quiz-user-text {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.quiz-page-content {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 pre,
 code {
-  overflow-x: auto;
   max-width: 100%;
+  min-width: 0;
+}
+
+pre {
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 }

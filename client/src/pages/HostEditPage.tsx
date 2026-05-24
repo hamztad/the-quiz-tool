@@ -309,9 +309,9 @@ export function HostEditPage() {
   const editorSection = (
         <section
           ref={editorEntryRef}
-          className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden"
+          className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden box-border"
         >
-          <div className="rounded-xl bg-quiz-bg/60 border border-quiz-accent/20 p-4 mb-6">
+          <div className="rounded-xl bg-quiz-bg/60 border border-quiz-accent/20 p-4 mb-6 min-w-0 max-w-full overflow-hidden">
             <p className="text-sm font-medium text-quiz-text mb-3">Legg til spørsmål</p>
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={() => addQuestion('open')}>
@@ -397,7 +397,7 @@ export function HostEditPage() {
   );
 
   const tekstSection = (
-        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden">
+        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden box-border">
           <QuickImportPanel
             existingCount={draftQuestions.length}
             onAppend={appendImportedQuestions}

@@ -23,7 +23,10 @@ export function EditSection({
   id,
 }: EditSectionProps) {
   return (
-    <section id={id} className={`rounded-2xl border p-5 sm:p-6 ${variants[variant]}`}>
+    <section
+      id={id}
+      className={`rounded-2xl border p-5 sm:p-6 min-w-0 max-w-full overflow-hidden box-border ${variants[variant]}`}
+    >
       <header className="mb-5 pb-4 border-b border-white/10">
         <h2 className="text-xl font-bold tracking-tight">{title}</h2>
         {description && <p className="text-sm text-quiz-muted mt-1.5 max-w-xl">{description}</p>}

@@ -7,7 +7,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 
 export function Card({ children, className = '', onClick, ...props }: CardProps) {
   const classes = `rounded-2xl border border-quiz-border bg-quiz-surface p-4 text-left w-full min-w-0 max-w-full overflow-hidden box-border ${
-    onClick ? 'cursor-pointer hover:bg-quiz-surface-elevated transition-colors' : ''
+    onClick ? 'block cursor-pointer hover:bg-quiz-surface-elevated transition-colors' : ''
   } ${className}`;
 
   if (onClick) {

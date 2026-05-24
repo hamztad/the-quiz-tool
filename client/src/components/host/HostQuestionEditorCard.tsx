@@ -131,7 +131,7 @@ export function HostQuestionEditorCard({
                   Ekstra tekst
                 </span>
               )}
-              <HostQuestionStatusBadge status={displayStatus} className="!flex-row" />
+              <HostQuestionStatusBadge status={displayStatus} />
             </div>
           </div>
           <span className="shrink-0 text-quiz-muted text-base px-0.5 self-center" aria-hidden>

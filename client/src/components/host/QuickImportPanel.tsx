@@ -154,7 +154,7 @@ export function QuickImportPanel({
   );
 
   return (
-    <div className="space-y-4 min-w-0 max-w-full overflow-hidden">
+    <div className="quiz-page-content space-y-4">
       <AiQuizPromptPanel />
 
       <div>
@@ -163,13 +163,13 @@ export function QuickImportPanel({
             Quiz-tekst
           </p>
         )}
-        <div className="relative">
+        <div className="relative min-w-0 max-w-full overflow-hidden">
           <TextArea
             ref={importTextRef}
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
             rows={helpBelow ? 10 : 8}
-            className={`font-mono text-sm bg-quiz-bg/60 min-h-[200px] ${hasImportText ? 'pr-14' : ''}`}
+            className={`font-mono text-sm bg-quiz-bg/60 min-h-[200px] quiz-user-text [word-break:break-word] ${hasImportText ? 'pr-14' : ''}`}
             placeholder="Lim inn eller skriv quiz her — Q, A, MC og * for riktig svar…"
           />
           {hasImportText && (

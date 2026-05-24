@@ -45,7 +45,7 @@ export interface EditorTextAreaProps extends TextareaHTMLAttributes<HTMLTextArea
 }
 
 const editorFieldClasses =
-  'box-border w-full min-w-0 max-w-full resize-none overflow-x-hidden [overflow-wrap:anywhere] break-words whitespace-pre-wrap text-sm sm:text-base leading-relaxed';
+  'box-border w-full min-w-0 max-w-full resize-none overflow-x-hidden quiz-user-text whitespace-pre-wrap text-sm sm:text-base leading-relaxed';
 
 export const EditorTextArea = forwardRef<HTMLTextAreaElement, EditorTextAreaProps>(
   function EditorTextArea(

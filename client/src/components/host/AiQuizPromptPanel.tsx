@@ -28,7 +28,7 @@ export function AiQuizPromptPanel() {
   };
 
   return (
-    <div className="rounded-xl border border-quiz-border/60 bg-quiz-bg/50 p-4 space-y-4 min-w-0 max-w-full">
+    <div className="rounded-xl border border-quiz-border/60 bg-quiz-bg/50 p-4 space-y-4 min-w-0 max-w-full overflow-hidden box-border">
       <div>
         <p className="text-sm font-semibold text-quiz-text">Lag quiz med AI</p>
         <p className="mt-1 text-xs text-quiz-muted break-words">

@@ -75,7 +75,7 @@ export function PeerGradingView({
   return (
     <PageShell title={teamName} subtitle={`Retter: ${targetTeam?.name ?? '…'}`}>
       {error && (
-        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 quiz-user-text">
           {error}
         </p>
       )}
@@ -117,7 +117,7 @@ export function PeerGradingView({
         automatisk.
       </p>
 
-      <div className="space-y-5 pb-6">
+      <div className="quiz-page-content space-y-5 pb-6">
         {openQuestions.map((q) => (
           <PeerGradingQuestionCard
             key={q.id}

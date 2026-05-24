@@ -80,14 +80,14 @@ export function PeerGradingQuestionCard({
     >
       <QuestionBody question={q} />
 
-      <div className="space-y-4">
-        <section className="rounded-xl border-2 border-quiz-border/80 bg-quiz-surface-elevated/80 overflow-hidden">
+      <div className="space-y-4 min-w-0 max-w-full">
+        <section className="rounded-xl border-2 border-quiz-border/80 bg-quiz-surface-elevated/80 overflow-hidden min-w-0 max-w-full">
           <div className="border-b border-quiz-border/80 bg-quiz-bg/50 px-4 py-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
               Lagets svar
             </h3>
           </div>
-          <p className="px-4 py-4 text-lg sm:text-xl font-semibold text-quiz-text leading-snug">
+          <p className="px-4 py-4 text-lg sm:text-xl font-semibold text-quiz-text leading-snug quiz-user-text">
             {targetAnswer?.value?.trim() ? targetAnswer.value : '—'}
           </p>
         </section>
@@ -103,7 +103,7 @@ export function PeerGradingQuestionCard({
               {acceptedAnswers.map((answer, i) => (
                 <li
                   key={i}
-                  className="px-4 py-3 text-base sm:text-lg font-medium text-green-50/95 leading-snug"
+                  className="px-4 py-3 text-base sm:text-lg font-medium text-green-50/95 leading-snug quiz-user-text"
                 >
                   {answer}
                 </li>
@@ -122,7 +122,7 @@ export function PeerGradingQuestionCard({
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500/30 text-2xl">
             ✅
           </span>
-          <p className="text-lg sm:text-xl font-bold text-green-50">
+          <p className="text-lg sm:text-xl font-bold text-green-50 quiz-user-text">
             Du ga {registeredPoints} {registeredPoints === 1 ? 'poeng' : 'poeng'}
           </p>
         </div>

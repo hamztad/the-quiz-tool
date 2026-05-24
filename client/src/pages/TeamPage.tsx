@@ -257,17 +257,17 @@ export function TeamPage() {
         </div>
       )}
       {operationalError && (
-        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <p>{operationalError}</p>
+        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0 max-w-full">
+          <p className="min-w-0 flex-1 quiz-user-text">{operationalError}</p>
           <Button type="button" size="sm" variant="secondary" onClick={retryReconnect}>
             Prøv igjen
           </Button>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="quiz-page-content space-y-4">
           {activeQuestionOpen ? (
-            <Card className="border-2 border-quiz-active p-3 sm:p-4">
+            <Card className="border-2 border-quiz-active p-3 sm:p-4 min-w-0">
               <QuestionBody question={activeQuestion} />
               {activeQuestion.type === 'open' ? (
                 <TextArea
@@ -277,13 +277,13 @@ export function TeamPage() {
                   placeholder="Ditt svar…"
                 />
               ) : (
-                <div className="mt-4 space-y-2">
+                <div className="mt-4 space-y-2 min-w-0 max-w-full">
                   {activeQuestion.options?.map((opt) => (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => setAnswerText(opt.id)}
-                      className={`w-full rounded-xl border px-4 py-3 text-left min-h-[44px] transition-colors ${
+                      className={`box-border w-full min-w-0 max-w-full rounded-xl border px-4 py-3 text-left min-h-[44px] transition-colors quiz-user-text ${
                         answerText === opt.id
                           ? 'border-quiz-accent bg-quiz-accent/20'
                           : 'border-quiz-border bg-quiz-surface-elevated'
@@ -319,7 +319,7 @@ export function TeamPage() {
                 const canOpen = revealed && status === 'open';
 
                 return (
-                  <div key={q.id} id={`team-question-${q.id}`}>
+                  <div key={q.id} id={`team-question-${q.id}`} className="min-w-0 max-w-full">
                     <QuestionCard
                       question={q}
                       status={status}

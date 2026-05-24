@@ -138,7 +138,7 @@ export function HostDashboardPage() {
       )}
 
       {operationalError && (
-        <p className="text-red-400 mb-4 break-words">{operationalError}</p>
+        <p className="text-red-400 mb-4 quiz-user-text">{operationalError}</p>
       )}
 
       <div className="space-y-6 min-w-0 max-w-full">
@@ -258,7 +258,7 @@ export function HostDashboardPage() {
                   const incomplete = isQuestionIncomplete(q);
 
                   return (
-                    <div key={q.id}>
+                    <div key={q.id} className="min-w-0 max-w-full">
                       <QuestionCard
                         question={q}
                         status={runtimeStatus}

@@ -95,7 +95,7 @@ export function QuestionCard({
           <p className="text-[10px] font-medium uppercase tracking-wide text-quiz-muted sm:text-xs">
             Deres svar
           </p>
-          <p className="mt-1 text-sm font-medium text-quiz-text break-words">{teamAnswerPreview}</p>
+          <p className="mt-1 text-sm font-medium text-quiz-text quiz-user-text">{teamAnswerPreview}</p>
         </div>
       )}
       {children}
