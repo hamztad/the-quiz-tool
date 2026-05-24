@@ -32,7 +32,7 @@ export function AiQuizPromptPanel() {
       <div>
         <p className="text-sm font-semibold text-quiz-text">Lag quiz med AI</p>
         <p className="mt-1 text-xs text-quiz-muted break-words">
-          AI-generated quizzes are fully editable after import.
+          Quizen genereres på norsk. AI-genererte quizer kan redigeres fritt etter import.
         </p>
       </div>
 
