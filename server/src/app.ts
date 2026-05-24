@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
+import { aiQuizRouter } from './routes/aiQuiz.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,6 +22,8 @@ export function createApp() {
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, service: 'the-quiz-tool' });
   });
+
+  app.use('/api/ai', aiQuizRouter);
 
   if (config.isProd) {
     const clientDist = path.resolve(__dirname, '../../client/dist');

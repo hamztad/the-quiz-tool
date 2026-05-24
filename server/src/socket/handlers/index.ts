@@ -1,14 +1,16 @@
 import type { Server, Socket } from 'socket.io';
-import { CLIENT_EVENTS, ROOM_ERROR_CODES, SERVER_EVENTS, type Question } from '@quiz-tool/shared';
-import { checkRoomAccess } from '../../domain/roomAccess.js';
-import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import {
   buildGradingAssignments,
-  createProtest,
+  canStartPeerGrading,
+  CLIENT_EVENTS,
   getOpenQuestionIds,
-  mergePeerGradesToScores,
-  upsertScore,
-} from '../../domain/gradingService.js';
+  ROOM_ERROR_CODES,
+  SERVER_EVENTS,
+  type Question,
+} from '@quiz-tool/shared';
+import { checkRoomAccess } from '../../domain/roomAccess.js';
+import { submitOrUpdateAnswer } from '../../domain/answerService.js';
+import { createProtest, mergePeerGradesToScores, upsertScore } from '../../domain/gradingService.js';
 import { lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
 import { createRoom, endQuizForTeams, joinTeam, removeTeam, setQuestions, startQuiz, updateQuestions } from '../../domain/roomService.js';
 import { roomStore } from '../../store/memoryStore.js';
@@ -312,6 +314,12 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
     const openIds = getOpenQuestionIds(room.questions);
     const teamIds = room.teams.map((t) => t.id);
+    const startCheck = canStartPeerGrading(teamIds.length, openIds.length);
+    if (!startCheck.ok) {
+      emitError(socket, startCheck.message);
+      return;
+    }
+
     const assignments = buildGradingAssignments(teamIds, openIds);
 
     roomStore.update(roomId, (r) => ({

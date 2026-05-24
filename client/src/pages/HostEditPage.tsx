@@ -4,6 +4,7 @@ import { CLIENT_EVENTS, questionsToQuizText, type Question } from '@quiz-tool/sh
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
 import { HostQuestionEditorCard } from '../components/host/HostQuestionEditorCard';
+import { HostAiGeneratePanel } from '../components/host/HostAiGeneratePanel';
 import { QuickImportPanel } from '../components/host/QuickImportPanel';
 import { QuizBackupPanel } from '../components/host/QuizBackupPanel';
 import { QuizEditModeTabs, type QuizEditMode } from '../components/host/QuizEditModeTabs';
@@ -225,6 +226,21 @@ export function HostEditPage() {
     }
   };
 
+  const applyAiGeneratedQuestions = (parsed: ParsedImportQuestion[]) => {
+    const startIndex = draftQuestions.length;
+    const stamped = stampImportedQuestions(parsed, startIndex);
+    const nextList =
+      draftQuestions.length === 0 ? stamped : [...draftQuestions, ...stamped];
+    updateDraft(nextList);
+    setEditMode('editor');
+    setExpandedIds(new Set(stamped.map((q) => q.id)));
+    if (stamped.length > 0) {
+      flashHighlight(stamped[0].id, startIndex);
+    }
+    setSaveMessage(`${stamped.length} AI-spørsmål lagt til i editoren — husk å lagre.`);
+    navigate(`/host/${roomId}/edit?mode=editor`, { replace: true });
+  };
+
   const incompleteCount = draftQuestions.filter(isQuestionIncomplete).length;
   const savedCount = room?.questions.length ?? 0;
   const isSynced = !dirty && draftQuestions.length === savedCount;
@@ -288,7 +304,9 @@ export function HostEditPage() {
       ? 'Lim inn eller skriv quiz som tekst'
       : buildEntry === 'import'
         ? 'Velg en JSON-quizfil å importere'
-        : 'Legg til spørsmål i editoren'
+        : buildEntry === 'ai'
+          ? 'Generer spørsmål med AI'
+          : 'Legg til spørsmål i editoren'
     : hasExistingQuiz
       ? `${draftQuestions.length} spørsmål · lagres til server når du er klar`
       : 'Velg editor, tekst eller import — ingen invitasjon ennå';
@@ -418,6 +436,12 @@ export function HostEditPage() {
         </section>
   );
 
+  const aiSection = roomId ? (
+    <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden box-border">
+      <HostAiGeneratePanel roomId={roomId} onGenerated={applyAiGeneratedQuestions} />
+    </section>
+  ) : null;
+
   const tekstSection = (
         <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden box-border">
           <QuickImportPanel
@@ -438,7 +462,12 @@ export function HostEditPage() {
     </div>
   );
 
-  const mainEditorContent = editMode === 'editor' ? editorSection : tekstSection;
+  const mainEditorContent =
+    focusEntry && buildEntry === 'ai'
+      ? aiSection
+      : editMode === 'editor'
+        ? editorSection
+        : tekstSection;
 
   return (
     <PageShell title="Bygg quiz" subtitle={pageSubtitle}>
@@ -471,7 +500,7 @@ export function HostEditPage() {
             <div className="mb-4 w-full min-w-0 max-w-full">{backupPanel}</div>
           )}
 
-          {modeTabs}
+          {buildEntry !== 'ai' && modeTabs}
           {mainEditorContent}
 
           <HostEditSecondary>

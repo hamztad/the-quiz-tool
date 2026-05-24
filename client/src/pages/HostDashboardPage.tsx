@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CLIENT_EVENTS, type Protest, type PublicRoomState } from '@quiz-tool/shared';
+import {
+  canStartPeerGrading,
+  CLIENT_EVENTS,
+  getOpenQuestionIds,
+  type Protest,
+  type PublicRoomState,
+} from '@quiz-tool/shared';
 import { QuizBackupPanel } from '../components/host/QuizBackupPanel';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
@@ -101,6 +107,10 @@ export function HostDashboardPage() {
   const pendingProtests = room.protests.filter((p) => p.status === 'pending');
   const isPostQuiz = room.phase === 'post_quiz';
   const showLeaderboard = room.phase === 'leaderboard' || room.settings.showLeaderboard;
+  const peerGradingCheck = canStartPeerGrading(
+    room.teams.length,
+    getOpenQuestionIds(room.questions).length,
+  );
 
   const endQuizForTeams = () => {
     if (
@@ -186,6 +196,8 @@ export function HostDashboardPage() {
                   size="sm"
                   variant="secondary"
                   className="w-full sm:w-auto"
+                  disabled={!peerGradingCheck.ok}
+                  title={peerGradingCheck.ok ? undefined : peerGradingCheck.message}
                   onClick={() => emit(CLIENT_EVENTS.GRADING_START)}
                 >
                   Start retterunde

@@ -1,44 +1,10 @@
-import type { GradingAssignment, Question, RoomState, ScoreEntry } from '@quiz-tool/shared';
+import type { Question, RoomState, ScoreEntry } from '@quiz-tool/shared';
 import { generateId } from '../utils/id.js';
 
-export function getOpenQuestionIds(questions: Question[]): string[] {
-  return questions.filter((q) => q.type === 'open').map((q) => q.id);
-}
-
-/** Random derangement: each team grades exactly one other team */
-export function buildGradingAssignments(teamIds: string[], openQuestionIds: string[]): GradingAssignment[] {
-  if (teamIds.length < 2 || openQuestionIds.length === 0) {
-    return [];
-  }
-
-  const shuffled = [...teamIds];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-
-  const assignments: GradingAssignment[] = [];
-
-  for (let i = 0; i < teamIds.length; i++) {
-    const graderTeamId = teamIds[i];
-    let targetTeamId = shuffled[i];
-    if (targetTeamId === graderTeamId) {
-      targetTeamId = shuffled[(i + 1) % shuffled.length];
-    }
-    if (targetTeamId === graderTeamId) {
-      const others = teamIds.filter((id) => id !== graderTeamId);
-      targetTeamId = others[0];
-    }
-
-    assignments.push({
-      graderTeamId,
-      targetTeamId,
-      questionIds: [...openQuestionIds],
-    });
-  }
-
-  return assignments;
-}
+export {
+  buildGradingAssignments,
+  getOpenQuestionIds,
+} from '@quiz-tool/shared';
 
 export function mergePeerGradesToScores(room: RoomState): ScoreEntry[] {
   const nonPeer = room.scores.filter((s) => s.source !== 'peer');

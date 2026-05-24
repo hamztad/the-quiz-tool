@@ -1,6 +1,6 @@
 const PRESENT_KEY = 'quiz_host_present';
 
-export type HostBuildEntry = 'editor' | 'tekst' | 'import';
+export type HostBuildEntry = 'editor' | 'tekst' | 'import' | 'ai';
 
 function readPresentMap(): Record<string, boolean> {
   try {
@@ -47,12 +47,14 @@ export function parseBuildEntry(search: string): HostBuildEntry | null {
   const mode = params.get('mode');
   if (mode === 'editor') return 'editor';
   if (mode === 'tekst' || mode === 'text') return 'tekst';
+  if (mode === 'ai') return 'ai';
   return null;
 }
 
 export function buildEditPath(roomId: string, entry: HostBuildEntry): string {
   if (entry === 'import') return `/host/${roomId}/edit?import=1`;
   if (entry === 'tekst') return `/host/${roomId}/edit?mode=tekst`;
+  if (entry === 'ai') return `/host/${roomId}/edit?mode=ai`;
   return `/host/${roomId}/edit?mode=editor`;
 }
 

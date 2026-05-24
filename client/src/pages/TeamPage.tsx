@@ -207,6 +207,20 @@ export function TeamPage() {
     );
   }
 
+  if (room.phase === 'grading' && !assignment) {
+    return (
+      <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Retterunde">
+        <Card className="p-5 text-center space-y-3">
+          <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
+          <p className="text-sm text-quiz-muted leading-relaxed">
+            Retterunde krever minst to lag. Quizmaster må ha minst to lag og åpne spørsmål for at
+            peer-retting skal starte.
+          </p>
+        </Card>
+      </PageShell>
+    );
+  }
+
   if (room.phase === 'grading' && assignment) {
     return (
       <PeerGradingView

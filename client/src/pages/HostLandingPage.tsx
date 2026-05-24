@@ -71,6 +71,13 @@ export function HostLandingPage() {
           onClick={() => createQuiz('import')}
           disabled={!connected || busy}
         />
+        <HostSetupCard
+          title="Generer med AI"
+          description="Velg tema og antall spørsmål — rediger i editoren før du presenterer."
+          icon="✨"
+          onClick={() => createQuiz('ai')}
+          disabled={!connected || busy}
+        />
 
         {loading && loading !== 'continue' && (
           <p className="text-sm text-quiz-muted text-center" role="status">
