@@ -2,31 +2,93 @@ import { computeLeaderboard } from '../../lib/leaderboard';
 import type { PublicRoomState } from '@quiz-tool/shared';
 import { Card } from '../ui/Card';
 
-interface LeaderboardProps {
+interface LeaderboardBaseProps {
   room: PublicRoomState;
 }
 
-export function Leaderboard({ room }: LeaderboardProps) {
+interface LeaderboardReadonlyProps extends LeaderboardBaseProps {
+  hostInteractive?: false;
+}
+
+interface LeaderboardHostProps extends LeaderboardBaseProps {
+  hostInteractive: true;
+  selectedTeamId?: string | null;
+  onSelectTeam: (teamId: string) => void;
+  onRemoveTeam: (teamId: string, teamName: string) => void;
+  showAnswerStats?: boolean;
+}
+
+export type LeaderboardProps = LeaderboardReadonlyProps | LeaderboardHostProps;
+
+export function Leaderboard(props: LeaderboardProps) {
+  const { room } = props;
   const entries = computeLeaderboard(room);
+  const hostInteractive = props.hostInteractive === true;
 
   return (
     <Card className="min-w-0 max-w-full overflow-hidden">
-      <h2 className="text-lg font-bold mb-4">Leaderboard</h2>
+      <h2 className="text-lg font-bold">Leaderboard</h2>
+      {hostInteractive && (
+        <p className="text-xs text-quiz-muted mt-1 mb-3 break-words">
+          Trykk på lagnavn for besvarelser og poeng. × kaster ut lag som har forlatt.
+        </p>
+      )}
+      {!hostInteractive && <div className="mb-4" />}
       <ol className="space-y-2 min-w-0">
-        {entries.map((entry, i) => (
-          <li
-            key={entry.teamId}
-            className="flex gap-3 items-center justify-between min-w-0 rounded-xl bg-quiz-surface-elevated px-4 py-3"
-          >
-            <span className="flex items-start gap-3 min-w-0 flex-1">
-              <span className="text-quiz-muted w-6 shrink-0 tabular-nums">{i + 1}.</span>
-              <span className="font-medium break-words [overflow-wrap:anywhere] min-w-0">
-                {entry.teamName}
+        {entries.map((entry, i) => {
+          const isSelected = hostInteractive && props.selectedTeamId === entry.teamId;
+          const answeredCount = hostInteractive
+            ? (room.answeredByTeam[entry.teamId] ?? []).length
+            : 0;
+
+          return (
+            <li
+              key={entry.teamId}
+              className={`flex gap-2 items-start min-w-0 rounded-xl px-4 py-3 ${
+                isSelected
+                  ? 'border border-quiz-accent/60 bg-quiz-accent/10'
+                  : 'bg-quiz-surface-elevated border border-transparent'
+              }`}
+            >
+              <span className="text-quiz-muted w-6 shrink-0 tabular-nums pt-0.5">{i + 1}.</span>
+              {hostInteractive ? (
+                <button
+                  type="button"
+                  onClick={() => props.onSelectTeam(entry.teamId)}
+                  className="min-w-0 flex-1 text-left font-medium break-words [overflow-wrap:anywhere] rounded-lg -m-1 p-1 hover:text-quiz-accent transition-colors"
+                  aria-pressed={isSelected}
+                >
+                  {entry.teamName}
+                </button>
+              ) : (
+                <span className="min-w-0 flex-1 font-medium break-words [overflow-wrap:anywhere]">
+                  {entry.teamName}
+                </span>
+              )}
+              {hostInteractive && props.showAnswerStats && (
+                <span className="shrink-0 text-xs text-quiz-muted tabular-nums pt-0.5">
+                  {answeredCount} besvarte
+                </span>
+              )}
+              <span className="text-quiz-accent font-bold shrink-0 tabular-nums pt-0.5">
+                {entry.totalPoints} p
               </span>
-            </span>
-            <span className="text-quiz-accent font-bold shrink-0 tabular-nums">{entry.totalPoints} p</span>
-          </li>
-        ))}
+              {hostInteractive && (
+                <button
+                  type="button"
+                  onClick={() => props.onRemoveTeam(entry.teamId, entry.teamName)}
+                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-lg border border-quiz-border/80 text-quiz-muted transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-300"
+                  title={`Kast ut ${entry.teamName}`}
+                  aria-label={`Kast ut ${entry.teamName}`}
+                >
+                  <span className="text-xl font-light leading-none" aria-hidden>
+                    ×
+                  </span>
+                </button>
+              )}
+            </li>
+          );
+        })}
         {entries.length === 0 && (
           <p className="text-quiz-muted text-sm">Ingen lag ennå.</p>
         )}

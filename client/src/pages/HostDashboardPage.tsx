@@ -23,9 +23,7 @@ import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { HostTeamList } from '../components/host/HostTeamList';
 import { HostTeamAnswersPanel } from '../components/host/HostTeamAnswersPanel';
-import { Input } from '../components/ui/Input';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 
@@ -58,7 +56,6 @@ export function HostDashboardPage() {
     socket,
     connected,
   );
-  const [overridePoints, setOverridePoints] = useState('1');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -106,7 +103,7 @@ export function HostDashboardPage() {
 
   const pendingProtests = room.protests.filter((p) => p.status === 'pending');
   const isPostQuiz = room.phase === 'post_quiz';
-  const showLeaderboard = room.phase === 'leaderboard' || room.settings.showLeaderboard;
+  const teamsSeeLeaderboard = room.phase === 'leaderboard' || room.settings.showLeaderboard;
   const peerGradingCheck = canStartPeerGrading(
     room.teams.length,
     getOpenQuestionIds(room.questions).length,
@@ -224,17 +221,23 @@ export function HostDashboardPage() {
             </Link>
           </div>
 
-          {showLeaderboard && <Leaderboard room={room} />}
-
-          <HostTeamList
+          <Leaderboard
             room={room}
-            onRemoveTeam={removeTeamFromQuiz}
+            hostInteractive
+            selectedTeamId={selectedTeamId}
             onSelectTeam={(teamId) =>
               setSelectedTeamId((current) => (current === teamId ? null : teamId))
             }
-            selectedTeamId={selectedTeamId}
+            onRemoveTeam={removeTeamFromQuiz}
             showAnswerStats={!isPostQuiz}
           />
+
+          {!teamsSeeLeaderboard && room.phase === 'live' && (
+            <p className="text-xs text-quiz-muted break-words">
+              Deltakerne ser ikke leaderboard ennå — trykk «Vis leaderboard» når du vil vise
+              poengstillingen til lagene.
+            </p>
+          )}
 
           {selectedTeamId && (
             <HostTeamAnswersPanel
@@ -328,38 +331,6 @@ export function HostDashboardPage() {
                             </div>
                           );
                         })()}
-                        {room.teams.length > 0 && (
-                          <div className="flex flex-col gap-3 mt-3 min-w-0 sm:flex-row sm:flex-wrap sm:items-center">
-                            <Input
-                              type="number"
-                              className="w-full max-w-[6rem] shrink-0"
-                              value={overridePoints}
-                              onChange={(e) => setOverridePoints(e.target.value)}
-                              aria-label="Poeng overstyring"
-                            />
-                            <div className="flex flex-wrap gap-2 min-w-0">
-                            {room.teams.map((t) => (
-                              <Button
-                                key={t.id}
-                                size="sm"
-                                variant="ghost"
-                                className="max-w-full"
-                                onClick={() =>
-                                  emit(CLIENT_EVENTS.SCORE_OVERRIDE, {
-                                    teamId: t.id,
-                                    questionId: q.id,
-                                    points: Number(overridePoints),
-                                  })
-                                }
-                              >
-                                <span className="break-words [overflow-wrap:anywhere]">
-                                  {t.name}: {overridePoints}p
-                                </span>
-                              </Button>
-                            ))}
-                            </div>
-                          </div>
-                        )}
                       </QuestionCard>
                     </div>
                   );
