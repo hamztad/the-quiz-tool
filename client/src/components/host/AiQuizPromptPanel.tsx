@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { buildAiQuizPrompt } from '@quiz-tool/shared';
+import {
+  AI_QUIZ_QUESTION_COUNT,
+  AI_QUIZ_QUESTION_COUNT_MAX,
+  AI_QUIZ_QUESTION_COUNT_MIN,
+  AI_QUIZ_QUESTION_COUNT_OPTIONS,
+  buildAiQuizPrompt,
+} from '@quiz-tool/shared';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
@@ -13,13 +19,14 @@ const WORKFLOW_STEPS = [
 
 export function AiQuizPromptPanel() {
   const [topic, setTopic] = useState('');
+  const [questionCount, setQuestionCount] = useState(AI_QUIZ_QUESTION_COUNT);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleCopyPrompt = async () => {
     setError(null);
     try {
-      await navigator.clipboard.writeText(buildAiQuizPrompt(topic));
+      await navigator.clipboard.writeText(buildAiQuizPrompt(topic, questionCount));
       setFeedback('Prompt kopiert — lim inn i ChatGPT, Claude eller Gemini.');
       window.setTimeout(() => setFeedback(null), 4000);
     } catch {
@@ -56,6 +63,31 @@ export function AiQuizPromptPanel() {
           className="text-sm"
         />
       </div>
+
+      <fieldset className="min-w-0 border-0 p-0 m-0">
+        <legend className="text-xs text-quiz-muted mb-2 block">
+          Antall spørsmål ({AI_QUIZ_QUESTION_COUNT_MIN}–{AI_QUIZ_QUESTION_COUNT_MAX})
+        </legend>
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label={`Antall spørsmål, ${AI_QUIZ_QUESTION_COUNT_MIN} til ${AI_QUIZ_QUESTION_COUNT_MAX}`}
+        >
+          {AI_QUIZ_QUESTION_COUNT_OPTIONS.map((n) => (
+            <Button
+              key={n}
+              type="button"
+              size="sm"
+              variant={questionCount === n ? 'primary' : 'secondary'}
+              className="min-w-[2.75rem] px-0"
+              aria-pressed={questionCount === n}
+              onClick={() => setQuestionCount(n)}
+            >
+              {n}
+            </Button>
+          ))}
+        </div>
+      </fieldset>
 
       <Button type="button" className="w-full sm:w-auto" onClick={handleCopyPrompt}>
         Kopier AI-prompt
