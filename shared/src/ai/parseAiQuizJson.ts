@@ -1,7 +1,11 @@
 import { DEFAULT_MAX_POINTS } from '../constants/events.js';
 import type { McOption, Question } from '../types/room.js';
 import { validateQuestionsForSave } from '../import/parseQuizText.js';
-import { AI_GENERATE_QUESTION_MAX, AI_GENERATE_QUESTION_MIN } from './aiQuizTypes.js';
+import {
+  AI_GENERATE_QUESTION_MAX,
+  AI_GENERATE_QUESTION_MIN,
+  type AiQuizQuestionStyle,
+} from './aiQuizTypes.js';
 
 const MAX_QUESTION_TEXT = 400;
 const MAX_ANSWER_TEXT = 120;
@@ -94,8 +98,43 @@ function parseQuestion(raw: unknown, index: number): ParsedAiQuizQuestion | null
   return null;
 }
 
+/** Ensures generated questions match the user's type selection. */
+export function validateAiQuestionStyle(
+  questions: ParsedAiQuizQuestion[],
+  style: AiQuizQuestionStyle,
+): string[] {
+  if (style === 'open') {
+    const mcCount = questions.filter((q) => q.type === 'mc').length;
+    if (mcCount > 0) {
+      return [`Forventet kun åpne spørsmål, men fikk ${mcCount} flervalg.`];
+    }
+    return [];
+  }
+
+  if (style === 'mc') {
+    const openCount = questions.filter((q) => q.type === 'open').length;
+    if (openCount > 0) {
+      return [`Forventet kun flervalg, men fikk ${openCount} åpne spørsmål.`];
+    }
+    return [];
+  }
+
+  const openCount = questions.filter((q) => q.type === 'open').length;
+  const mcCount = questions.filter((q) => q.type === 'mc').length;
+  if (openCount === 0) {
+    return ['Blandet krever minst ett åpent spørsmål.'];
+  }
+  if (mcCount === 0) {
+    return ['Blandet krever minst ett flervalgsspørsmål.'];
+  }
+  return [];
+}
+
 /** Parse and validate strict JSON from the AI model. */
-export function parseAiQuizJson(raw: string): ParseAiQuizJsonResult {
+export function parseAiQuizJson(
+  raw: string,
+  questionStyle?: AiQuizQuestionStyle,
+): ParseAiQuizJsonResult {
   const errors: string[] = [];
 
   let parsed: unknown;
@@ -133,6 +172,10 @@ export function parseAiQuizJson(raw: string): ParseAiQuizJsonResult {
 
   const saveErrors = validateQuestionsForSave(questions);
   errors.push(...saveErrors);
+
+  if (questionStyle && errors.length === 0) {
+    errors.push(...validateAiQuestionStyle(questions, questionStyle));
+  }
 
   if (errors.length > 0) {
     return { questions: [], errors };
