@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CLIENT_EVENTS, type Question, type PublicRoomState } from '@quiz-tool/shared';
 import { QuestionBody } from '../question/QuestionBody';
-import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { TextArea } from '../ui/Input';
 import { useSocket } from '../../hooks/useSocket';
 
 function clampPeerPoints(value: number, max: number): number {
@@ -16,9 +14,6 @@ interface PeerGradingQuestionCardProps {
   room: PublicRoomState;
   assignment: { targetTeamId: string; questionIds: string[] };
   graderTeamId: string;
-  protestMessage: string;
-  setProtestMessage: (v: string) => void;
-  onProtest: (questionId: string) => void;
   onGraded: (questionId: string) => void;
 }
 
@@ -27,9 +22,6 @@ export function PeerGradingQuestionCard({
   room,
   assignment,
   graderTeamId,
-  protestMessage,
-  setProtestMessage,
-  onProtest,
   onGraded,
 }: PeerGradingQuestionCardProps) {
   const { socket } = useSocket();
@@ -41,7 +33,6 @@ export function PeerGradingQuestionCard({
   );
 
   const [pendingPoints, setPendingPoints] = useState<number | null>(null);
-  const [showProtest, setShowProtest] = useState(false);
 
   const serverPoints = existingGrade?.points;
   const registeredPoints = pendingPoints ?? serverPoints;
@@ -165,27 +156,6 @@ export function PeerGradingQuestionCard({
           })}
         </div>
       </div>
-
-      <details
-        className="rounded-xl border border-quiz-border/50 bg-quiz-surface/30 text-sm"
-        open={showProtest}
-        onToggle={(e) => setShowProtest((e.target as HTMLDetailsElement).open)}
-      >
-        <summary className="cursor-pointer px-4 py-3 text-quiz-muted hover:text-quiz-text">
-          Protest / merknad (valgfritt)
-        </summary>
-        <div className="space-y-2 border-t border-quiz-border/50 px-4 pb-4 pt-3">
-          <TextArea
-            placeholder="Skriv melding til quizmaster…"
-            value={protestMessage}
-            onChange={(e) => setProtestMessage(e.target.value)}
-            rows={2}
-          />
-          <Button variant="ghost" size="sm" onClick={() => onProtest(q.id)}>
-            Send protest
-          </Button>
-        </div>
-      </details>
     </Card>
   );
 }

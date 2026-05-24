@@ -7,6 +7,7 @@ import {
 } from '@quiz-tool/shared';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
 import { PeerGradingView } from '../components/grading/PeerGradingView';
+import { TeamResultsReviewView } from '../components/team/TeamResultsReviewView';
 import { QuestionBody } from '../components/question/QuestionBody';
 import { QuestionCard } from '../components/question/QuestionCard';
 import { PageShell } from '../components/layout/PageShell';
@@ -35,7 +36,7 @@ export function TeamPage() {
   } = useRoomGate(roomId, 'team', socket, connected);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
-  const [protestMessage, setProtestMessage] = useState('');
+  const [showOwnReview, setShowOwnReview] = useState(false);
   const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -189,9 +190,37 @@ export function TeamPage() {
   const activeQuestionOpen =
     activeQuestion && (room.questionStatus[activeQuestion.id] ?? 'locked') === 'open';
 
+  const canReviewOwn =
+    room.phase === 'grading' || room.phase === 'leaderboard' || room.phase === 'post_quiz';
+
+  if (canReviewOwn && showOwnReview && teamId) {
+    return (
+      <TeamResultsReviewView
+        room={room}
+        teamId={teamId}
+        teamName={myTeam?.name ?? 'Lag'}
+        onBack={
+          room.phase === 'grading' && assignment ? () => setShowOwnReview(false) : undefined
+        }
+        backLabel="Tilbake til retterunde"
+      />
+    );
+  }
+
   if (room.phase === 'post_quiz') {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Quizen er avsluttet">
+        <div className="mb-4">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setShowOwnReview(true)}
+          >
+            Se egne svar og poeng
+          </Button>
+        </div>
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Quiz avsluttet av quizmaster</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
@@ -210,6 +239,17 @@ export function TeamPage() {
   if (room.phase === 'grading' && !assignment) {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Retterunde">
+        <div className="mb-4">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setShowOwnReview(true)}
+          >
+            Se egne svar og poeng
+          </Button>
+        </div>
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
@@ -229,15 +269,7 @@ export function TeamPage() {
         graderTeamId={teamId!}
         teamName={myTeam?.name ?? 'Lag'}
         error={operationalError}
-        onProtest={(questionId) => {
-          socket.emit(CLIENT_EVENTS.PROTEST_SUBMIT, {
-            questionId,
-            message: protestMessage || undefined,
-          });
-          setProtestMessage('');
-        }}
-        protestMessage={protestMessage}
-        setProtestMessage={setProtestMessage}
+        onReviewOwn={() => setShowOwnReview(true)}
       />
     );
   }
@@ -258,6 +290,17 @@ export function TeamPage() {
             </Button>
           </div>
         )}
+        <div className="mb-4">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setShowOwnReview(true)}
+          >
+            Se egne svar og poeng
+          </Button>
+        </div>
         <Leaderboard room={room} />
       </PageShell>
     );

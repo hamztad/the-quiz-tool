@@ -4,7 +4,6 @@ import {
   canStartPeerGrading,
   CLIENT_EVENTS,
   getOpenQuestionIds,
-  type Protest,
   type PublicRoomState,
 } from '@quiz-tool/shared';
 import { QuizBackupPanel } from '../components/host/QuizBackupPanel';
@@ -22,9 +21,9 @@ import {
 import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { HostAnswerKeyPanel } from '../components/host/HostAnswerKeyPanel';
 import { HostTeamAnswersPanel } from '../components/host/HostTeamAnswersPanel';
+import { HostProtestsOverview } from '../components/host/HostProtestsOverview';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 
@@ -103,7 +102,7 @@ export function HostDashboardPage() {
   const teamAnswered = (teamId: string, questionId: string) =>
     room.answeredByTeam[teamId]?.includes(questionId) ?? false;
 
-  const pendingProtests = room.protests.filter((p) => p.status === 'pending');
+  const hasProtests = room.protests.length > 0;
   const isPostQuiz = room.phase === 'post_quiz';
   const teamsSeeLeaderboard = room.phase === 'leaderboard' || room.settings.showLeaderboard;
   const peerGradingCheck = canStartPeerGrading(
@@ -269,17 +268,12 @@ export function HostDashboardPage() {
             />
           )}
 
-          {!isPostQuiz && (
-          <>
-          {pendingProtests.length > 0 && (
-            <Card>
-              <h2 className="font-semibold mb-3">Protester</h2>
-              {pendingProtests.map((p) => (
-                <ProtestRow key={p.id} protest={p} room={room} socket={socket} />
-              ))}
-            </Card>
+          {hasProtests && (
+            <HostProtestsOverview room={room} protests={room.protests} />
           )}
 
+          {!isPostQuiz && (
+          <>
           <section className="space-y-4 min-w-0 max-w-full">
             <div className="min-w-0">
               <h2 className="text-lg font-bold">Spørsmål</h2>
@@ -391,59 +385,5 @@ export function HostDashboardPage() {
           </div>
         </div>
     </PageShell>
-  );
-}
-
-function ProtestRow({
-  protest,
-  room,
-  socket,
-}: {
-  protest: Protest;
-  room: PublicRoomState;
-  socket: ReturnType<typeof useSocket>['socket'];
-}) {
-  const team = room.teams.find((t) => t.id === protest.teamId);
-  const question = room.questions.find((q) => q.id === protest.questionId);
-
-  return (
-    <div className="border-t border-quiz-border pt-3 mt-3 first:border-0 first:pt-0 first:mt-0 min-w-0 max-w-full">
-      <p className="text-sm break-words [overflow-wrap:anywhere]">
-        <span className="font-medium">{team?.name ?? 'Lag'}</span>
-        {' — '}
-        {question?.lines[0]?.text ?? protest.questionId}
-      </p>
-      {protest.message && (
-        <p className="text-xs text-quiz-muted mt-1 break-words [overflow-wrap:anywhere]">
-          {protest.message}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2 mt-2">
-        <Button
-          size="sm"
-          onClick={() =>
-            socket.emit(CLIENT_EVENTS.PROTEST_RESOLVE, {
-              protestId: protest.id,
-              approved: true,
-              points: question?.maxPoints ?? 1,
-            })
-          }
-        >
-          Godkjenn
-        </Button>
-        <Button
-          size="sm"
-          variant="danger"
-          onClick={() =>
-            socket.emit(CLIENT_EVENTS.PROTEST_RESOLVE, {
-              protestId: protest.id,
-              approved: false,
-            })
-          }
-        >
-          Avvis
-        </Button>
-      </div>
-    </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { PublicRoomState } from '@quiz-tool/shared';
 import { PageShell } from '../layout/PageShell';
+import { Button } from '../ui/Button';
 import { PeerGradingQuestionCard } from './PeerGradingQuestionCard';
 
 interface PeerGradingViewProps {
@@ -9,9 +10,7 @@ interface PeerGradingViewProps {
   graderTeamId: string;
   teamName: string;
   error: string | null;
-  onProtest: (questionId: string) => void;
-  protestMessage: string;
-  setProtestMessage: (v: string) => void;
+  onReviewOwn: () => void;
 }
 
 function isQuestionGraded(
@@ -34,9 +33,7 @@ export function PeerGradingView({
   graderTeamId,
   teamName,
   error,
-  onProtest,
-  protestMessage,
-  setProtestMessage,
+  onReviewOwn,
 }: PeerGradingViewProps) {
   const targetTeam = room.teams.find((t) => t.id === assignment.targetTeamId);
   const openQuestions = room.questions.filter(
@@ -79,6 +76,18 @@ export function PeerGradingView({
           {error}
         </p>
       )}
+
+      <div className="mb-4">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="w-full sm:w-auto"
+          onClick={onReviewOwn}
+        >
+          Se egne svar og poeng
+        </Button>
+      </div>
 
       <div className="mb-6 rounded-2xl border-2 border-quiz-border bg-quiz-surface-elevated p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
         <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
@@ -125,9 +134,6 @@ export function PeerGradingView({
             room={room}
             assignment={assignment}
             graderTeamId={graderTeamId}
-            protestMessage={protestMessage}
-            setProtestMessage={setProtestMessage}
-            onProtest={onProtest}
             onGraded={markGraded}
           />
         ))}

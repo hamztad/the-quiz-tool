@@ -12,8 +12,21 @@ export function shuffleArray<T>(items: T[], random: () => number = Math.random):
 }
 
 /**
+ * Builds a length-`count` list of slot indices 0..slotCount-1 with near-equal counts, then shuffles.
+ * E.g. eight questions / four slots → two of each position, in random order.
+ */
+export function buildBalancedCorrectPositions(
+  count: number,
+  slotCount: number,
+  random: () => number = Math.random,
+): number[] {
+  if (count <= 0 || slotCount <= 0) return [];
+  const positions = Array.from({ length: count }, (_, i) => i % slotCount);
+  return shuffleArray(positions, random);
+}
+
+/**
  * Places the correct MC option at `targetIndex` and shuffles distractors into the other slots.
- * `targetIndex` should cycle 0..n-1 across questions for even distribution in one quiz.
  */
 export function arrangeMcOptionsWithCorrectAt(
   options: McOption[],
@@ -46,21 +59,31 @@ export function arrangeMcOptionsWithCorrectAt(
 }
 
 /**
- * After AI parse: rotate correct-answer position across MC questions (0,1,2,3,0,…)
- * and shuffle wrong alternatives within each question.
+ * After AI parse: assign correct-answer slots from a shuffled, balanced list (even A/B/C/D spread,
+ * unpredictable order) and shuffle wrong alternatives within each question.
  */
 export function shuffleAiGeneratedMcOptions(
   questions: ParsedAiQuizQuestion[],
   random: () => number = Math.random,
 ): ParsedAiQuizQuestion[] {
-  let mcIndex = 0;
+  const mcSlotCounts: number[] = [];
+  for (const q of questions) {
+    if (q.type === 'mc' && q.options?.length) {
+      mcSlotCounts.push(q.options.length);
+    }
+  }
+
+  const slotCount = mcSlotCounts.length > 0 ? Math.max(...mcSlotCounts) : 4;
+  const targetPositions = buildBalancedCorrectPositions(mcSlotCounts.length, slotCount, random);
+  let mcOrdinal = 0;
 
   return questions.map((q) => {
     if (q.type !== 'mc' || !q.options?.length) {
       return q;
     }
-    const options = arrangeMcOptionsWithCorrectAt(q.options, mcIndex, random);
-    mcIndex++;
+    const target = targetPositions[mcOrdinal] ?? 0;
+    mcOrdinal++;
+    const options = arrangeMcOptionsWithCorrectAt(q.options, target, random);
     return { ...q, options };
   });
 }
