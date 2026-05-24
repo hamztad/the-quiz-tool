@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useBlocker } from 'react-router-dom';
 import type { Question } from '@quiz-tool/shared';
 import { UnsavedQuizLeaveDialog } from '../components/host/UnsavedQuizLeaveDialog';
 
@@ -9,14 +8,13 @@ interface UseUnsavedQuizGuardOptions {
   quizTitle?: string;
 }
 
+/**
+ * Warn before leaving with unsaved quiz work.
+ * Uses beforeunload + explicit navigation prompts only (no useBlocker — requires data router).
+ */
 export function useUnsavedQuizGuard({ dirty, questions, quizTitle }: UseUnsavedQuizGuardOptions) {
-  const [manualOpen, setManualOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingNavigate, setPendingNavigate] = useState<(() => void) | null>(null);
-
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      dirty && currentLocation.pathname !== nextLocation.pathname,
-  );
 
   useEffect(() => {
     if (!dirty) return;
@@ -28,24 +26,16 @@ export function useUnsavedQuizGuard({ dirty, questions, quizTitle }: UseUnsavedQ
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [dirty]);
 
-  const dialogOpen = manualOpen || blocker.state === 'blocked';
-
   const confirmLeave = useCallback(() => {
-    setManualOpen(false);
-    if (blocker.state === 'blocked') {
-      blocker.proceed?.();
-    }
+    setDialogOpen(false);
     pendingNavigate?.();
     setPendingNavigate(null);
-  }, [blocker, pendingNavigate]);
+  }, [pendingNavigate]);
 
   const cancelLeave = useCallback(() => {
-    setManualOpen(false);
-    if (blocker.state === 'blocked') {
-      blocker.reset?.();
-    }
+    setDialogOpen(false);
     setPendingNavigate(null);
-  }, [blocker]);
+  }, []);
 
   const requestLeave = useCallback(
     (navigateFn: () => void) => {
@@ -54,7 +44,7 @@ export function useUnsavedQuizGuard({ dirty, questions, quizTitle }: UseUnsavedQ
         return;
       }
       setPendingNavigate(() => navigateFn);
-      setManualOpen(true);
+      setDialogOpen(true);
     },
     [dirty],
   );
