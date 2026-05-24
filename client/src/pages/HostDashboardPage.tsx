@@ -131,7 +131,7 @@ export function HostDashboardPage() {
         : '';
     if (
       !window.confirm(
-        `Fjerne «${teamName}» fra quizen?${gradingNote}\n\nLagets svar og poeng fjernes.`,
+        `Kaste ut «${teamName}»?${gradingNote}\n\nLagets svar og poeng fjernes.`,
       )
     ) {
       return;
@@ -211,6 +211,12 @@ export function HostDashboardPage() {
 
           {showLeaderboard && <Leaderboard room={room} />}
 
+          <HostTeamList
+            room={room}
+            onRemoveTeam={removeTeamFromQuiz}
+            showAnswerStats={!isPostQuiz}
+          />
+
           {isPostQuiz && (
             <QuizBackupPanel
               questions={room.questions}
@@ -222,12 +228,6 @@ export function HostDashboardPage() {
 
           {!isPostQuiz && (
           <>
-          <HostTeamList
-            room={room}
-            onRemoveTeam={removeTeamFromQuiz}
-            showAnswerStats
-          />
-
           {pendingProtests.length > 0 && (
             <Card>
               <h2 className="font-semibold mb-3">Protester</h2>

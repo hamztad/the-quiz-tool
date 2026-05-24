@@ -12,11 +12,14 @@ export function HostTeamList({
   room,
   onRemoveTeam,
   showAnswerStats = false,
-  emptyHint = 'Venter på lag…',
+  emptyHint = 'Venter på deltakere…',
 }: HostTeamListProps) {
   return (
     <Card className="min-w-0">
-      <h2 className="font-semibold mb-3">Lag ({room.teams.length})</h2>
+      <h2 className="font-semibold">Deltakere ({room.teams.length})</h2>
+      <p className="text-xs text-quiz-muted mt-1 mb-3">
+        Trykk × for å kaste ut et lag som har forlatt eller ikke skal være med.
+      </p>
       <ul className="space-y-2">
         {room.teams.map((team) => (
           <li
@@ -35,7 +38,8 @@ export function HostTeamList({
               type="button"
               onClick={() => onRemoveTeam(team.id, team.name)}
               className="shrink-0 flex h-9 w-9 items-center justify-center rounded-lg border border-quiz-border/80 text-quiz-muted transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-300"
-              aria-label={`Fjern ${team.name} fra quizen`}
+              title={`Kast ut ${team.name}`}
+              aria-label={`Kast ut ${team.name}`}
             >
               <span className="text-xl font-light leading-none" aria-hidden>
                 ×

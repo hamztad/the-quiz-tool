@@ -81,7 +81,7 @@ export function HostLobbyPage() {
   const removeTeamFromQuiz = (teamId: string, teamName: string) => {
     if (
       !window.confirm(
-        `Fjerne «${teamName}» fra quizen?\n\nLagets svar og poeng fjernes hvis quizen allerede er i gang.`,
+        `Kaste ut «${teamName}»?\n\nLagets svar og poeng fjernes hvis quizen allerede er i gang.`,
       )
     ) {
       return;
@@ -112,7 +112,7 @@ export function HostLobbyPage() {
         <HostTeamList
           room={room}
           onRemoveTeam={removeTeamFromQuiz}
-          emptyHint="Venter på lag — del QR-koden eller romkoden."
+          emptyHint="Venter på deltakere — del QR-koden eller romkoden."
         />
 
         <div className="w-full min-w-0 space-y-3">
