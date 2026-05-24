@@ -197,15 +197,8 @@ export function toPublicState(
   viewerTeamId?: string,
 ): RoomState & { viewerRole: 'host' | 'secretary'; viewerTeamId?: string } {
   if (role === 'host') {
-    const hostAnswers = room.answers.map((a) => ({
-      teamId: a.teamId,
-      questionId: a.questionId,
-      value: '[hidden]',
-      updatedAt: a.updatedAt,
-    }));
     return {
       ...room,
-      answers: hostAnswers,
       viewerRole: 'host',
     };
   }

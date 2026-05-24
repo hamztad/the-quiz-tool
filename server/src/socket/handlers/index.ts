@@ -437,15 +437,21 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       const roomId = socket.data.roomId as string;
       if (!requireHost(socket, roomId)) return;
 
-      roomStore.update(roomId, (r) => ({
-        ...r,
-        scores: upsertScore(r.scores, {
-          teamId: payload.teamId,
-          questionId: payload.questionId,
-          points: payload.points,
-          source: 'override',
-        }),
-      }));
+      roomStore.update(roomId, (r) => {
+        const question = r.questions.find((q) => q.id === payload.questionId);
+        const max = question?.maxPoints ?? 1;
+        const points = Math.max(0, Math.min(max, Math.round(payload.points)));
+
+        return {
+          ...r,
+          scores: upsertScore(r.scores, {
+            teamId: payload.teamId,
+            questionId: payload.questionId,
+            points,
+            source: 'override',
+          }),
+        };
+      });
       emitRoomStateToAll(io, roomId);
     },
   );
