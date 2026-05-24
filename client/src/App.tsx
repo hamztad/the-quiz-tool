@@ -33,7 +33,7 @@ export function App() {
   useFormTypingGuard();
 
   return (
-    <div className="app-shell w-full max-w-full min-w-0 overflow-x-hidden">
+    <div className="app-shell w-full max-w-full min-w-0 overflow-x-hidden isolate">
       <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />

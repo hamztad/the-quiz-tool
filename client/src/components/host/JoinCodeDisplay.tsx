@@ -9,7 +9,7 @@ export function JoinCodeDisplay({ joinCode, joinUrl }: JoinCodeDisplayProps) {
   return (
     <div className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-quiz-border bg-quiz-surface-elevated p-4 sm:p-6">
       <div className="flex flex-col items-center gap-4 w-full min-w-0">
-        <div className="w-full max-w-[10rem] sm:max-w-[11rem] flex justify-center">
+        <div className="w-full min-w-0 max-w-[10rem] sm:max-w-[11rem] overflow-hidden flex justify-center mx-auto">
           <QRCodeSVG
             value={joinUrl}
             size={160}

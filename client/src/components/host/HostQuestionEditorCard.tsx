@@ -88,7 +88,7 @@ export function HostQuestionEditorCard({
       id={`question-editor-${question.id}`}
       className={`max-w-full min-w-0 rounded-xl border bg-quiz-surface shadow-sm transition-all duration-300 overflow-hidden ${
         isHighlighted
-          ? 'border-quiz-accent ring-2 ring-quiz-accent/40'
+          ? 'border-2 border-quiz-accent'
           : incomplete
             ? 'border-slate-400/50 border-dashed'
             : 'border-quiz-border'
@@ -117,7 +117,7 @@ export function HostQuestionEditorCard({
             <p className="text-sm font-semibold text-quiz-text break-words [overflow-wrap:anywhere] line-clamp-2">
               {titlePreview}
             </p>
-            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+            <div className="flex flex-wrap items-center gap-1.5 mt-1 min-w-0 max-w-full overflow-hidden">
               <Badge variant="neutral">{typeLabel}</Badge>
               <PointsChip points={question.maxPoints} />
               {incomplete && <Badge variant="draft">Utkast</Badge>}

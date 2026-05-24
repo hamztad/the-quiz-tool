@@ -20,7 +20,7 @@ const modes: { id: QuizEditMode; label: string; description: string }[] = [
 
 export function QuizEditModeTabs({ mode, onChange }: QuizEditModeTabsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="grid w-full min-w-0 max-w-full grid-cols-1 gap-3 sm:grid-cols-2">
       {modes.map(({ id, label, description }) => {
         const selected = mode === id;
         return (
@@ -29,14 +29,14 @@ export function QuizEditModeTabs({ mode, onChange }: QuizEditModeTabsProps) {
             type="button"
             onClick={() => onChange(id)}
             aria-pressed={selected}
-            className={`rounded-2xl border-2 p-4 text-left transition-colors min-h-[72px] ${
+            className={`w-full min-w-0 max-w-full box-border overflow-hidden rounded-2xl border-2 p-4 text-left transition-colors min-h-[72px] break-words ${
               selected
-                ? 'border-quiz-accent bg-quiz-accent/15 ring-2 ring-quiz-accent/30'
+                ? 'border-quiz-accent bg-quiz-accent/15'
                 : 'border-quiz-border bg-quiz-surface-elevated hover:border-quiz-accent/50 hover:bg-quiz-surface'
             }`}
           >
-            <span className="block text-lg font-bold text-quiz-text">{label}</span>
-            <span className="mt-1 block text-sm text-quiz-muted">{description}</span>
+            <span className="block text-lg font-bold text-quiz-text break-words">{label}</span>
+            <span className="mt-1 block text-sm text-quiz-muted break-words">{description}</span>
           </button>
         );
       })}

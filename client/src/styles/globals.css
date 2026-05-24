@@ -22,27 +22,49 @@
   box-sizing: border-box;
 }
 
-html {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-  overflow-x: hidden;
-  @apply bg-quiz-bg text-quiz-text font-sans antialiased min-h-screen;
-}
-
+html,
+body,
 #root {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  min-height: 100vh;
   overflow-x: hidden;
+}
+
+@supports (overflow-x: clip) {
+  html,
+  body,
+  #root {
+    overflow-x: clip;
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  overscroll-behavior-x: none;
+  @apply bg-quiz-bg text-quiz-text font-sans antialiased min-h-screen;
+}
+
+#root {
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+/* Safari/iOS: flex and grid children default to min-width: auto and resist shrinking */
+.flex,
+.inline-flex,
+.grid {
+  min-width: 0;
+}
+
+.flex > *,
+.inline-flex > *,
+.grid > * {
+  min-width: 0;
 }
 
 img,
@@ -57,5 +79,16 @@ input,
 textarea,
 select,
 button {
+  max-width: 100%;
+}
+
+input,
+textarea {
+  width: 100%;
+}
+
+pre,
+code {
+  overflow-x: auto;
   max-width: 100%;
 }

@@ -58,10 +58,10 @@ export function QuestionCard({
   return (
     <Card
       onClick={onClick}
-      className={`min-w-0 max-w-full overflow-hidden p-3 sm:p-4 ${active ? 'ring-2 ring-quiz-active' : ''} ${
-        highlighted
-          ? 'ring-2 ring-green-500/45 border-green-500/50 shadow-[0_0_0_1px_rgba(34,197,94,0.15)]'
-          : ''
+      className={`min-w-0 max-w-full overflow-hidden p-3 sm:p-4 ${
+        active ? 'border-quiz-active border-2' : ''
+      } ${
+        highlighted ? 'border-2 border-green-500/50 bg-green-500/5' : ''
       } ${lockedUnanswered && !teamWaiting ? 'opacity-60' : ''} ${teamWaiting ? 'opacity-90' : ''} ${className}`}
     >
       <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">

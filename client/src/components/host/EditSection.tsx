@@ -10,7 +10,7 @@ interface EditSectionProps {
 
 const variants = {
   editor:
-    'border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface ring-1 ring-quiz-accent/20',
+    'border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface',
   import: 'border-quiz-border/80 bg-quiz-surface/40',
   muted: 'border-quiz-border bg-quiz-surface/60',
 };

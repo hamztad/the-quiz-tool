@@ -18,7 +18,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <input
       ref={ref}
-      className={`box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-quiz-accent min-h-[44px] [overflow-wrap:anywhere] ${className}`}
+      className={`box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-inset focus:ring-quiz-accent min-h-[44px] [overflow-wrap:anywhere] ${className}`}
       {...props}
     />
   );
@@ -33,7 +33,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
   return (
     <textarea
       ref={ref}
-      className={`box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-quiz-accent min-h-[120px] resize-y overflow-x-hidden [overflow-wrap:anywhere] break-words whitespace-pre-wrap ${className}`}
+      className={`box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-inset focus:ring-quiz-accent min-h-[120px] resize-y overflow-x-hidden [overflow-wrap:anywhere] break-words whitespace-pre-wrap ${className}`}
       {...props}
     />
   );
@@ -87,7 +87,7 @@ export const EditorTextArea = forwardRef<HTMLTextAreaElement, EditorTextAreaProp
         rows={rows ?? minRows}
         value={value}
         onChange={handleChange}
-        className={`rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-quiz-accent min-h-[44px] ${editorFieldClasses} ${className}`}
+        className={`rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-quiz-text placeholder:text-quiz-muted focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-inset focus:ring-quiz-accent min-h-[44px] ${editorFieldClasses} ${className}`}
         {...props}
       />
     );

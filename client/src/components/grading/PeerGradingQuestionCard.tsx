@@ -74,7 +74,7 @@ export function PeerGradingQuestionCard({
     <Card
       className={`space-y-5 p-4 sm:p-5 transition-all duration-200 min-w-0 max-w-full overflow-hidden box-border ${
         isGraded
-          ? 'bg-green-950/40 border-green-500/60 ring-2 ring-green-500/35 shadow-lg shadow-green-900/20'
+          ? 'bg-green-950/40 border-2 border-green-500/60'
           : 'border-quiz-border'
       }`}
     >
@@ -153,7 +153,7 @@ export function PeerGradingQuestionCard({
                 aria-pressed={isSelected}
                 className={`min-h-[52px] rounded-xl border-2 px-3 py-3 text-base font-bold transition-all active:scale-[0.98] ${
                   isSelected
-                    ? 'border-green-300 bg-green-500 text-white shadow-md shadow-green-900/30 ring-2 ring-green-300/50'
+                    ? 'border-2 border-green-300 bg-green-500 text-white'
                     : isGraded
                       ? 'border-quiz-border/60 bg-quiz-surface/60 text-quiz-muted hover:border-green-500/40 hover:bg-green-500/10 hover:text-quiz-text'
                       : 'border-quiz-border bg-quiz-surface-elevated text-quiz-text hover:border-quiz-accent hover:bg-quiz-accent/15'

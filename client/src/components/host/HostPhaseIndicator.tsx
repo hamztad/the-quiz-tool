@@ -18,7 +18,7 @@ export function HostPhaseIndicator({ active }: HostPhaseIndicatorProps) {
       className="mb-6 w-full min-w-0 max-w-full"
       aria-label="Quizmaster-faser"
     >
-      <ol className="flex items-center gap-1 sm:gap-2">
+      <ol className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden sm:gap-2">
         {steps.map((step, index) => {
           const done = index < activeIndex;
           const current = step.id === active;

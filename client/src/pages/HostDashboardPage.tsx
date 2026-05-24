@@ -94,14 +94,14 @@ export function HostDashboardPage() {
       )}
 
       <div className="space-y-6 min-w-0 max-w-full">
-          <div className="flex flex-wrap gap-2">
-            <Link to={`/host/${roomId}/present?invite=1`}>
-              <Button variant="ghost" size="sm">
+          <div className="flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link to={`/host/${roomId}/present?invite=1`} className="w-full min-w-0 sm:w-auto">
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                 Vis invitasjon (QR)
               </Button>
             </Link>
-            <Link to={`/host/${roomId}/edit`}>
-              <Button variant="secondary" size="sm">
+            <Link to={`/host/${roomId}/edit`} className="w-full min-w-0 sm:w-auto">
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto">
                 Rediger quiz
               </Button>
             </Link>

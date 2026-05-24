@@ -249,7 +249,7 @@ export function TeamPage() {
 
       <div className="space-y-4">
           {activeQuestionOpen ? (
-            <Card className="ring-2 ring-quiz-active p-3 sm:p-4">
+            <Card className="border-2 border-quiz-active p-3 sm:p-4">
               <QuestionBody question={activeQuestion} />
               {activeQuestion.type === 'open' ? (
                 <TextArea

@@ -302,7 +302,7 @@ export function HostEditPage() {
   const editorSection = (
         <section
           ref={editorEntryRef}
-          className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface ring-1 ring-quiz-accent/20 p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden"
+          className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden"
         >
           <div className="rounded-xl bg-quiz-bg/60 border border-quiz-accent/20 p-4 mb-6">
             <p className="text-sm font-medium text-quiz-text mb-3">Legg til spørsmål</p>
@@ -390,7 +390,7 @@ export function HostEditPage() {
   );
 
   const tekstSection = (
-        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface ring-1 ring-quiz-accent/20 p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden">
+        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden">
           <QuickImportPanel
             existingCount={draftQuestions.length}
             onAppend={appendImportedQuestions}
@@ -459,9 +459,9 @@ export function HostEditPage() {
       )}
 
       {draftQuestions.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 w-full max-w-full min-w-0 border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.4)]">
-          <div className="mx-auto w-full min-w-0 max-w-full box-border px-4 py-4 md:max-w-4xl flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="mx-auto w-full min-w-0 max-w-lg md:max-w-none flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:w-full">
+        <div className="fixed inset-x-0 bottom-0 z-20 w-full max-w-full min-w-0 overflow-x-hidden border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md">
+          <div className="mx-auto w-full min-w-0 max-w-full box-border px-4 py-4 md:max-w-4xl">
+            <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col gap-3 md:max-w-none sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm min-w-0 flex-1 break-words">
               {dirty ? (
                 <span className="text-yellow-300 font-medium">Husk å lagre</span>

@@ -9,10 +9,10 @@ interface PageShellProps {
 export function PageShell({ children, title, subtitle }: PageShellProps) {
   return (
     <div className="min-h-screen w-full max-w-full min-w-0 overflow-x-hidden">
-      <main className="mx-auto w-full min-w-0 max-w-full box-border px-4 py-6 md:max-w-4xl">
-        <div className="mx-auto w-full min-w-0 max-w-lg md:max-w-none">
+      <main className="mx-auto w-full min-w-0 max-w-full box-border px-4 py-6 md:max-w-4xl overflow-x-hidden">
+        <div className="mx-auto w-full min-w-0 max-w-lg md:max-w-none overflow-x-hidden">
           {(title || subtitle) && (
-            <header className="mb-6 min-w-0 max-w-full">
+            <header className="mb-6 min-w-0 max-w-full overflow-hidden">
               {title && (
                 <h1 className="text-2xl font-bold tracking-tight break-words [overflow-wrap:anywhere]">
                   {title}
@@ -25,7 +25,7 @@ export function PageShell({ children, title, subtitle }: PageShellProps) {
               )}
             </header>
           )}
-          <div className="min-w-0 w-full max-w-full">{children}</div>
+          <div className="min-w-0 w-full max-w-full overflow-x-hidden">{children}</div>
         </div>
       </main>
     </div>
