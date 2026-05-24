@@ -187,19 +187,19 @@ export function QuickImportPanel({
         </div>
       </div>
 
-      <AiQuizPromptPanel />
-
-      <p className="text-xs text-quiz-muted">{listHint}</p>
-
       <Button type="button" className="w-full" onClick={applyAppend}>
         Legg til
       </Button>
+
+      <p className="text-xs text-quiz-muted">{listHint}</p>
 
       {parseErrors.map((e, i) => (
         <p key={i} className="text-sm text-red-400 break-words">
           {e}
         </p>
       ))}
+
+      <AiQuizPromptPanel />
 
       {preview.length > 0 && <QuestionPreviewStrip questions={preview} />}
 

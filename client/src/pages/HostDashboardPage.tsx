@@ -18,6 +18,7 @@ import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { HostTeamList } from '../components/host/HostTeamList';
+import { HostTeamAnswersPanel } from '../components/host/HostTeamAnswersPanel';
 import { Input } from '../components/ui/Input';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
@@ -52,6 +53,7 @@ export function HostDashboardPage() {
     connected,
   );
   const [overridePoints, setOverridePoints] = useState('1');
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!roomId || !room) return;
@@ -137,6 +139,7 @@ export function HostDashboardPage() {
       return;
     }
     emit(CLIENT_EVENTS.TEAM_REMOVE, { teamId });
+    if (selectedTeamId === teamId) setSelectedTeamId(null);
   };
 
   return (
@@ -214,8 +217,20 @@ export function HostDashboardPage() {
           <HostTeamList
             room={room}
             onRemoveTeam={removeTeamFromQuiz}
+            onSelectTeam={(teamId) =>
+              setSelectedTeamId((current) => (current === teamId ? null : teamId))
+            }
+            selectedTeamId={selectedTeamId}
             showAnswerStats={!isPostQuiz}
           />
+
+          {selectedTeamId && (
+            <HostTeamAnswersPanel
+              room={room}
+              teamId={selectedTeamId}
+              onClose={() => setSelectedTeamId(null)}
+            />
+          )}
 
           {isPostQuiz && (
             <QuizBackupPanel

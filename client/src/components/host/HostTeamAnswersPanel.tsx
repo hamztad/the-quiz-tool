@@ -1,0 +1,164 @@
+import { useEffect } from 'react';
+import { CLIENT_EVENTS, type PublicRoomState } from '@quiz-tool/shared';
+import { QuestionBody } from '../question/QuestionBody';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { useSocket } from '../../hooks/useSocket';
+import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
+import {
+  computeTeamTotalPoints,
+  getTeamQuestionScore,
+  scoreSourceLabel,
+} from '../../lib/teamScoreDisplay';
+
+interface HostTeamAnswersPanelProps {
+  room: PublicRoomState;
+  teamId: string;
+  onClose: () => void;
+}
+
+function clampPoints(value: number, max: number): number {
+  if (Number.isNaN(value)) return 0;
+  return Math.max(0, Math.min(max, Math.round(value)));
+}
+
+export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersPanelProps) {
+  const { socket } = useSocket();
+  const team = room.teams.find((t) => t.id === teamId);
+  const totalPoints = computeTeamTotalPoints(room, teamId);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  if (!team) return null;
+
+  const overrideScore = (questionId: string, points: number, maxPoints: number) => {
+    socket.emit(CLIENT_EVENTS.SCORE_OVERRIDE, {
+      teamId,
+      questionId,
+      points: clampPoints(points, maxPoints),
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="host-team-answers-title"
+      onClick={onClose}
+    >
+      <div
+        className="flex w-full max-w-2xl min-w-0 max-h-[min(90vh,900px)] flex-col rounded-2xl border border-quiz-border bg-quiz-surface shadow-xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="shrink-0 border-b border-quiz-border px-5 py-4 flex items-start gap-3 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h2 id="host-team-answers-title" className="text-lg font-bold break-words [overflow-wrap:anywhere]">
+              {team.name}
+            </h2>
+            <p className="text-sm text-quiz-muted mt-1">
+              {totalPoints} poeng totalt · trykk poeng for å overstyre
+            </p>
+          </div>
+          <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={onClose}>
+            Lukk
+          </Button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
+          {room.questions.length === 0 ? (
+            <p className="text-sm text-quiz-muted">Ingen spørsmål i quizen.</p>
+          ) : (
+            room.questions.map((question, index) => {
+              const answer = room.answers.find(
+                (a) => a.teamId === teamId && a.questionId === question.id,
+              );
+              const answerText = formatTeamAnswerDisplay(question, answer?.value);
+              const score = getTeamQuestionScore(room, teamId, question.id);
+              const graderTeam = score.graderTeamId
+                ? room.teams.find((t) => t.id === score.graderTeamId)
+                : undefined;
+              const scoreOptions = Array.from({ length: question.maxPoints + 1 }, (_, i) => i);
+              const acceptedAnswers = (question.acceptedAnswers ?? []).filter((a) => a.trim());
+
+              return (
+                <article
+                  key={question.id}
+                  className="rounded-xl border border-quiz-border/70 bg-quiz-surface-elevated/40 p-4 space-y-3 min-w-0"
+                >
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-quiz-muted">
+                      Spørsmål {index + 1}
+                    </span>
+                    <Badge variant={question.type === 'mc' ? 'open' : 'submitted'}>
+                      {question.type === 'mc' ? 'MC' : 'Åpent'}
+                    </Badge>
+                    {score.points !== null && (
+                      <span className="text-xs text-quiz-muted">
+                        {score.points}/{question.maxPoints}p · {scoreSourceLabel(score.source)}
+                        {graderTeam ? ` · rettet av ${graderTeam.name}` : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  <QuestionBody question={question} showHint={false} />
+
+                  <section className="rounded-xl border border-quiz-border/80 bg-quiz-bg/40 overflow-hidden min-w-0">
+                    <div className="border-b border-quiz-border/80 px-3 py-2">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
+                        Lagets svar
+                      </h3>
+                    </div>
+                    <p className="px-3 py-3 text-base font-medium text-quiz-text quiz-user-text break-words [overflow-wrap:anywhere]">
+                      {answerText ?? '—'}
+                    </p>
+                  </section>
+
+                  {acceptedAnswers.length > 0 && (
+                    <p className="text-xs text-quiz-muted break-words">
+                      Godkjente svar: {acceptedAnswers.join(' · ')}
+                    </p>
+                  )}
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-quiz-text">Poeng</p>
+                    <div
+                      className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+                      role="group"
+                      aria-label={`Poeng for spørsmål ${index + 1}, 0 til ${question.maxPoints}`}
+                    >
+                      {scoreOptions.map((points) => {
+                        const selected = score.points === points;
+                        return (
+                          <button
+                            key={points}
+                            type="button"
+                            onClick={() => overrideScore(question.id, points, question.maxPoints)}
+                            aria-pressed={selected}
+                            className={`min-h-[44px] rounded-xl border-2 px-2 py-2 text-sm font-bold transition-colors ${
+                              selected
+                                ? 'border-quiz-accent bg-quiz-accent text-white'
+                                : 'border-quiz-border bg-quiz-surface text-quiz-text hover:border-quiz-accent/60 hover:bg-quiz-accent/10'
+                            }`}
+                          >
+                            {points}p
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </article>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
