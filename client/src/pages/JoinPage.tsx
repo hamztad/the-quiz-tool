@@ -124,7 +124,7 @@ export function JoinPage() {
             ref={teamNameRef}
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
-            placeholder="F.eks. Ekstebjørn"
+              placeholder="F.eks. Bobla"
             autoComplete="off"
             spellCheck={false}
             className="min-h-[52px] text-lg"

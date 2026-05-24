@@ -111,9 +111,10 @@ export function QuickImportPanel({
       </summary>
       <div className="px-4 pb-4 space-y-2 border-t border-quiz-border/40">
         <p className="text-xs text-quiz-muted pt-3 break-words">
-          Bruk <code className="text-quiz-text">Q</code> for spørsmål, <code className="text-quiz-text">A</code>{' '}
-          for svar, <code className="text-quiz-text">MC</code> for flervalg og{' '}
-          <code className="text-quiz-text">*</code> for riktig alternativ.
+          Bruk <code className="text-quiz-text">Q</code> eller <code className="text-quiz-text">q</code> for
+          spørsmål, <code className="text-quiz-text">A</code> eller <code className="text-quiz-text">a</code> for
+          svar, <code className="text-quiz-text">MC</code> eller <code className="text-quiz-text">mc</code> for
+          flervalg og <code className="text-quiz-text">*</code> for riktig alternativ.
         </p>
         <pre className="text-xs font-mono text-quiz-muted whitespace-pre-wrap break-words overflow-x-hidden">
           {IMPORT_EXAMPLE}
@@ -155,8 +156,6 @@ export function QuickImportPanel({
 
   return (
     <div className="quiz-page-content space-y-4">
-      <AiQuizPromptPanel />
-
       <div>
         {!helpBelow && (
           <p className="text-xs font-semibold uppercase tracking-wider text-quiz-muted mb-2">
@@ -170,7 +169,7 @@ export function QuickImportPanel({
             onChange={(e) => setImportText(e.target.value)}
             rows={helpBelow ? 10 : 8}
             className={`font-mono text-sm bg-quiz-bg/60 min-h-[200px] quiz-user-text [word-break:break-word] ${hasImportText ? 'pr-14' : ''}`}
-            placeholder="Lim inn eller skriv quiz her — Q, A, MC og * for riktig svar…"
+            placeholder="Lim inn eller skriv quiz her — Q/q, A/a, MC/mc og * for riktig svar…"
           />
           {hasImportText && (
             <button
@@ -186,6 +185,8 @@ export function QuickImportPanel({
           )}
         </div>
       </div>
+
+      <AiQuizPromptPanel />
 
       <p className="text-xs text-quiz-muted">{listHint}</p>
 

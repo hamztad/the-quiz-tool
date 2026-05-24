@@ -20,6 +20,12 @@ function stripPrefix(line: string, prefix: string): string {
   return line;
 }
 
+/** Prefix length for Q/q, A/a, MC/mc (case-insensitive). */
+const OPEN_QUESTION_PREFIX_LEN = 2;
+const ANSWER_PREFIX_LEN = 2;
+const MC_QUESTION_PREFIX_LEN = 3;
+const HINT_PREFIX_LEN = 5;
+
 export function parseQuizText(raw: string): ParseResult {
   const errors: string[] = [];
   const questions: Omit<Question, 'id' | 'order'>[] = [];
@@ -64,7 +70,9 @@ export function parseQuizText(raw: string): ParseResult {
 
     if (!trimmed) continue;
 
-    if (trimmed.startsWith('Q ')) {
+    const upper = trimmed.toUpperCase();
+
+    if (upper.startsWith('Q ')) {
       flushQuestion();
       current = {
         type: 'open',
@@ -72,18 +80,18 @@ export function parseQuizText(raw: string): ParseResult {
         acceptedAnswers: [],
         maxPoints: DEFAULT_MAX_POINTS,
       };
-      questionTextLines = [stripPrefix(trimmed, 'Q ')];
+      questionTextLines = [trimmed.slice(OPEN_QUESTION_PREFIX_LEN).trimStart()];
       continue;
     }
 
-    if (trimmed.startsWith('MC ')) {
+    if (upper.startsWith('MC ')) {
       flushQuestion();
       current = {
         type: 'mc',
         lines: [],
         maxPoints: DEFAULT_MAX_POINTS,
       };
-      questionTextLines = [stripPrefix(trimmed, 'MC ')];
+      questionTextLines = [trimmed.slice(MC_QUESTION_PREFIX_LEN).trimStart()];
       continue;
     }
 
@@ -92,14 +100,14 @@ export function parseQuizText(raw: string): ParseResult {
       continue;
     }
 
-    if (trimmed.startsWith('Hint:')) {
-      current.hint = stripPrefix(trimmed, 'Hint:');
+    if (upper.startsWith('HINT:')) {
+      current.hint = trimmed.slice(HINT_PREFIX_LEN).trimStart();
       continue;
     }
 
-    if (current.type === 'open' && trimmed.startsWith('A ')) {
+    if (current.type === 'open' && upper.startsWith('A ')) {
       current.acceptedAnswers = current.acceptedAnswers ?? [];
-      current.acceptedAnswers.push(stripPrefix(trimmed, 'A '));
+      current.acceptedAnswers.push(trimmed.slice(ANSWER_PREFIX_LEN).trimStart());
       continue;
     }
 

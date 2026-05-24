@@ -53,7 +53,7 @@ export function LandingPage() {
             />
           </div>
           <Button size="lg" variant="secondary" className="w-full" onClick={goToJoin}>
-            Bli med som lag
+            Bli med
           </Button>
         </div>
       </div>

@@ -58,6 +58,33 @@ b`;
     expect(errors).toHaveLength(0);
     expect(questions).toHaveLength(2);
   });
+
+  it('accepts lowercase q, a and mc prefixes', () => {
+    const text = `q Hva er 2+2?
+a 4
+
+mc Hvilken farge har himmelen?
+*Blå
+Grønn`;
+
+    const { questions, errors } = parseQuizText(text);
+    expect(errors).toHaveLength(0);
+    expect(questions).toHaveLength(2);
+    expect(questions[0].type).toBe('open');
+    expect(questions[0].acceptedAnswers).toEqual(['4']);
+    expect(questions[1].type).toBe('mc');
+    expect(questions[1].options?.find((o) => o.isCorrect)?.text).toBe('Blå');
+  });
+
+  it('accepts lowercase hint prefix', () => {
+    const text = `q Spørsmål?
+hint: tenk hardt
+a svar`;
+
+    const { questions, errors } = parseQuizText(text);
+    expect(errors).toHaveLength(0);
+    expect(questions[0].hint).toBe('tenk hardt');
+  });
 });
 
 describe('validateQuestionsForSave', () => {
