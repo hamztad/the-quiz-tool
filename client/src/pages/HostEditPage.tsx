@@ -469,9 +469,12 @@ export function HostEditPage() {
         ? editorSection
         : tekstSection;
 
+  const phaseLinks =
+    roomId && draftQuestions.length > 0 ? { present: `/host/${roomId}/present` } : undefined;
+
   return (
     <PageShell title="Bygg quiz" subtitle={pageSubtitle}>
-      {!focusEntry && <HostPhaseIndicator active="build" />}
+      {!focusEntry && <HostPhaseIndicator active="build" links={phaseLinks} />}
 
       <div className={focusEntry ? 'mb-3 flex flex-wrap items-center justify-between gap-2' : 'mb-6'}>
         <button
@@ -504,7 +507,7 @@ export function HostEditPage() {
           {mainEditorContent}
 
           <HostEditSecondary>
-            <HostPhaseIndicator active="build" />
+            <HostPhaseIndicator active="build" links={phaseLinks} />
             {syncStatusBanner}
             {buildEntry !== 'import' && backupPanel}
           </HostEditSecondary>

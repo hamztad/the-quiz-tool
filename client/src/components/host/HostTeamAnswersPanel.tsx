@@ -4,6 +4,7 @@ import { QuestionBody } from '../question/QuestionBody';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { useSocket } from '../../hooks/useSocket';
+import { getQuestionFasitText } from '../../lib/hostAnswerKey';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
 import {
   computeTeamTotalPoints,
@@ -86,6 +87,13 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                 : undefined;
               const scoreOptions = Array.from({ length: question.maxPoints + 1 }, (_, i) => i);
               const acceptedAnswers = (question.acceptedAnswers ?? []).filter((a) => a.trim());
+              const fasit = getQuestionFasitText(question);
+              const protest = room.protests.find(
+                (p) =>
+                  p.teamId === teamId &&
+                  p.questionId === question.id &&
+                  p.status === 'pending',
+              );
 
               return (
                 <article
@@ -109,6 +117,35 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
 
                   <QuestionBody question={question} showHint={false} />
 
+                  <section className="rounded-xl border border-green-500/30 bg-green-500/5 overflow-hidden min-w-0">
+                    <div className="border-b border-green-500/20 px-3 py-2">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-green-400">
+                        Fasit
+                      </h3>
+                    </div>
+                    <p className="px-3 py-3 text-sm font-medium text-quiz-text quiz-user-text break-words [overflow-wrap:anywhere]">
+                      {fasit ?? '—'}
+                    </p>
+                    {question.type === 'mc' && question.options && (
+                      <ul className="px-3 pb-3 space-y-1 text-xs text-quiz-muted">
+                        {question.options.map((option, optIndex) => (
+                          <li
+                            key={option.id}
+                            className={option.isCorrect ? 'text-green-300 font-medium' : undefined}
+                          >
+                            {String.fromCharCode(65 + optIndex)}. {option.text}
+                            {option.isCorrect ? ' ✓' : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {acceptedAnswers.length > 0 && question.type === 'open' && (
+                      <p className="px-3 pb-3 text-xs text-quiz-muted break-words">
+                        Godkjente svar: {acceptedAnswers.join(' · ')}
+                      </p>
+                    )}
+                  </section>
+
                   <section className="rounded-xl border border-quiz-border/80 bg-quiz-bg/40 overflow-hidden min-w-0">
                     <div className="border-b border-quiz-border/80 px-3 py-2">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
@@ -120,10 +157,15 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                     </p>
                   </section>
 
-                  {acceptedAnswers.length > 0 && (
-                    <p className="text-xs text-quiz-muted break-words">
-                      Godkjente svar: {acceptedAnswers.join(' · ')}
-                    </p>
+                  {protest && (
+                    <section className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-3 min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                        Protest
+                      </p>
+                      <p className="text-sm text-quiz-text mt-1 break-words [overflow-wrap:anywhere]">
+                        {protest.message?.trim() || 'Lag har sendt protest på denne oppgaven.'}
+                      </p>
+                    </section>
                   )}
 
                   <div className="space-y-2">

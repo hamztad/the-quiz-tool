@@ -23,6 +23,7 @@ import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { HostAnswerKeyPanel } from '../components/host/HostAnswerKeyPanel';
 import { HostTeamAnswersPanel } from '../components/host/HostTeamAnswersPanel';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
@@ -57,6 +58,7 @@ export function HostDashboardPage() {
     connected,
   );
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [showAnswerKey, setShowAnswerKey] = useState(false);
 
   useEffect(() => {
     if (!roomId || !room) return;
@@ -112,7 +114,7 @@ export function HostDashboardPage() {
   const endQuizForTeams = () => {
     if (
       !window.confirm(
-        'Avslutte quizen for deltakerne? Du kan fortsatt se resultater, eksportere og redigere etterpå.',
+        'Avslutte quizen for deltakerne? Du kan fortsatt se resultater, fasit og eksportere etterpå.',
       )
     ) {
       return;
@@ -154,12 +156,15 @@ export function HostDashboardPage() {
       title={isPostQuiz ? 'Etter quiz' : 'Kjør quiz'}
       subtitle={`Romkode ${room.joinCode} · ${phaseLabel(room.phase)}`}
     >
-      <HostPhaseIndicator active="live" />
+      <HostPhaseIndicator
+        active="live"
+        links={{ present: `/host/${roomId}/present?invite=1` }}
+      />
 
       {isPostQuiz && (
         <p className="mb-4 rounded-xl border border-quiz-border bg-quiz-surface/60 px-4 py-3 text-sm text-quiz-muted break-words">
-          Quizen er avsluttet for deltakerne. Du kan fortsatt se resultater, eksportere quizen og
-          redigere ved behov.
+          Quizen er avsluttet for deltakerne. Du kan fortsatt se resultater, fasit og eksportere
+          quizen.
         </p>
       )}
 
@@ -214,11 +219,14 @@ export function HostDashboardPage() {
                 Vis invitasjon
               </Button>
             </Link>
-            <Link to={`/host/${roomId}/edit`} className="w-full min-w-0 sm:w-auto">
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-                Rediger quiz
-              </Button>
-            </Link>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setShowAnswerKey(true)}
+            >
+              Se spørsmål og fasit
+            </Button>
           </div>
 
           <Leaderboard
@@ -239,6 +247,10 @@ export function HostDashboardPage() {
             </p>
           )}
 
+          {showAnswerKey && (
+            <HostAnswerKeyPanel room={room} onClose={() => setShowAnswerKey(false)} />
+          )}
+
           {selectedTeamId && (
             <HostTeamAnswersPanel
               room={room}
@@ -252,7 +264,8 @@ export function HostDashboardPage() {
               questions={room.questions}
               quizTitle={room.joinCode}
               hasUnsavedWork={false}
-              onImportQuestions={() => navigate(`/host/${roomId}/edit?import=1`)}
+              exportOnly
+              onImportQuestions={() => {}}
             />
           )}
 

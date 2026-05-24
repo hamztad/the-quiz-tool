@@ -98,7 +98,16 @@ export function HostLobbyPage() {
           : 'Inviter lag med QR-kode eller romkode — start når alle er klare'
       }
     >
-      <HostPhaseIndicator active={inviteOnly ? 'live' : 'present'} />
+      <HostPhaseIndicator
+        active="present"
+        links={
+          inviteOnly
+            ? { live: `/host/${roomId}` }
+            : room.questions.length > 0
+              ? { build: `/host/${roomId}/edit` }
+              : undefined
+        }
+      />
 
       {operationalError && (
         <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 break-words">

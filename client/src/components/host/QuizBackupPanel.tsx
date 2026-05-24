@@ -16,6 +16,8 @@ interface QuizBackupPanelProps {
   autoOpenImport?: boolean;
   /** Prominent import-first layout for «Importer quizfil» entry. */
   variant?: 'default' | 'importPrimary';
+  /** Hide import — export/copy only (e.g. post-quiz). */
+  exportOnly?: boolean;
 }
 
 export function QuizBackupPanel({
@@ -25,6 +27,7 @@ export function QuizBackupPanel({
   onImportQuestions,
   autoOpenImport = false,
   variant = 'default',
+  exportOnly = false,
 }: QuizBackupPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -160,8 +163,9 @@ export function QuizBackupPanel({
       <div className="mb-3">
         <p className="text-sm font-semibold text-quiz-text">Sikkerhetskopi</p>
         <p className="text-xs text-quiz-muted mt-1 break-words">
-          Last ned, importer eller kopier quizen lokalt. Endringer lagres ikke på server før du
-          trykker «Lagre alle spørsmål».
+          {exportOnly
+            ? 'Last ned eller kopier quizen lokalt.'
+            : 'Last ned, importer eller kopier quizen lokalt. Endringer lagres ikke på server før du trykker «Lagre alle spørsmål».'}
         </p>
       </div>
 
@@ -169,9 +173,11 @@ export function QuizBackupPanel({
         <Button type="button" variant="secondary" size="sm" onClick={handleExport}>
           Last ned quizfil
         </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
-          Importer quizfil
-        </Button>
+        {!exportOnly && (
+          <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+            Importer quizfil
+          </Button>
+        )}
         <Button
           type="button"
           variant="ghost"
