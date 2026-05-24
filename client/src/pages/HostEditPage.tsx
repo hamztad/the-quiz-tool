@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { CLIENT_EVENTS, type Question } from '@quiz-tool/shared';
+import { CLIENT_EVENTS, questionsToQuizText, type Question } from '@quiz-tool/shared';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
 import { HostQuestionEditorCard } from '../components/host/HostQuestionEditorCard';
@@ -49,6 +49,7 @@ export function HostEditPage() {
     initialEditModeForEntry(parseBuildEntry(window.location.search)),
   );
   const [draftQuestions, setDraftQuestions] = useState<Question[]>([]);
+  const [importText, setImportText] = useState('');
   const [dirty, setDirty] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -56,13 +57,33 @@ export function HostEditPage() {
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const editorListRef = useRef<HTMLDivElement>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevEditModeRef = useRef<QuizEditMode>(editMode);
+
+  const syncImportTextFromDraft = useCallback((questions: Question[]) => {
+    setImportText(questionsToQuizText(questions));
+  }, []);
 
   useEffect(() => {
     if (room?.questions && !dirty) {
       setDraftQuestions(room.questions);
+      syncImportTextFromDraft(room.questions);
       setExpandedIds(new Set());
     }
-  }, [room?.questions, dirty]);
+  }, [room?.questions, dirty, syncImportTextFromDraft]);
+
+  /** Editor and saved state drive tekst — keep import field aligned with draft. */
+  useEffect(() => {
+    if (editMode === 'editor') {
+      syncImportTextFromDraft(draftQuestions);
+    }
+  }, [draftQuestions, editMode, syncImportTextFromDraft]);
+
+  useEffect(() => {
+    if (prevEditModeRef.current !== 'tekst' && editMode === 'tekst') {
+      syncImportTextFromDraft(draftQuestions);
+    }
+    prevEditModeRef.current = editMode;
+  }, [editMode, draftQuestions, syncImportTextFromDraft]);
 
   useEffect(() => {
     if (buildEntry === 'tekst') setEditMode('tekst');
@@ -114,12 +135,13 @@ export function HostEditPage() {
       }
       socket.emit(CLIENT_EVENTS.QUIZ_QUESTIONS_SET, { questions: normalized });
       setDraftQuestions(normalized);
+      syncImportTextFromDraft(normalized);
       setDirty(false);
       setSaveMessage('Spørsmål lagret!');
       setTimeout(() => setSaveMessage(null), 4000);
       return true;
     },
-    [socket],
+    [socket, syncImportTextFromDraft],
   );
 
   const updateDraft = (questions: Question[]) => {
@@ -399,11 +421,12 @@ export function HostEditPage() {
   const tekstSection = (
         <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden box-border">
           <QuickImportPanel
+            importText={importText}
+            onImportTextChange={setImportText}
             existingCount={draftQuestions.length}
             onAppend={appendImportedQuestions}
             onReplaceAll={replaceAllQuestions}
             autoFocus={focusEntry && buildEntry === 'tekst'}
-            startEmpty={focusEntry && buildEntry === 'tekst'}
             helpBelow={focusEntry && buildEntry === 'tekst'}
           />
         </section>
@@ -506,6 +529,7 @@ export function HostEditPage() {
                 onClick={() => {
                   if (room?.questions) {
                     setDraftQuestions(room.questions);
+                    syncImportTextFromDraft(room.questions);
                     setExpandedIds(new Set());
                     setDirty(false);
                     setSaveMessage(null);

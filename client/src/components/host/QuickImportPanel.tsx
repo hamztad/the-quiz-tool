@@ -16,24 +16,25 @@ Venus
 Saturn`;
 
 interface QuickImportPanelProps {
+  importText: string;
+  onImportTextChange: (text: string) => void;
   existingCount: number;
   onAppend: (parsed: ReturnType<typeof parseQuizText>['questions']) => void;
   onReplaceAll: (parsed: ReturnType<typeof parseQuizText>['questions']) => void;
   autoFocus?: boolean;
-  startEmpty?: boolean;
   helpBelow?: boolean;
 }
 
 export function QuickImportPanel({
+  importText,
+  onImportTextChange,
   existingCount,
   onAppend,
   onReplaceAll,
   autoFocus = false,
-  startEmpty = false,
   helpBelow = false,
 }: QuickImportPanelProps) {
   const importTextRef = useRef<HTMLTextAreaElement>(null);
-  const [importText, setImportText] = useState(startEmpty ? '' : IMPORT_EXAMPLE);
   const [preview, setPreview] = useState<ReturnType<typeof parseQuizText>['questions']>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [showReplace, setShowReplace] = useState(false);
@@ -47,7 +48,7 @@ export function QuickImportPanel({
   const hasImportText = importText.length > 0;
 
   const clearImportText = () => {
-    setImportText('');
+    onImportTextChange('');
     setPreview([]);
     setParseErrors([]);
     requestAnimationFrame(() => importTextRef.current?.focus());
@@ -166,7 +167,7 @@ export function QuickImportPanel({
           <TextArea
             ref={importTextRef}
             value={importText}
-            onChange={(e) => setImportText(e.target.value)}
+            onChange={(e) => onImportTextChange(e.target.value)}
             rows={helpBelow ? 10 : 8}
             className={`font-mono text-sm bg-quiz-bg/60 min-h-[200px] quiz-user-text [word-break:break-word] ${hasImportText ? 'pr-14' : ''}`}
             placeholder="Lim inn eller skriv quiz her — Q/q, A/a, MC/mc og * for riktig svar…"
