@@ -19,6 +19,7 @@ export const CLIENT_EVENTS = {
   PROTEST_RESOLVE: 'protest:resolve',
   SCORE_OVERRIDE: 'score:override',
   LEADERBOARD_TOGGLE: 'leaderboard:toggle',
+  TEAM_REMOVE: 'team:remove',
 } as const;
 
 export const SERVER_EVENTS = {

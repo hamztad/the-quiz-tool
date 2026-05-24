@@ -17,6 +17,7 @@ import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { HostTeamList } from '../components/host/HostTeamList';
 import { Input } from '../components/ui/Input';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
@@ -121,6 +122,21 @@ export function HostDashboardPage() {
     emit(CLIENT_EVENTS.ROOM_CLOSE);
     clearHostSession();
     navigate('/host');
+  };
+
+  const removeTeamFromQuiz = (teamId: string, teamName: string) => {
+    const gradingNote =
+      room.phase === 'grading'
+        ? '\n\nUnder retterunde kan dette påvirke hvem som retter hvem.'
+        : '';
+    if (
+      !window.confirm(
+        `Fjerne «${teamName}» fra quizen?${gradingNote}\n\nLagets svar og poeng fjernes.`,
+      )
+    ) {
+      return;
+    }
+    emit(CLIENT_EVENTS.TEAM_REMOVE, { teamId });
   };
 
   return (

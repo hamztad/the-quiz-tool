@@ -143,6 +143,38 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
   };
 }
 
+export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
+  const teams = room.teams.filter((t) => t.id !== teamId);
+  if (teams.length === room.teams.length) {
+    throw new Error('Lag finnes ikke.');
+  }
+
+  const teamTokens = { ...room.teamTokens };
+  delete teamTokens[teamId];
+
+  const answers = room.answers.filter((a) => a.teamId !== teamId);
+  const scores = room.scores.filter((s) => s.teamId !== teamId);
+  const peerGrades = room.peerGrades.filter(
+    (pg) => pg.graderTeamId !== teamId && pg.targetTeamId !== teamId,
+  );
+  const protests = room.protests.filter((p) => p.teamId !== teamId);
+  const gradingAssignments = room.gradingAssignments.filter(
+    (a) => a.graderTeamId !== teamId && a.targetTeamId !== teamId,
+  );
+
+  return {
+    ...room,
+    teams,
+    teamTokens,
+    answers,
+    scores,
+    peerGrades,
+    protests,
+    gradingAssignments,
+    answeredByTeam: recomputeAnsweredByTeam(teams, answers),
+  };
+}
+
 export function startQuiz(room: RoomRecord): RoomRecord {
   if (room.questions.length === 0) {
     throw new Error('Legg til spørsmål før du starter quizen.');

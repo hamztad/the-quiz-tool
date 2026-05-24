@@ -1,6 +1,6 @@
 import { ROOM_ERROR_CODES, type ServerErrorPayload } from '@quiz-tool/shared';
 
-export type RoomUnavailableReason = 'not_found' | 'ended' | 'expired';
+export type RoomUnavailableReason = 'not_found' | 'ended' | 'expired' | 'removed';
 
 export interface RoomUnavailableContent {
   title: string;
@@ -26,6 +26,11 @@ const ROOM_UNAVAILABLE_COPY: Record<RoomUnavailableReason, RoomUnavailableConten
       'Rommet har utløpt og er ikke lenger aktivt. Be quizmaster om en ny kode.',
     icon: 'unavailable',
   },
+  removed: {
+    title: 'Laget er fjernet',
+    description: 'Quizmaster har fjernet laget fra quizen.',
+    icon: 'unavailable',
+  },
 };
 
 export function getRoomUnavailableContent(reason: RoomUnavailableReason): RoomUnavailableContent {
@@ -46,6 +51,8 @@ export function parseRoomUnavailableReason(
     case ROOM_ERROR_CODES.JOIN_CODE_INVALID:
     case ROOM_ERROR_CODES.SESSION_INVALID:
       return 'not_found';
+    case ROOM_ERROR_CODES.TEAM_REMOVED:
+      return 'removed';
     default:
       return null;
   }

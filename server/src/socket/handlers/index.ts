@@ -10,7 +10,7 @@ import {
   upsertScore,
 } from '../../domain/gradingService.js';
 import { lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
-import { createRoom, endQuizForTeams, joinTeam, setQuestions, startQuiz, updateQuestions } from '../../domain/roomService.js';
+import { createRoom, endQuizForTeams, joinTeam, removeTeam, setQuestions, startQuiz, updateQuestions } from '../../domain/roomService.js';
 import { roomStore } from '../../store/memoryStore.js';
 import { generateId } from '../../utils/id.js';
 import { emitRoomStateToAll, emitRoomStateToSocket } from '../emitRoomState.js';
@@ -51,6 +51,27 @@ function attachSocket(socket: Socket, roomId: string, role: 'host' | 'secretary'
   socket.data.role = role;
   socket.data.teamId = teamId;
   void socket.join(roomId);
+}
+
+function disconnectRemovedTeam(io: Server, roomId: string, teamId: string) {
+  const sockets = io.sockets.adapter.rooms.get(roomId);
+  if (!sockets) return;
+
+  for (const socketId of sockets) {
+    const teamSocket = io.sockets.sockets.get(socketId);
+    if (
+      teamSocket?.data.role === 'secretary' &&
+      teamSocket.data.teamId === teamId
+    ) {
+      emitError(
+        teamSocket,
+        'Quizmaster har fjernet laget fra quizen.',
+        ROOM_ERROR_CODES.TEAM_REMOVED,
+      );
+      teamSocket.leave(roomId);
+      teamSocket.disconnect(true);
+    }
+  }
 }
 
 export function registerSocketHandlers(io: Server, socket: Socket): void {
@@ -162,6 +183,19 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       }
     },
   );
+
+  socket.on(CLIENT_EVENTS.TEAM_REMOVE, (payload: { teamId: string }) => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+
+    try {
+      roomStore.update(roomId, (r) => removeTeam(r, payload.teamId));
+      disconnectRemovedTeam(io, roomId, payload.teamId);
+      emitRoomStateToAll(io, roomId);
+    } catch (e) {
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke fjerne lag');
+    }
+  });
 
   socket.on(CLIENT_EVENTS.QUIZ_END, () => {
     const roomId = socket.data.roomId as string;
