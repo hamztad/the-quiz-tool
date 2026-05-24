@@ -29,6 +29,8 @@ export interface AiGenerateQuizRequest {
   questionCount: number;
   difficulty: AiQuizDifficulty;
   questionStyle: AiQuizQuestionStyle;
+  /** Unique per generation — encourages fresh questions from the model. */
+  varietySeed?: string;
 }
 
 export interface AiGenerateQuizResponse {

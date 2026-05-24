@@ -14,6 +14,10 @@ const STYLES = new Set<AiQuizQuestionStyle>(['open', 'mc', 'mixed']);
 function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
   if (!body || typeof body !== 'object') return false;
   const b = body as Record<string, unknown>;
+  const varietyOk =
+    b.varietySeed === undefined ||
+    (typeof b.varietySeed === 'string' && b.varietySeed.length <= 120);
+
   return (
     typeof b.roomId === 'string' &&
     typeof b.topic === 'string' &&
@@ -21,7 +25,8 @@ function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
     typeof b.difficulty === 'string' &&
     DIFFICULTIES.has(b.difficulty as AiQuizDifficulty) &&
     typeof b.questionStyle === 'string' &&
-    STYLES.has(b.questionStyle as AiQuizQuestionStyle)
+    STYLES.has(b.questionStyle as AiQuizQuestionStyle) &&
+    varietyOk
   );
 }
 
@@ -49,7 +54,7 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
   }
 
   const hostToken = req.header('x-host-token');
-  const { roomId, topic, questionCount, difficulty, questionStyle } = req.body;
+  const { roomId, topic, questionCount, difficulty, questionStyle, varietySeed } = req.body;
 
   const room = roomStore.get(roomId);
   if (!room || room.hostToken !== hostToken) {
@@ -78,6 +83,7 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
         questionCount: clampAiQuestionCount(questionCount),
         difficulty,
         questionStyle,
+        varietySeed: typeof varietySeed === 'string' ? varietySeed.trim() : undefined,
       },
       apiKey,
     );

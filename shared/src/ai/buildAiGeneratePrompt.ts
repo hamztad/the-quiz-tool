@@ -1,4 +1,5 @@
 import type { AiGenerateQuizRequest, AiQuizQuestionStyle } from './aiQuizTypes.js';
+import { buildAiQuizVarietyHints, formatVarietyBlock } from './aiQuizVariety.js';
 import { clampAiQuestionCount } from './parseAiQuizJson.js';
 
 const DIFFICULTY_NO: Record<AiGenerateQuizRequest['difficulty'], string> = {
@@ -71,10 +72,14 @@ Flervalg:
 export function buildAiGeneratePrompt(params: AiGenerateQuizRequest): string {
   const count = clampAiQuestionCount(params.questionCount);
   const topic = params.topic.trim();
+  const varietyHints = buildAiQuizVarietyHints(topic, count, params.varietySeed);
+  const varietyBlock = formatVarietyBlock(varietyHints);
 
   return `Lag en norsk pubquiz med nøyaktig ${count} spørsmål om temaet: «${topic}».
 
 Vanskelighetsgrad: ${DIFFICULTY_NO[params.difficulty]}.
+
+${varietyBlock}
 
 ${buildStyleBlock(params.questionStyle, count)}
 

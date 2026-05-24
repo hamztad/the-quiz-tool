@@ -74,7 +74,7 @@ export async function generateQuizWithOpenAI(
 
 function systemMessageForStyle(style: AiGenerateQuizRequest['questionStyle']): string {
   const base =
-    'Du lager quiz-spørsmål for The Quiz Tool. Svar alltid med gyldig JSON på norsk. Følg spørsmålstype-kravene i brukerens melding nøyaktig.';
+    'Du lager quiz-spørsmål for The Quiz Tool. Svar alltid med gyldig JSON på norsk. Følg spørsmålstype-kravene i brukerens melding nøyaktig. Hver forespørsel skal gi nye, unike spørsmål — ikke gjenta standard pubquiz-klisjeer.';
   if (style === 'open') {
     return `${base} Alle spørsmål skal ha type "open" — aldri "mc".`;
   }
@@ -102,7 +102,7 @@ async function callOpenAi(
       body: JSON.stringify({
         model: MODEL,
         response_format: { type: 'json_object' },
-        temperature: 0.4,
+        temperature: 0.65,
         messages: [
           { role: 'system', content: systemMessageForStyle(questionStyle) },
           { role: 'user', content: prompt },

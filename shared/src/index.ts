@@ -13,3 +13,4 @@ export * from './ai/aiQuizTypes.js';
 export * from './ai/parseAiQuizJson.js';
 export * from './ai/buildAiGeneratePrompt.js';
 export * from './ai/shuffleMcOptions.js';
+export * from './ai/aiQuizVariety.js';

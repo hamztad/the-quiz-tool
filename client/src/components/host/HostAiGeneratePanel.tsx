@@ -61,11 +61,17 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
 
     setLoading(true);
     try {
+      const varietySeed =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
       const result = await requestAiQuizGeneration(session, {
         topic,
         questionCount,
         difficulty,
         questionStyle,
+        varietySeed,
       });
       onGenerated(result.questions);
     } catch (err) {
@@ -80,8 +86,8 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
       <div>
         <h2 className="text-lg font-semibold text-quiz-text">Generer med AI</h2>
         <p className="mt-1 text-sm text-quiz-muted break-words">
-          Spørsmålene legges i editoren når de er klare — du kan redigere alt før du lagrer og
-          presenterer.
+          Hver generering får nye vinkler og unngår typiske gjengangere. Rediger gjerne i editoren
+          før du lagrer og presenterer.
         </p>
       </div>
 
