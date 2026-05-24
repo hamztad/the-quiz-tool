@@ -18,11 +18,8 @@ interface QuickImportPanelProps {
   existingCount: number;
   onAppend: (parsed: ReturnType<typeof parseQuizText>['questions']) => void;
   onReplaceAll: (parsed: ReturnType<typeof parseQuizText>['questions']) => void;
-  /** Focus textarea on mount (e.g. «Ny quiz med tekst»). */
   autoFocus?: boolean;
-  /** Start with empty field instead of example text. */
   startEmpty?: boolean;
-  /** Put syntax help and advanced actions below the main controls. */
   helpBelow?: boolean;
 }
 
@@ -38,7 +35,7 @@ export function QuickImportPanel({
   const [importText, setImportText] = useState(startEmpty ? '' : IMPORT_EXAMPLE);
   const [preview, setPreview] = useState<ReturnType<typeof parseQuizText>['questions']>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
-  const [showDanger, setShowDanger] = useState(false);
+  const [showReplace, setShowReplace] = useState(false);
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -90,7 +87,7 @@ export function QuickImportPanel({
     }
     if (
       !window.confirm(
-        'Neste steg krever at du skriver ERSTAT i dialogen. Alle eksisterende spørsmål slettes. Fortsette?',
+        'Neste steg krever at du skriver ERSTAT i dialogen. Eksisterende spørsmål i listen erstattes. Fortsette?',
       )
     ) {
       return;
@@ -98,8 +95,13 @@ export function QuickImportPanel({
     onReplaceAll(result.questions);
     setPreview([]);
     setParseErrors([]);
-    setShowDanger(false);
+    setShowReplace(false);
   };
+
+  const listHint =
+    existingCount === 0
+      ? 'Ingen spørsmål i listen fra før'
+      : `${existingCount} spørsmål i listen fra før`;
 
   const helpBlock = (
     <details className="rounded-xl border border-quiz-border/50 bg-quiz-bg/40">
@@ -107,7 +109,7 @@ export function QuickImportPanel({
         Hjelp: tekstformat og eksempel
       </summary>
       <div className="px-4 pb-4 space-y-2 border-t border-quiz-border/40">
-        <p className="text-xs text-quiz-muted pt-3">
+        <p className="text-xs text-quiz-muted pt-3 break-words">
           Bruk <code className="text-quiz-text">Q</code> for spørsmål, <code className="text-quiz-text">A</code>{' '}
           for svar, <code className="text-quiz-text">MC</code> for flervalg og{' '}
           <code className="text-quiz-text">*</code> for riktig alternativ.
@@ -119,28 +121,35 @@ export function QuickImportPanel({
     </details>
   );
 
-  const dangerBlock = (
-    <div className="pt-2 border-t border-quiz-border/60">
-      <button
-        type="button"
-        onClick={() => setShowDanger((v) => !v)}
-        className="text-xs text-quiz-muted hover:text-red-300 underline"
-      >
-        {showDanger ? 'Skjul avansert' : 'Avansert (farlig)'}
-      </button>
-
-      {showDanger && (
-        <div className="mt-3 rounded-xl border-2 border-red-500/50 bg-red-500/10 p-4 space-y-3">
-          <p className="text-sm text-red-200 break-words">
-            Sletter alle {existingCount} spørsmål i listen og erstatter med kun det som er i
-            import-teksten. Manuelt arbeid går tapt.
-          </p>
-          <Button type="button" variant="danger" size="sm" onClick={applyReplaceAll}>
-            Erstatt hele listen (krever bekreftelse)
-          </Button>
-        </div>
-      )}
-    </div>
+  const utilityBlock = (
+    <details className="rounded-xl border border-quiz-border/50 bg-quiz-bg/40">
+      <summary className="cursor-pointer px-4 py-3 text-sm text-quiz-muted hover:text-quiz-text">
+        Flere verktøy
+      </summary>
+      <div className="space-y-3 px-4 pb-4 border-t border-quiz-border/40 pt-3">
+        <Button type="button" variant="ghost" size="sm" className="w-full sm:w-auto" onClick={runPreview}>
+          Forhåndsvis
+        </Button>
+        <button
+          type="button"
+          onClick={() => setShowReplace((v) => !v)}
+          className="block text-xs text-quiz-muted hover:text-quiz-text underline"
+        >
+          {showReplace ? 'Skjul erstatte liste' : 'Erstatt hele listen (vær oppmerksom)'}
+        </button>
+        {showReplace && (
+          <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
+            <p className="text-xs text-quiz-muted break-words">
+              Dette kan overskrive {existingCount} spørsmål i listen. Manuelt arbeid som ikke er
+              lagret kan gå tapt.
+            </p>
+            <Button type="button" variant="secondary" size="sm" onClick={applyReplaceAll}>
+              Erstatt hele listen
+            </Button>
+          </div>
+        )}
+      </div>
+    </details>
   );
 
   return (
@@ -175,17 +184,14 @@ export function QuickImportPanel({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="secondary" size="sm" onClick={runPreview}>
-          Forhåndsvis
-        </Button>
-        <Button type="button" size="sm" onClick={applyAppend}>
-          Legg til i quizen ({existingCount} spørsmål)
-        </Button>
-      </div>
+      <p className="text-xs text-quiz-muted">{listHint}</p>
+
+      <Button type="button" className="w-full" onClick={applyAppend}>
+        Legg til
+      </Button>
 
       {parseErrors.map((e, i) => (
-        <p key={i} className="text-sm text-red-400">
+        <p key={i} className="text-sm text-red-400 break-words">
           {e}
         </p>
       ))}
@@ -194,11 +200,11 @@ export function QuickImportPanel({
 
       {helpBelow ? (
         <>
+          {utilityBlock}
           {helpBlock}
-          {dangerBlock}
         </>
       ) : (
-        dangerBlock
+        utilityBlock
       )}
     </div>
   );

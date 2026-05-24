@@ -3,6 +3,7 @@ export const CLIENT_EVENTS = {
   ROOM_JOIN: 'room:join',
   ROOM_RECONNECT: 'room:reconnect',
   ROOM_CLOSE: 'room:close',
+  QUIZ_END: 'quiz:end',
   QUIZ_QUESTIONS_SET: 'quiz:questions:set',
   QUIZ_START: 'quiz:start',
   QUESTION_OPEN: 'question:open',

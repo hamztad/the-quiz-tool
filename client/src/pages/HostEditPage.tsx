@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Question } from '@quiz-tool/shared';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
@@ -10,6 +10,7 @@ import { QuizEditModeTabs, type QuizEditMode } from '../components/host/QuizEdit
 import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
+import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import {
@@ -70,7 +71,7 @@ export function HostEditPage() {
 
   useEffect(() => {
     if (!roomId || !room) return;
-    if (room.phase !== 'lobby') {
+    if (room.phase !== 'lobby' && room.phase !== 'post_quiz') {
       navigate(`/host/${roomId}`, { replace: true });
     }
   }, [room, roomId, navigate]);
@@ -235,6 +236,12 @@ export function HostEditPage() {
     setHostPresenting(roomId, true);
     navigate(`/host/${roomId}/present`);
   };
+
+  const { requestLeave, dialog: unsavedDialog } = useUnsavedQuizGuard({
+    dirty,
+    questions: draftQuestions,
+    quizTitle: room?.joinCode,
+  });
 
   if (!roomId) return null;
 
@@ -415,12 +422,13 @@ export function HostEditPage() {
       {!focusEntry && <HostPhaseIndicator active="build" />}
 
       <div className={focusEntry ? 'mb-3 flex flex-wrap items-center justify-between gap-2' : 'mb-6'}>
-        <Link
-          to="/host"
+        <button
+          type="button"
+          onClick={() => requestLeave(() => navigate('/host'))}
           className="inline-flex items-center text-sm text-quiz-accent hover:underline shrink-0"
         >
           ← Quizmaster-meny
-        </Link>
+        </button>
         {focusEntry && (
           <span className="text-xs text-quiz-muted truncate">
             {draftQuestions.length} spørsmål
@@ -476,10 +484,24 @@ export function HostEditPage() {
                 </span>
               )}
             </div>
-            <div className="flex flex-col gap-2 w-full sm:w-auto sm:shrink-0 sm:flex-row sm:flex-wrap sm:justify-end">
+            <div className="flex flex-col gap-2 w-full sm:w-auto sm:shrink-0 sm:items-end">
               <Button
                 type="button"
-                variant="secondary"
+                className="w-full sm:w-auto"
+                onClick={() => persistQuestions(draftQuestions)}
+                disabled={!dirty}
+              >
+                Lagre alle spørsmål
+              </Button>
+              {canPresent && (
+                <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={goToPresent}>
+                  Presenter quiz
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
                 className="w-full sm:w-auto"
                 onClick={() => {
                   if (room?.questions) {
@@ -493,25 +515,12 @@ export function HostEditPage() {
               >
                 Angre
               </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full sm:w-auto"
-                onClick={() => persistQuestions(draftQuestions)}
-                disabled={!dirty}
-              >
-                Lagre alle spørsmål
-              </Button>
-              {canPresent && (
-                <Button type="button" className="w-full sm:w-auto" onClick={goToPresent}>
-                  Presenter quiz
-                </Button>
-              )}
             </div>
             </div>
           </div>
         </div>
       )}
+      {unsavedDialog}
     </PageShell>
   );
 }

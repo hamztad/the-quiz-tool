@@ -150,6 +150,15 @@ export function startQuiz(room: RoomRecord): RoomRecord {
   return { ...room, phase: 'live' };
 }
 
+/** Soft end: teams see avsluttet-melding; host keeps post-quiz access */
+export function endQuizForTeams(room: RoomRecord): RoomRecord {
+  return {
+    ...room,
+    phase: 'post_quiz',
+    settings: { ...room.settings, showLeaderboard: true },
+  };
+}
+
 export function toPublicState(
   room: RoomState,
   role: 'host' | 'secretary',

@@ -10,7 +10,7 @@ import {
   upsertScore,
 } from '../../domain/gradingService.js';
 import { lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
-import { createRoom, joinTeam, setQuestions, startQuiz, updateQuestions } from '../../domain/roomService.js';
+import { createRoom, endQuizForTeams, joinTeam, setQuestions, startQuiz, updateQuestions } from '../../domain/roomService.js';
 import { roomStore } from '../../store/memoryStore.js';
 import { generateId } from '../../utils/id.js';
 import { emitRoomStateToAll, emitRoomStateToSocket } from '../emitRoomState.js';
@@ -98,6 +98,11 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
           return;
         }
 
+        if (access.room.phase === 'post_quiz') {
+          emitError(socket, 'Quizen er avsluttet av quizmaster.', ROOM_ERROR_CODES.ROOM_ENDED);
+          return;
+        }
+
         const { room: updated, teamId, teamToken } = joinTeam(access.room, payload.teamName);
         roomStore.update(access.room.id, () => updated);
         attachSocket(socket, access.room.id, 'secretary', teamId);
@@ -157,6 +162,19 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       }
     },
   );
+
+  socket.on(CLIENT_EVENTS.QUIZ_END, () => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+    const room = roomStore.get(roomId);
+    const access = checkRoomAccess(room);
+    if (!access.ok) {
+      emitRoomAccessError(socket, access.code);
+      return;
+    }
+    roomStore.update(roomId, (r) => endQuizForTeams(r));
+    emitRoomStateToAll(io, roomId);
+  });
 
   socket.on(CLIENT_EVENTS.ROOM_CLOSE, () => {
     const roomId = socket.data.roomId as string;

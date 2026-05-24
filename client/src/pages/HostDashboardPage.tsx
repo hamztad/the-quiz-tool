@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CLIENT_EVENTS, type Protest, type PublicRoomState } from '@quiz-tool/shared';
+import { QuizBackupPanel } from '../components/host/QuizBackupPanel';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
 import { QuestionCard } from '../components/question/QuestionCard';
 import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
 import { isQuestionIncomplete } from '../lib/questionFactory';
 import { isHostPresenting } from '../lib/hostFlow';
+import { clearHostSession } from '../lib/tokens';
+import {
+  getHostQuestionAction,
+  hostQuestionActionLabel,
+} from '../lib/questionHostControls';
 import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
@@ -23,9 +29,15 @@ function phaseLabel(phase: PublicRoomState['phase']): string {
       return 'Retterunde';
     case 'leaderboard':
       return 'Leaderboard';
+    case 'post_quiz':
+      return 'Etter quiz';
     default:
       return phase;
   }
+}
+
+function showLeaderboardControls(phase: PublicRoomState['phase']): boolean {
+  return phase === 'live' || phase === 'grading' || phase === 'leaderboard' || phase === 'post_quiz';
 }
 
 export function HostDashboardPage() {
@@ -84,74 +96,116 @@ export function HostDashboardPage() {
     room.answeredByTeam[teamId]?.includes(questionId) ?? false;
 
   const pendingProtests = room.protests.filter((p) => p.status === 'pending');
+  const isPostQuiz = room.phase === 'post_quiz';
+  const showLeaderboard = room.phase === 'leaderboard' || room.settings.showLeaderboard;
+
+  const endQuizForTeams = () => {
+    if (
+      !window.confirm(
+        'Avslutte quizen for deltakerne? Du kan fortsatt se resultater, eksportere og redigere etterpå.',
+      )
+    ) {
+      return;
+    }
+    emit(CLIENT_EVENTS.QUIZ_END);
+  };
+
+  const dismissSession = () => {
+    if (
+      !window.confirm(
+        'Lukke quizmaster-økten helt? Rommet forsvinner og deltakere kan ikke koble til igjen.',
+      )
+    ) {
+      return;
+    }
+    emit(CLIENT_EVENTS.ROOM_CLOSE);
+    clearHostSession();
+    navigate('/host');
+  };
 
   return (
-    <PageShell title="Kjør quiz" subtitle={`Romkode ${room.joinCode} · ${phaseLabel(room.phase)}`}>
+    <PageShell
+      title={isPostQuiz ? 'Etter quiz' : 'Kjør quiz'}
+      subtitle={`Romkode ${room.joinCode} · ${phaseLabel(room.phase)}`}
+    >
       <HostPhaseIndicator active="live" />
+
+      {isPostQuiz && (
+        <p className="mb-4 rounded-xl border border-quiz-border bg-quiz-surface/60 px-4 py-3 text-sm text-quiz-muted break-words">
+          Quizen er avsluttet for deltakerne. Du kan fortsatt se resultater, eksportere quizen og
+          redigere ved behov.
+        </p>
+      )}
 
       {operationalError && (
         <p className="text-red-400 mb-4 break-words">{operationalError}</p>
       )}
 
       <div className="space-y-6 min-w-0 max-w-full">
-          <div className="flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <Link to={`/host/${roomId}/present?invite=1`} className="w-full min-w-0 sm:w-auto">
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-                Vis invitasjon (QR)
-              </Button>
-            </Link>
-            <Link to={`/host/${roomId}/edit`} className="w-full min-w-0 sm:w-auto">
-              <Button variant="secondary" size="sm" className="w-full sm:w-auto">
-                Rediger quiz
-              </Button>
-            </Link>
-            {room.phase !== 'ended' && (
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => {
-                  if (window.confirm('Avslutte quizen for alle lag? Dette kan ikke angres.')) {
-                    emit(CLIENT_EVENTS.ROOM_CLOSE);
-                  }
-                }}
-              >
-                Avslutt quiz
-              </Button>
-            )}
-            {room.phase === 'live' && (
-              <>
-                <Button size="sm" variant="secondary" onClick={() => emit(CLIENT_EVENTS.GRADING_START)}>
-                  Start retterunde
-                </Button>
+          {showLeaderboardControls(room.phase) && (
+            <div className="flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+              {room.phase === 'leaderboard' ? (
                 <Button
                   size="sm"
                   variant="secondary"
+                  className="w-full sm:w-auto"
+                  onClick={() => emit(CLIENT_EVENTS.LEADERBOARD_TOGGLE, { visible: false })}
+                >
+                  Skjul leaderboard
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className="w-full sm:w-auto"
                   onClick={() => emit(CLIENT_EVENTS.LEADERBOARD_TOGGLE, { visible: true })}
                 >
                   Vis leaderboard
                 </Button>
-              </>
-            )}
-            {room.phase === 'grading' && (
-              <Button size="sm" onClick={() => emit(CLIENT_EVENTS.GRADING_END)}>
-                Avslutt retterunde
-              </Button>
-            )}
-            {room.phase === 'leaderboard' && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => emit(CLIENT_EVENTS.LEADERBOARD_TOGGLE, { visible: false })}
-              >
-                Skjul leaderboard
-              </Button>
-            )}
-          </div>
-
-          {(room.phase === 'leaderboard' || room.settings.showLeaderboard) && (
-            <Leaderboard room={room} />
+              )}
+              {room.phase === 'live' && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                  onClick={() => emit(CLIENT_EVENTS.GRADING_START)}
+                >
+                  Start retterunde
+                </Button>
+              )}
+              {room.phase === 'grading' && (
+                <Button size="sm" className="w-full sm:w-auto" onClick={() => emit(CLIENT_EVENTS.GRADING_END)}>
+                  Avslutt retterunde
+                </Button>
+              )}
+            </div>
           )}
 
+          <div className="flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link to={`/host/${roomId}/present?invite=1`} className="w-full min-w-0 sm:w-auto">
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto">
+                Vis invitasjon
+              </Button>
+            </Link>
+            <Link to={`/host/${roomId}/edit`} className="w-full min-w-0 sm:w-auto">
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto">
+                Rediger quiz
+              </Button>
+            </Link>
+          </div>
+
+          {showLeaderboard && <Leaderboard room={room} />}
+
+          {isPostQuiz && (
+            <QuizBackupPanel
+              questions={room.questions}
+              quizTitle={room.joinCode}
+              hasUnsavedWork={false}
+              onImportQuestions={() => navigate(`/host/${roomId}/edit?import=1`)}
+            />
+          )}
+
+          {!isPostQuiz && (
+          <>
           <Card className="min-w-0">
             <h2 className="font-semibold mb-3">Lag ({room.teams.length})</h2>
             <ul className="space-y-2">
@@ -220,42 +274,30 @@ export function HostDashboardPage() {
                         <p className="text-xs text-quiz-muted mt-3 mb-2">
                           {answeredCount}/{room.teams.length} lag har svart
                         </p>
-                        {room.phase === 'live' && (
-                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
-                            {runtimeStatus === 'locked' && (
+                        {room.phase === 'live' && (() => {
+                          const action = getHostQuestionAction(room, q.id);
+                          if (!action) return null;
+                          const onClick = () => {
+                            if (action === 'open') {
+                              emit(CLIENT_EVENTS.QUESTION_OPEN, { questionId: q.id });
+                            } else if (action === 'lock') {
+                              emit(CLIENT_EVENTS.QUESTION_LOCK, { questionId: q.id });
+                            } else {
+                              emit(CLIENT_EVENTS.QUESTION_UNLOCK, { questionId: q.id });
+                            }
+                          };
+                          return (
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
                               <Button
                                 size="sm"
-                                onClick={() =>
-                                  emit(CLIENT_EVENTS.QUESTION_OPEN, { questionId: q.id })
-                                }
+                                variant={action === 'lock' ? 'secondary' : 'primary'}
+                                onClick={onClick}
                               >
-                                Åpne for lag
+                                {hostQuestionActionLabel(action)}
                               </Button>
-                            )}
-                            {runtimeStatus === 'open' && (
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={() =>
-                                  emit(CLIENT_EVENTS.QUESTION_LOCK, { questionId: q.id })
-                                }
-                              >
-                                Lås
-                              </Button>
-                            )}
-                            {runtimeStatus === 'locked' && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() =>
-                                  emit(CLIENT_EVENTS.QUESTION_UNLOCK, { questionId: q.id })
-                                }
-                              >
-                                Åpne igjen
-                              </Button>
-                            )}
-                          </div>
-                        )}
+                            </div>
+                          );
+                        })()}
                         {room.teams.length > 0 && (
                           <div className="flex flex-col gap-3 mt-3 min-w-0 sm:flex-row sm:flex-wrap sm:items-center">
                             <Input
@@ -308,6 +350,31 @@ export function HostDashboardPage() {
               </div>
             )}
           </section>
+          </>
+          )}
+
+          <div className="pt-6 mt-2 border-t border-quiz-border/50 space-y-2">
+            {!isPostQuiz && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full sm:w-auto text-quiz-muted"
+                onClick={endQuizForTeams}
+              >
+                Avslutt quiz
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full sm:w-auto text-quiz-muted"
+              onClick={dismissSession}
+            >
+              Lukk økt
+            </Button>
+          </div>
         </div>
     </PageShell>
   );

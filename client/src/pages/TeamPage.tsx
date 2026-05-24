@@ -189,6 +189,24 @@ export function TeamPage() {
   const activeQuestionOpen =
     activeQuestion && (room.questionStatus[activeQuestion.id] ?? 'locked') === 'open';
 
+  if (room.phase === 'post_quiz') {
+    return (
+      <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Quizen er avsluttet">
+        <Card className="p-5 text-center space-y-3">
+          <p className="text-lg font-semibold text-quiz-text">Quiz avsluttet av quizmaster</p>
+          <p className="text-sm text-quiz-muted leading-relaxed">
+            Takk for deltakelsen! Resultater og poeng er lagret.
+          </p>
+        </Card>
+        {room.settings.showLeaderboard && (
+          <div className="mt-6">
+            <Leaderboard room={room} />
+          </div>
+        )}
+      </PageShell>
+    );
+  }
+
   if (room.phase === 'grading' && assignment) {
     return (
       <PeerGradingView
