@@ -59,7 +59,7 @@ export function HostLandingPage() {
         />
         <HostSetupCard
           title="Ny quiz med tekst"
-          description="Lim inn eller skriv hele quizen som tekst."
+          description="Kopier AI-prompt, lim inn svar — eller skriv quizen direkte som tekst."
           icon="📝"
           onClick={() => createQuiz('tekst')}
           disabled={!connected || busy}

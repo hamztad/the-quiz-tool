@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { parseQuizText } from '@quiz-tool/shared';
+import { AiQuizPromptPanel } from './AiQuizPromptPanel';
 import { QuestionPreviewStrip } from './QuestionPreviewStrip';
 import { Button } from '../ui/Button';
 import { TextArea } from '../ui/Input';
@@ -154,6 +155,8 @@ export function QuickImportPanel({
 
   return (
     <div className="space-y-4 min-w-0 max-w-full overflow-hidden">
+      <AiQuizPromptPanel />
+
       <div>
         {!helpBelow && (
           <p className="text-xs font-semibold uppercase tracking-wider text-quiz-muted mb-2">

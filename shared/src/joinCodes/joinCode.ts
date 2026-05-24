@@ -75,6 +75,30 @@ export function normalizeJoinCode(raw: string | undefined): string {
     .replace(/^-|-$/g, '');
 }
 
+/**
+ * Normalize for join-code lookup — removes spaces and hyphens so
+ * "STOR-NINJA", "STOR NINJA" and "STORNINJA" all match.
+ */
+export function normalizeJoinCodeForMatch(raw: string | undefined): string {
+  if (!raw) return '';
+  let text = raw;
+  try {
+    text = decodeURIComponent(raw);
+  } catch {
+    text = raw;
+  }
+  return text
+    .trim()
+    .toUpperCase()
+    .replace(/[\s\-_]+/g, '');
+}
+
+export function joinCodesMatch(a: string | undefined, b: string | undefined): boolean {
+  const left = normalizeJoinCodeForMatch(a);
+  const right = normalizeJoinCodeForMatch(b);
+  return left.length > 0 && left === right;
+}
+
 export function formatJoinCodeForDisplay(code: string): string {
   return normalizeJoinCode(code);
 }

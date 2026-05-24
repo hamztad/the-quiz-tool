@@ -82,7 +82,7 @@ export function JoinPage() {
 
     socket.emit(
       CLIENT_EVENTS.ROOM_JOIN,
-      { joinCode: normalizeJoinCode(joinCode.trim()), teamName: nameResult.name },
+      { joinCode: joinCode.trim(), teamName: nameResult.name },
       (res: { roomId: string; teamId: string; teamToken: string } | undefined) => {
         if (res?.roomId) onJoined(res);
       },
@@ -143,11 +143,14 @@ export function JoinPage() {
               id="join-code"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="GLAD-TACO"
-              maxLength={24}
+              placeholder="GLAD-TACO eller GLAD TACO"
+              maxLength={32}
               autoComplete="off"
               className="min-h-[52px] text-center text-lg tracking-wide font-bold"
             />
+            <p className="text-xs text-quiz-muted text-center">
+              Mellomrom og bindestrek spiller ingen rolle.
+            </p>
           </div>
         )}
 

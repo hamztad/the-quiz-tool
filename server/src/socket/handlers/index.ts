@@ -1,5 +1,5 @@
 import type { Server, Socket } from 'socket.io';
-import { CLIENT_EVENTS, normalizeJoinCode, ROOM_ERROR_CODES, SERVER_EVENTS, type Question } from '@quiz-tool/shared';
+import { CLIENT_EVENTS, ROOM_ERROR_CODES, SERVER_EVENTS, type Question } from '@quiz-tool/shared';
 import { checkRoomAccess } from '../../domain/roomAccess.js';
 import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import {
@@ -84,7 +84,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     CLIENT_EVENTS.ROOM_JOIN,
     (payload: { joinCode: string; teamName: string }, ack?: (res: unknown) => void) => {
       try {
-        const room = roomStore.getByJoinCode(normalizeJoinCode(payload.joinCode));
+        const room = roomStore.getByJoinCode(payload.joinCode);
         const access = checkRoomAccess(room);
         if (!access.ok) {
           if (access.code === ROOM_ERROR_CODES.ROOM_EXPIRED && room) {
