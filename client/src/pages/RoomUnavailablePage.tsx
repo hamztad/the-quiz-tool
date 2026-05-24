@@ -2,7 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import type { RoomUnavailableReason } from '../lib/roomUnavailable';
 
-const VALID_REASONS: RoomUnavailableReason[] = ['not_found', 'ended', 'expired'];
+const VALID_REASONS: RoomUnavailableReason[] = ['not_found', 'ended', 'expired', 'removed'];
 
 function parseReasonParam(value: string | null): RoomUnavailableReason {
   if (value && VALID_REASONS.includes(value as RoomUnavailableReason)) {

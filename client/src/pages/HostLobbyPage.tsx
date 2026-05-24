@@ -2,11 +2,11 @@ import { useEffect } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CLIENT_EVENTS } from '@quiz-tool/shared';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
+import { HostTeamList } from '../components/host/HostTeamList';
 import { JoinCodeDisplay } from '../components/host/JoinCodeDisplay';
 import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { buildParticipantJoinUrl } from '../lib/joinUrls';
 import { isHostPresenting, setHostPresenting } from '../lib/hostFlow';
 import { useRoomGate } from '../hooks/useRoomGate';
@@ -78,6 +78,17 @@ export function HostLobbyPage() {
     navigate(`/host/${roomId}/edit`);
   };
 
+  const removeTeamFromQuiz = (teamId: string, teamName: string) => {
+    if (
+      !window.confirm(
+        `Fjerne «${teamName}» fra quizen?\n\nLagets svar og poeng fjernes hvis quizen allerede er i gang.`,
+      )
+    ) {
+      return;
+    }
+    socket.emit(CLIENT_EVENTS.TEAM_REMOVE, { teamId });
+  };
+
   return (
     <PageShell
       title={inviteOnly ? 'Invitasjon til lag' : 'Presenter quiz'}
@@ -98,22 +109,11 @@ export function HostLobbyPage() {
       <div className="w-full min-w-0 max-w-full space-y-6">
         <JoinCodeDisplay joinCode={room.joinCode} joinUrl={joinUrl} />
 
-        <Card>
-          <h2 className="font-semibold mb-3">Lag ({room.teams.length})</h2>
-          <ul className="space-y-2">
-            {room.teams.map((t) => (
-              <li
-                key={t.id}
-                className="text-sm font-medium break-words [overflow-wrap:anywhere]"
-              >
-                {t.name}
-              </li>
-            ))}
-            {room.teams.length === 0 && (
-              <p className="text-quiz-muted text-sm">Venter på lag — del QR-koden eller romkoden.</p>
-            )}
-          </ul>
-        </Card>
+        <HostTeamList
+          room={room}
+          onRemoveTeam={removeTeamFromQuiz}
+          emptyHint="Venter på lag — del QR-koden eller romkoden."
+        />
 
         <div className="w-full min-w-0 space-y-3">
           {canStart && (

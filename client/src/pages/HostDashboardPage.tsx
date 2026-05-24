@@ -222,24 +222,11 @@ export function HostDashboardPage() {
 
           {!isPostQuiz && (
           <>
-          <Card className="min-w-0">
-            <h2 className="font-semibold mb-3">Lag ({room.teams.length})</h2>
-            <ul className="space-y-2">
-              {room.teams.map((t) => (
-                <li key={t.id} className="flex gap-3 justify-between items-start min-w-0 text-sm">
-                  <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere] font-medium">
-                    {t.name}
-                  </span>
-                  <span className="shrink-0 text-quiz-muted tabular-nums">
-                    {(room.answeredByTeam[t.id] ?? []).length} besvarte
-                  </span>
-                </li>
-              ))}
-              {room.teams.length === 0 && (
-                <p className="text-quiz-muted text-sm">Venter på lag…</p>
-              )}
-            </ul>
-          </Card>
+          <HostTeamList
+            room={room}
+            onRemoveTeam={removeTeamFromQuiz}
+            showAnswerStats
+          />
 
           {pendingProtests.length > 0 && (
             <Card>
