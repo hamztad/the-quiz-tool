@@ -15,6 +15,8 @@ interface PixabaySearchSuccess {
   query?: string;
   translatedQuery?: string;
   notice?: string;
+  page: number;
+  hasMore: boolean;
 }
 
 interface PixabaySearchError {
@@ -26,8 +28,14 @@ export async function searchPixabayImages(
   session: HostSession,
   query: string,
   language: 'nb' | 'en',
+  page = 1,
 ): Promise<PixabaySearchSuccess> {
-  const params = new URLSearchParams({ roomId: session.roomId, q: query, language });
+  const params = new URLSearchParams({
+    roomId: session.roomId,
+    q: query,
+    language,
+    page: String(page),
+  });
   const res = await fetch(`/api/ai/pixabay-search?${params.toString()}`, {
     headers: {
       'X-Host-Token': session.hostToken,

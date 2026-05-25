@@ -262,9 +262,17 @@ function ImageAttachmentEditor({
   const [error, setError] = useState<string | null>(null);
   const [pixabayQuery, setPixabayQuery] = useState('');
   const [pixabayLoading, setPixabayLoading] = useState<'nb' | 'en' | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [pixabayResults, setPixabayResults] = useState<PixabayImageResult[]>([]);
   const [resultsVisible, setResultsVisible] = useState(false);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
+  const [activeSearch, setActiveSearch] = useState<{
+    query: string;
+    language: 'nb' | 'en';
+    page: number;
+    hasMore: boolean;
+  } | null>(null);
+  const [noMoreResults, setNoMoreResults] = useState(false);
   const image = question.media?.find((m) => m.type === 'image');
 
   const attachImage = (media: MediaAttachment) => {
@@ -298,10 +306,12 @@ function ImageAttachmentEditor({
     setPixabayLoading(language);
     setError(null);
     setSearchNotice(null);
+    setNoMoreResults(false);
     try {
-      const response = await searchPixabayImages(session, query, language);
+      const response = await searchPixabayImages(session, query, language, 1);
       setPixabayResults(response.results);
       setResultsVisible(response.results.length > 0);
+      setActiveSearch({ query, language, page: response.page, hasMore: response.hasMore });
       if (response.translatedQuery) {
         setSearchNotice(`Oversatt søk: ${response.translatedQuery}`);
       } else if (response.notice) {
@@ -309,12 +319,52 @@ function ImageAttachmentEditor({
       }
       if (response.results.length === 0) {
         setError('Fant ingen bilder på Pixabay for dette søket.');
+        setNoMoreResults(true);
       }
     } catch (err) {
       setPixabayResults([]);
       setError(err instanceof Error ? err.message : 'Kunne ikke søke etter bilder.');
     } finally {
       setPixabayLoading(null);
+    }
+  };
+
+  const loadMorePixabayResults = async () => {
+    if (!roomId || !activeSearch || !activeSearch.hasMore) return;
+    const session = getHostSession(roomId);
+    if (!session) {
+      setError('Fant ikke quizmaster-økt. Oppdater siden og prøv igjen.');
+      return;
+    }
+
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const nextPage = activeSearch.page + 1;
+      const response = await searchPixabayImages(
+        session,
+        activeSearch.query,
+        activeSearch.language,
+        nextPage,
+      );
+      setPixabayResults((current) => {
+        const seen = new Set(current.map((r) => r.id));
+        const appended = response.results.filter((r) => !seen.has(r.id));
+        return [...current, ...appended];
+      });
+      setActiveSearch({
+        query: activeSearch.query,
+        language: activeSearch.language,
+        page: response.page,
+        hasMore: response.hasMore,
+      });
+      if (response.results.length === 0 || !response.hasMore) {
+        setNoMoreResults(true);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kunne ikke laste flere bilder.');
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -444,8 +494,13 @@ function ImageAttachmentEditor({
                   <button
                     key={result.id}
                     type="button"
-                    className="min-w-0 rounded-xl border border-quiz-border bg-quiz-bg p-2 text-left hover:border-quiz-accent"
+                    className={`min-w-0 rounded-xl border p-2 text-left hover:border-quiz-accent ${
+                      image?.url === result.imageUrl
+                        ? 'border-quiz-accent bg-quiz-accent/10'
+                        : 'border-quiz-border bg-quiz-bg'
+                    }`}
                     onClick={() => attachPixabay(result)}
+                    aria-pressed={image?.url === result.imageUrl}
                   >
                     <img
                       src={result.previewUrl || result.imageUrl}
@@ -460,6 +515,25 @@ function ImageAttachmentEditor({
                     </span>
                   </button>
                 ))}
+              </div>
+            )}
+
+            {resultsVisible && activeSearch && (
+              <div className="pt-1">
+                {noMoreResults || !activeSearch.hasMore ? (
+                  <p className="text-xs text-quiz-muted">Ingen flere treff</p>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    onClick={loadMorePixabayResults}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? 'Laster flere bilder...' : 'Vis flere bilder'}
+                  </Button>
+                )}
               </div>
             )}
           </div>

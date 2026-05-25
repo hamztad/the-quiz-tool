@@ -221,9 +221,11 @@ export function toPublicState(
     ? { [teamId]: room.answeredByTeam[teamId] ?? [] }
     : {};
   const visibleScores = room.scores.filter((s) => s.teamId === teamId);
-  const visiblePeerGrades = room.peerGrades.filter(
-    (pg) => pg.targetTeamId === teamId || pg.graderTeamId === teamId,
-  );
+  const visiblePeerGrades = room.peerGrades.filter((pg) => {
+    if (pg.targetTeamId === teamId) return true;
+    if (room.phase === 'grading' && pg.graderTeamId === teamId) return true;
+    return false;
+  });
   const visibleProtests = room.protests.filter((p) => p.teamId === teamId);
   const visibleGradingAssignments = assignment ? [assignment] : [];
 

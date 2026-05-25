@@ -152,6 +152,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
             roomStore.delete(room.id);
           }
           emitRoomAccessError(socket, access.code);
+          ack?.({ ok: false, code: access.code });
           return;
         }
 
@@ -171,6 +172,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
           )?.[0];
           if (!teamId) {
             emitRoomAccessError(socket, ROOM_ERROR_CODES.SESSION_INVALID);
+            ack?.({ ok: false, code: ROOM_ERROR_CODES.SESSION_INVALID });
             return;
           }
           attachSocket(socket, activeRoom.id, 'secretary', teamId);
@@ -181,6 +183,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         }
 
         emitRoomAccessError(socket, ROOM_ERROR_CODES.SESSION_INVALID);
+        ack?.({ ok: false, code: ROOM_ERROR_CODES.SESSION_INVALID });
       } catch (e) {
         emitError(socket, e instanceof Error ? e.message : 'Reconnect feilet');
       }

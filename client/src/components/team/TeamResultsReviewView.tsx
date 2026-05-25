@@ -10,7 +10,6 @@ import { useSocket } from '../../hooks/useSocket';
 import { getQuestionFasitText } from '../../lib/hostAnswerKey';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
 import {
-  computeTeamTotalPoints,
   getTeamQuestionScore,
   scoreSourceLabel,
 } from '../../lib/teamScoreDisplay';
@@ -67,6 +66,10 @@ function correctOption(question: Question) {
   return question.type === 'mc' ? question.options?.find((o) => o.isCorrect) : undefined;
 }
 
+function getReviewTeamId(room: PublicRoomState, fallbackTeamId: string): string {
+  return room.viewerTeamId ?? fallbackTeamId;
+}
+
 export function TeamResultsReviewView({
   room,
   teamId,
@@ -78,7 +81,14 @@ export function TeamResultsReviewView({
   const [protestDrafts, setProtestDrafts] = useState<Record<string, string>>({});
   const [openProtestId, setOpenProtestId] = useState<string | null>(null);
   const [submittedProtestIds, setSubmittedProtestIds] = useState<Set<string>>(() => new Set());
-  const totalPoints = computeTeamTotalPoints(room, teamId);
+  const reviewTeamId = getReviewTeamId(room, teamId);
+  const ownAnswers = room.answers.filter((a) => a.teamId === reviewTeamId);
+  const ownAnswerByQuestionId = new Map(ownAnswers.map((a) => [a.questionId, a]));
+  const answeredQuestions = room.questions.filter((q) => ownAnswerByQuestionId.has(q.id));
+  const totalPoints = answeredQuestions.reduce((sum, question) => {
+    const score = getTeamQuestionScore(room, reviewTeamId, question.id);
+    return sum + (score.points ?? 0);
+  }, 0);
 
   const submitProtest = (questionId: string) => {
     socket.emit(CLIENT_EVENTS.PROTEST_SUBMIT, {
@@ -93,10 +103,6 @@ export function TeamResultsReviewView({
     });
     setOpenProtestId(null);
   };
-
-  const answeredQuestions = room.questions.filter((q) =>
-    (room.answeredByTeam[teamId] ?? []).includes(q.id),
-  );
 
   return (
     <PageShell title={teamName} subtitle="Egne svar og poeng">
@@ -127,9 +133,7 @@ export function TeamResultsReviewView({
       ) : (
         <div className="quiz-page-content space-y-5 pb-6">
           {answeredQuestions.map((question, index) => {
-            const answer = room.answers.find(
-              (a) => a.teamId === teamId && a.questionId === question.id,
-            );
+            const answer = ownAnswerByQuestionId.get(question.id);
             const answerText = formatTeamAnswerDisplay(question, answer?.value);
             const fasit = getQuestionFasitText(question);
             const selectedOption =
@@ -139,12 +143,12 @@ export function TeamResultsReviewView({
             const mcCorrectOption = correctOption(question);
             const mcWasCorrect =
               question.type === 'mc' && selectedOption ? selectedOption.isCorrect : null;
-            const score = getTeamQuestionScore(room, teamId, question.id);
+            const score = getTeamQuestionScore(room, reviewTeamId, question.id);
             const graderTeam = score.graderTeamId
               ? room.teams.find((t) => t.id === score.graderTeamId)
               : undefined;
             const protests = room.protests
-              .filter((p) => p.teamId === teamId && p.questionId === question.id)
+              .filter((p) => p.teamId === reviewTeamId && p.questionId === question.id)
               .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
             const activeProtest = protests.find((p) => p.status === 'pending');
             const resolvedProtest = protests.find((p) => p.status !== 'pending');
@@ -159,7 +163,7 @@ export function TeamResultsReviewView({
             const canProtest = score.points !== null && !activeProtest && !locallySubmitted;
             const showProtestForm = openProtestId === question.id && canProtest;
             const protestSnapshot = room.protests.find(
-              (p) => p.teamId === teamId && p.questionId === question.id,
+              (p) => p.teamId === reviewTeamId && p.questionId === question.id,
             );
 
             return (

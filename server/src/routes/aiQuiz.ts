@@ -25,6 +25,7 @@ interface PixabayHit {
 
 interface PixabayResponse {
   hits?: PixabayHit[];
+  totalHits?: number;
 }
 
 interface OpenAiTranslateResponse {
@@ -100,6 +101,7 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
   const roomId = typeof req.query.roomId === 'string' ? req.query.roomId : '';
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   const language = req.query.language === 'nb' ? 'nb' : 'en';
+  const page = Math.max(1, Math.min(Number(req.query.page) || 1, 50));
   const hostToken = req.header('x-host-token');
 
   if (!roomId || q.length < 2 || q.length > 80) {
@@ -147,6 +149,7 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
       image_type: 'photo',
       safesearch: 'true',
       per_page: '12',
+      page: String(page),
     });
 
     const pixabayRes = await fetch(`https://pixabay.com/api/?${params.toString()}`);
@@ -171,7 +174,16 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
         photographer: hit.user ?? '',
       }));
 
-    res.json({ ok: true, results, query: q, translatedQuery, notice });
+    const totalHits = data.totalHits ?? 0;
+    res.json({
+      ok: true,
+      results,
+      query: q,
+      translatedQuery,
+      notice,
+      page,
+      hasMore: page * 12 < totalHits,
+    });
   } catch (err) {
     console.error('Pixabay search error:', err);
     res.status(500).json({

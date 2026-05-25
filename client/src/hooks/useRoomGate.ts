@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CLIENT_EVENTS } from '@quiz-tool/shared';
+import { CLIENT_EVENTS, ROOM_ERROR_CODES } from '@quiz-tool/shared';
 import type { PublicRoomState } from '@quiz-tool/shared';
 import {
   parseRoomUnavailableReason,
@@ -27,6 +27,7 @@ export function useRoomGate(
 ) {
   const { room, roomError } = useRoomState(socket);
   const [reconnectAttempted, setReconnectAttempted] = useState(false);
+  const [sessionInvalid, setSessionInvalid] = useState(false);
   const [reconnectTick, setReconnectTick] = useState(0);
 
   const session = useMemo(() => {
@@ -37,7 +38,13 @@ export function useRoomGate(
   const emitReconnect = useCallback(() => {
     if (!roomId || !session) return;
     setReconnectAttempted(false);
-    const onDone = () => setReconnectAttempted(true);
+    setSessionInvalid(false);
+    const onDone = (res?: { ok?: boolean; code?: string }) => {
+      if (res?.ok === false && res.code === ROOM_ERROR_CODES.SESSION_INVALID) {
+        setSessionInvalid(true);
+      }
+      setReconnectAttempted(true);
+    };
     if (mode === 'host') {
       const { hostToken } = session as HostSession;
       socket.emit(CLIENT_EVENTS.ROOM_RECONNECT, { roomId, hostToken }, onDone);
@@ -80,10 +87,11 @@ export function useRoomGate(
   const waitingForSession = Boolean(roomId && reconnectAttempted && !session);
 
   const reconnectFailed = Boolean(
-    session &&
+    sessionInvalid ||
+    (session &&
       reconnectAttempted &&
       unavailable &&
-      roomError?.code === 'SESSION_INVALID',
+      roomError?.code === ROOM_ERROR_CODES.SESSION_INVALID),
   );
 
   const operationalError =

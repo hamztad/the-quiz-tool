@@ -129,8 +129,7 @@ export function TeamPage() {
       <PageShell title="Lag" subtitle="Kunne ikke koble til igjen">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Lagtilkoblingen på denne enheten er utløpt eller ugyldig. Dine svar ligger fortsatt på
-            serveren — be quizmaster om romkoden og bli med på nytt med samme lagnavn.
+            Vi fant ikke lagøkten din. Bli med på nytt eller kontakt quizmaster.
           </p>
           <Link to="/join">
             <Button size="lg" className="w-full max-w-xs">
@@ -151,8 +150,7 @@ export function TeamPage() {
       <PageShell title="Lag" subtitle="Ingen lag-session funnet">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Du har ikke blitt med som lag i dette rommet på denne enheten. Skriv inn romkoden på
-            deltakerportalen for å bli med.
+            Vi fant ikke lagøkten din. Bli med på nytt eller kontakt quizmaster.
           </p>
           <Link to="/join">
             <Button size="lg" className="w-full max-w-xs">

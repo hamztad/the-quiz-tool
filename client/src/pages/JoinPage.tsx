@@ -13,7 +13,7 @@ import { normalizeJoinCode } from '../lib/joinUrls';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useSocket } from '../hooks/useSocket';
-import { saveTeamSession } from '../lib/tokens';
+import { getStoredTeamSession, saveTeamSession } from '../lib/tokens';
 
 export function JoinPage() {
   const { code: codeParam } = useParams();
@@ -27,6 +27,13 @@ export function JoinPage() {
   const [teamName, setTeamName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const storedTeamSession = getStoredTeamSession();
+  const storedSessionMatchesRoom =
+    Boolean(storedTeamSession) &&
+    (!hasPresetCode ||
+      (storedTeamSession?.joinCode
+        ? normalizeJoinCode(storedTeamSession.joinCode) === joinCode
+        : false));
 
   useEffect(() => {
     if (presetCode) {
@@ -60,6 +67,8 @@ export function JoinPage() {
         roomId: data.roomId,
         teamId: data.teamId,
         teamToken: data.teamToken,
+        teamName: nameResult.name,
+        joinCode: joinCode.trim(),
       });
       navigate(`/team/${data.roomId}`);
     };
@@ -161,6 +170,23 @@ export function JoinPage() {
           >
             {error}
           </p>
+        )}
+
+        {storedTeamSession && storedSessionMatchesRoom && (
+          <div className="w-full rounded-2xl border border-quiz-accent/40 bg-quiz-accent/10 p-4 text-center">
+            <p className="text-sm text-quiz-muted">
+              Har du allerede blitt med på denne enheten?
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              className="mt-3 w-full"
+              onClick={() => navigate(`/team/${storedTeamSession.roomId}`)}
+            >
+              Fortsett som {storedTeamSession.teamName ?? 'laget ditt'}
+            </Button>
+          </div>
         )}
 
         <Button size="lg" className="w-full min-h-[52px] text-lg" onClick={join} disabled={!connected || loading}>

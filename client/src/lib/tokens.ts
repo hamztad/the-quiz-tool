@@ -10,6 +10,8 @@ export interface TeamSession {
   roomId: string;
   teamId: string;
   teamToken: string;
+  teamName?: string;
+  joinCode?: string;
 }
 
 export function saveHostSession(session: HostSession) {
@@ -37,6 +39,16 @@ export function getTeamSession(roomId: string): TeamSession | null {
     if (!raw) return null;
     const session = JSON.parse(raw) as TeamSession;
     return session.roomId === roomId ? session : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getStoredTeamSession(): TeamSession | null {
+  try {
+    const raw = localStorage.getItem(TEAM_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as TeamSession;
   } catch {
     return null;
   }
