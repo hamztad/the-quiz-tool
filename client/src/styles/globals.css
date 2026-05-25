@@ -82,9 +82,14 @@ button {
   max-width: 100%;
 }
 
-input,
+input:not([type='checkbox']):not([type='radio']),
 textarea {
   width: 100%;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: auto;
 }
 
 /* User-generated / long copy — prevent horizontal page overflow on narrow screens */
