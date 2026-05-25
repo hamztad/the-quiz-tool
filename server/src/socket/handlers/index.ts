@@ -4,6 +4,7 @@ import {
   canStartPeerGrading,
   CLIENT_EVENTS,
   getOpenQuestionIds,
+  hasActiveProtest,
   ROOM_ERROR_CODES,
   SERVER_EVENTS,
   type Question,
@@ -400,10 +401,51 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     const teamId = socket.data.teamId as string;
     if (!requireSecretary(socket, roomId)) return;
 
-    roomStore.update(roomId, (r) => ({
-      ...r,
-      protests: [...r.protests, createProtest(teamId, payload.questionId, payload.message)],
-    }));
+    try {
+      roomStore.update(roomId, (r) => {
+        const question = r.questions.find((q) => q.id === payload.questionId);
+        if (!question) {
+          throw new Error('Fant ikke spørsmålet protesten gjelder.');
+        }
+
+        const answer = r.answers.find(
+          (a) => a.teamId === teamId && a.questionId === payload.questionId,
+        );
+        if (!answer) {
+          throw new Error('Du kan bare protestere på egne innsendte svar.');
+        }
+
+        if (hasActiveProtest(r.protests, teamId, payload.questionId)) {
+          throw new Error('Protest er allerede sendt for dette spørsmålet.');
+        }
+
+        const scoreEntry = r.scores.find(
+          (s) => s.teamId === teamId && s.questionId === payload.questionId,
+        );
+        const peerGrade = r.peerGrades.find(
+          (pg) => pg.targetTeamId === teamId && pg.questionId === payload.questionId,
+        );
+        const awardedPoints = scoreEntry?.points ?? peerGrade?.points;
+        if (awardedPoints === undefined) {
+          throw new Error('Du kan protestere når spørsmålet er poengsatt.');
+        }
+
+        return {
+          ...r,
+          protests: [
+            ...r.protests,
+            createProtest(roomId, teamId, payload.questionId, {
+              message: payload.message?.trim() || undefined,
+              awardedPoints,
+              submittedAnswer: answer.value,
+            }),
+          ],
+        };
+      });
+    } catch (e) {
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke sende protest');
+      return;
+    }
     emitRoomStateToAll(io, roomId);
   });
 

@@ -66,10 +66,14 @@ export interface ScoreEntry {
 
 export interface Protest {
   id: string;
+  roomId?: string;
   teamId: string;
   questionId: string;
   message?: string;
   status: 'pending' | 'approved' | 'rejected';
+  awardedPoints?: number;
+  submittedAnswer?: string;
+  createdAt?: number;
 }
 
 export interface GradingAssignment {

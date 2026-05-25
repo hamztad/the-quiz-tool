@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   CLIENT_EVENTS,
   isQuestionRevealedToTeam,
@@ -21,8 +21,27 @@ import { formatTeamAnswerDisplay } from '../lib/teamAnswerDisplay';
 
 const HIGHLIGHT_MS = 5000;
 
+function ReviewAnswersCta({ onClick }: { onClick: () => void }) {
+  return (
+    <Card className="mb-5 border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-base font-bold text-quiz-text">Egne svar og poeng er klare</p>
+          <p className="mt-1 text-sm text-quiz-muted">
+            Se fasit, poeng og send protest på enkeltspørsmål.
+          </p>
+        </div>
+        <Button type="button" size="lg" className="w-full shrink-0 sm:w-auto" onClick={onClick}>
+          Se egne svar og poeng
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 export function TeamPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { socket, connected } = useSocket();
   const {
     room,
@@ -36,11 +55,27 @@ export function TeamPage() {
   } = useRoomGate(roomId, 'team', socket, connected);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
-  const [showOwnReview, setShowOwnReview] = useState(false);
   const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const teamId = teamSession?.teamId;
+  const showOwnReview = searchParams.get('review') === '1';
+
+  const openOwnReview = () => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('review', '1');
+      return next;
+    });
+  };
+
+  const closeOwnReview = () => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('review');
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!room || !teamId) return;
@@ -199,10 +234,8 @@ export function TeamPage() {
         room={room}
         teamId={teamId}
         teamName={myTeam?.name ?? 'Lag'}
-        onBack={
-          room.phase === 'grading' && assignment ? () => setShowOwnReview(false) : undefined
-        }
-        backLabel="Tilbake til retterunde"
+        onBack={closeOwnReview}
+        backLabel={room.phase === 'grading' && assignment ? 'Tilbake til retterunde' : 'Tilbake'}
       />
     );
   }
@@ -210,17 +243,7 @@ export function TeamPage() {
   if (room.phase === 'post_quiz') {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Quizen er avsluttet">
-        <div className="mb-4">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setShowOwnReview(true)}
-          >
-            Se egne svar og poeng
-          </Button>
-        </div>
+        <ReviewAnswersCta onClick={openOwnReview} />
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Quiz avsluttet av quizmaster</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
@@ -239,17 +262,7 @@ export function TeamPage() {
   if (room.phase === 'grading' && !assignment) {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Retterunde">
-        <div className="mb-4">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setShowOwnReview(true)}
-          >
-            Se egne svar og poeng
-          </Button>
-        </div>
+        <ReviewAnswersCta onClick={openOwnReview} />
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
@@ -269,7 +282,7 @@ export function TeamPage() {
         graderTeamId={teamId!}
         teamName={myTeam?.name ?? 'Lag'}
         error={operationalError}
-        onReviewOwn={() => setShowOwnReview(true)}
+        onReviewOwn={openOwnReview}
       />
     );
   }
@@ -290,17 +303,7 @@ export function TeamPage() {
             </Button>
           </div>
         )}
-        <div className="mb-4">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setShowOwnReview(true)}
-          >
-            Se egne svar og poeng
-          </Button>
-        </div>
+        <ReviewAnswersCta onClick={openOwnReview} />
         <Leaderboard room={room} />
       </PageShell>
     );

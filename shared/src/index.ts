@@ -9,6 +9,7 @@ export * from './constants/roomErrors.js';
 export * from './import/parseQuizText.js';
 export * from './import/aiQuizPrompt.js';
 export * from './grading/buildGradingAssignments.js';
+export * from './protests/protestRules.js';
 export * from './ai/aiQuizTypes.js';
 export * from './ai/parseAiQuizJson.js';
 export * from './ai/buildAiGeneratePrompt.js';

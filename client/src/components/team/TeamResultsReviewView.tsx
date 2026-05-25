@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CLIENT_EVENTS, type Protest, type PublicRoomState } from '@quiz-tool/shared';
+import { CLIENT_EVENTS, type Protest, type PublicRoomState, type Question } from '@quiz-tool/shared';
 import { QuestionBody } from '../question/QuestionBody';
 import { PageShell } from '../layout/PageShell';
 import { Button } from '../ui/Button';
@@ -41,6 +41,28 @@ function protestBadgeVariant(status: Protest['status']): 'open' | 'submitted' | 
   }
 }
 
+function reviewStatus(
+  scorePoints: number | null,
+  activeProtest: Protest | undefined,
+  resolvedProtest: Protest | undefined,
+  locallySubmitted: boolean,
+): { label: string; variant: 'open' | 'submitted' | 'locked' | 'neutral' } {
+  if (activeProtest || locallySubmitted) {
+    return { label: 'Protest sendt', variant: 'open' };
+  }
+  if (resolvedProtest) {
+    return { label: `Protest ${protestStatusLabel(resolvedProtest.status).toLowerCase()}`, variant: 'locked' };
+  }
+  if (scorePoints === null) {
+    return { label: 'Ikke rettet ennå', variant: 'neutral' };
+  }
+  return { label: 'Poeng gitt', variant: 'submitted' };
+}
+
+function correctOption(question: Question) {
+  return question.type === 'mc' ? question.options?.find((o) => o.isCorrect) : undefined;
+}
+
 export function TeamResultsReviewView({
   room,
   teamId,
@@ -51,12 +73,14 @@ export function TeamResultsReviewView({
   const { socket } = useSocket();
   const [protestDrafts, setProtestDrafts] = useState<Record<string, string>>({});
   const [openProtestId, setOpenProtestId] = useState<string | null>(null);
+  const [submittedProtestIds, setSubmittedProtestIds] = useState<Set<string>>(() => new Set());
 
   const submitProtest = (questionId: string) => {
     socket.emit(CLIENT_EVENTS.PROTEST_SUBMIT, {
       questionId,
       message: protestDrafts[questionId]?.trim() || undefined,
     });
+    setSubmittedProtestIds((prev) => new Set(prev).add(questionId));
     setProtestDrafts((prev) => {
       const next = { ...prev };
       delete next[questionId];
@@ -96,14 +120,35 @@ export function TeamResultsReviewView({
             );
             const answerText = formatTeamAnswerDisplay(question, answer?.value);
             const fasit = getQuestionFasitText(question);
+            const selectedOption =
+              question.type === 'mc'
+                ? question.options?.find((o) => o.id === answer?.value)
+                : undefined;
+            const mcCorrectOption = correctOption(question);
+            const mcWasCorrect =
+              question.type === 'mc' && selectedOption ? selectedOption.isCorrect : null;
             const score = getTeamQuestionScore(room, teamId, question.id);
             const graderTeam = score.graderTeamId
               ? room.teams.find((t) => t.id === score.graderTeamId)
               : undefined;
-            const protest = room.protests.find(
+            const protests = room.protests
+              .filter((p) => p.teamId === teamId && p.questionId === question.id)
+              .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+            const activeProtest = protests.find((p) => p.status === 'pending');
+            const resolvedProtest = protests.find((p) => p.status !== 'pending');
+            const latestProtest = activeProtest ?? resolvedProtest;
+            const locallySubmitted = submittedProtestIds.has(question.id);
+            const status = reviewStatus(
+              score.points,
+              activeProtest,
+              resolvedProtest,
+              locallySubmitted,
+            );
+            const canProtest = score.points !== null && !activeProtest && !locallySubmitted;
+            const showProtestForm = openProtestId === question.id && canProtest;
+            const protestSnapshot = room.protests.find(
               (p) => p.teamId === teamId && p.questionId === question.id,
             );
-            const showProtestForm = openProtestId === question.id;
 
             return (
               <Card key={question.id} className="space-y-4 p-4 sm:p-5 min-w-0 max-w-full">
@@ -114,11 +159,7 @@ export function TeamResultsReviewView({
                   <Badge variant={question.type === 'mc' ? 'open' : 'submitted'}>
                     {question.type === 'mc' ? 'Flervalg' : 'Åpent'}
                   </Badge>
-                  {protest && (
-                    <Badge variant={protestBadgeVariant(protest.status)}>
-                      {protestStatusLabel(protest.status)}
-                    </Badge>
-                  )}
+                  <Badge variant={status.variant}>{status.label}</Badge>
                 </div>
 
                 <QuestionBody question={question} showHint={false} />
@@ -132,6 +173,11 @@ export function TeamResultsReviewView({
                   <p className="px-3 py-3 text-base font-medium text-quiz-text quiz-user-text break-words [overflow-wrap:anywhere]">
                     {answerText ?? '—'}
                   </p>
+                  {question.type === 'mc' && (
+                    <div className="border-t border-quiz-border/60 px-3 py-2 text-xs text-quiz-muted">
+                      Valgt alternativ: {selectedOption?.text ?? '—'}
+                    </div>
+                  )}
                 </section>
 
                 <section className="rounded-xl border border-green-500/30 bg-green-500/5 overflow-hidden min-w-0">
@@ -143,11 +189,16 @@ export function TeamResultsReviewView({
                   <p className="px-3 py-3 text-sm font-medium text-quiz-text quiz-user-text break-words [overflow-wrap:anywhere]">
                     {fasit ?? '—'}
                   </p>
+                  {question.type === 'mc' && (
+                    <div className="border-t border-green-500/20 px-3 py-2 text-xs text-quiz-muted">
+                      Riktig alternativ: {mcCorrectOption?.text ?? '—'}
+                    </div>
+                  )}
                 </section>
 
                 <section className="rounded-xl border border-quiz-border/80 bg-quiz-surface-elevated/40 px-3 py-3 min-w-0">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-quiz-muted mb-1">
-                    Poeng gitt
+                    Poeng
                   </h3>
                   {score.points !== null ? (
                     <p className="text-base font-semibold text-quiz-text">
@@ -161,17 +212,51 @@ export function TeamResultsReviewView({
                   ) : (
                     <p className="text-sm text-quiz-muted">Ikke poengsatt ennå</p>
                   )}
+                  {question.type === 'mc' && mcWasCorrect !== null && (
+                    <p className={`mt-2 text-sm ${mcWasCorrect ? 'text-green-300' : 'text-red-300'}`}>
+                      {mcWasCorrect ? 'Riktig valgt' : 'Feil valgt'} · automatisk rettet
+                    </p>
+                  )}
                 </section>
 
-                {protest?.message && (
-                  <p className="text-xs text-quiz-muted break-words [overflow-wrap:anywhere]">
-                    Din protest: {protest.message}
-                  </p>
-                )}
+                <section className="rounded-xl border border-quiz-border/80 bg-quiz-bg/40 p-3 min-w-0">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
+                      Protest
+                    </h3>
+                    {latestProtest && (
+                      <Badge variant={protestBadgeVariant(latestProtest.status)}>
+                        {protestStatusLabel(latestProtest.status)}
+                      </Badge>
+                    )}
+                  </div>
 
-                {!protest && score.points !== null && (
-                  <>
-                    {showProtestForm ? (
+                  {activeProtest || locallySubmitted ? (
+                    <p className="text-sm font-medium text-yellow-200">Protest sendt</p>
+                  ) : resolvedProtest ? (
+                    <p className="text-sm text-quiz-muted">
+                      Siste protest er {protestStatusLabel(resolvedProtest.status).toLowerCase()}.
+                    </p>
+                  ) : score.points === null ? (
+                    <p className="text-sm text-quiz-muted">
+                      Protest kan sendes når spørsmålet er poengsatt.
+                    </p>
+                  ) : null}
+
+                  {latestProtest?.message && (
+                    <p className="mt-2 text-sm text-quiz-text break-words [overflow-wrap:anywhere]">
+                      Din melding: {latestProtest.message}
+                    </p>
+                  )}
+                  {protestSnapshot?.awardedPoints !== undefined && (
+                    <p className="mt-1 text-xs text-quiz-muted">
+                      Poeng da protesten ble sendt: {protestSnapshot.awardedPoints}/{question.maxPoints}
+                    </p>
+                  )}
+
+                  {canProtest && (
+                    <>
+                      {showProtestForm ? (
                       <div className="space-y-2 rounded-xl border border-quiz-border/60 bg-quiz-surface/40 p-3">
                         <TextArea
                           placeholder="Valgfri melding til quizmaster…"
@@ -208,8 +293,9 @@ export function TeamResultsReviewView({
                         Protester
                       </Button>
                     )}
-                  </>
-                )}
+                    </>
+                  )}
+                </section>
               </Card>
             );
           })}

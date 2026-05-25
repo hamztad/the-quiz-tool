@@ -1,4 +1,4 @@
-import type { Question, RoomState, ScoreEntry } from '@quiz-tool/shared';
+import type { Protest, Question, RoomState, ScoreEntry } from '@quiz-tool/shared';
 import { generateId } from '../utils/id.js';
 
 export {
@@ -37,15 +37,24 @@ export function upsertScore(scores: ScoreEntry[], entry: ScoreEntry): ScoreEntry
 }
 
 export function createProtest(
+  roomId: string,
   teamId: string,
   questionId: string,
-  message?: string,
-) {
+  options: {
+    message?: string;
+    awardedPoints?: number;
+    submittedAnswer?: string;
+  } = {},
+): Protest {
   return {
     id: generateId('protest'),
+    roomId,
     teamId,
     questionId,
-    message,
+    message: options.message,
+    awardedPoints: options.awardedPoints,
+    submittedAnswer: options.submittedAnswer,
+    createdAt: Date.now(),
     status: 'pending' as const,
   };
 }

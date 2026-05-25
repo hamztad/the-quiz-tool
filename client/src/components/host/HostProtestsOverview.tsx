@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { CLIENT_EVENTS, type Protest, type PublicRoomState } from '@quiz-tool/shared';
 import { QuestionBody } from '../question/QuestionBody';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
+import { Input } from '../ui/Input';
 import { useSocket } from '../../hooks/useSocket';
 import { getQuestionFasitText } from '../../lib/hostAnswerKey';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
@@ -39,17 +41,22 @@ function ProtestCard({ protest, room }: { protest: Protest; room: PublicRoomStat
   const { socket } = useSocket();
   const team = room.teams.find((t) => t.id === protest.teamId);
   const question = room.questions.find((q) => q.id === protest.questionId);
-  if (!question) return null;
-
   const answer = room.answers.find(
     (a) => a.teamId === protest.teamId && a.questionId === protest.questionId,
   );
-  const answerText = formatTeamAnswerDisplay(question, answer?.value);
-  const fasit = getQuestionFasitText(question);
+  const answerValue = protest.submittedAnswer ?? answer?.value;
   const score = getTeamQuestionScore(room, protest.teamId, protest.questionId);
+  const [points, setPoints] = useState(protest.awardedPoints ?? score.points ?? 0);
+
+  if (!question) return null;
+
+  const answerText = formatTeamAnswerDisplay(question, answerValue);
+  const fasit = getQuestionFasitText(question);
   const graderTeam = score.graderTeamId
     ? room.teams.find((t) => t.id === score.graderTeamId)
     : undefined;
+  const currentPoints = score.points ?? protest.awardedPoints ?? 0;
+  const clampedPoints = Math.max(0, Math.min(question.maxPoints, Math.round(points)));
 
   return (
     <article className="rounded-xl border border-quiz-border/70 bg-quiz-surface-elevated/40 p-4 space-y-3 min-w-0">
@@ -78,12 +85,17 @@ function ProtestCard({ protest, room }: { protest: Protest; room: PublicRoomStat
       </div>
 
       <p className="text-sm text-quiz-muted">
-        Poeng gitt:{' '}
+        Poeng gitt nå:{' '}
         <span className="font-semibold text-quiz-text">
           {score.points !== null ? `${score.points}/${question.maxPoints}` : '—'}
         </span>
         {graderTeam && ` · rettet av ${graderTeam.name}`}
       </p>
+      {protest.awardedPoints !== undefined && (
+        <p className="text-xs text-quiz-muted">
+          Poeng da protesten ble sendt: {protest.awardedPoints}/{question.maxPoints}
+        </p>
+      )}
 
       {protest.message && (
         <p className="text-sm text-quiz-text rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 break-words [overflow-wrap:anywhere]">
@@ -93,18 +105,45 @@ function ProtestCard({ protest, room }: { protest: Protest; room: PublicRoomStat
       )}
 
       {protest.status === 'pending' && (
-        <div className="flex flex-wrap gap-2">
+        <div className="space-y-3 rounded-xl border border-quiz-border/60 bg-quiz-bg/40 p-3">
+          <div className="max-w-[10rem]">
+            <label className="mb-1 block text-xs font-semibold text-quiz-muted">
+              Ny poengsum
+            </label>
+            <Input
+              type="number"
+              min={0}
+              max={question.maxPoints}
+              value={points}
+              onChange={(e) => setPoints(Number(e.target.value))}
+              aria-label="Ny poengsum for protest"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
             onClick={() =>
               socket.emit(CLIENT_EVENTS.PROTEST_RESOLVE, {
                 protestId: protest.id,
                 approved: true,
-                points: question.maxPoints,
+                points: clampedPoints,
               })
             }
           >
-            Godkjenn (full poeng)
+            Lagre poeng og godkjenn
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() =>
+              socket.emit(CLIENT_EVENTS.PROTEST_RESOLVE, {
+                protestId: protest.id,
+                approved: true,
+                points: currentPoints,
+              })
+            }
+          >
+            Marker løst uten endring
           </Button>
           <Button
             size="sm"
@@ -118,6 +157,7 @@ function ProtestCard({ protest, room }: { protest: Protest; room: PublicRoomStat
           >
             Avvis
           </Button>
+          </div>
         </div>
       )}
     </article>

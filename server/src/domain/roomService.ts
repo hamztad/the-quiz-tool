@@ -215,6 +215,15 @@ export function toPublicState(
     visibleAnswers = [...visibleAnswers, ...targetAnswers];
   }
 
+  const visibleAnsweredByTeam = teamId
+    ? { [teamId]: room.answeredByTeam[teamId] ?? [] }
+    : {};
+  const visiblePeerGrades = room.peerGrades.filter(
+    (pg) => pg.targetTeamId === teamId || pg.graderTeamId === teamId,
+  );
+  const visibleProtests = room.protests.filter((p) => p.teamId === teamId);
+  const visibleGradingAssignments = assignment ? [assignment] : [];
+
   const questions = room.questions.map((q) =>
     redactQuestionForTeam(q, isQuestionRevealedToTeam(room, q.id)),
   );
@@ -222,7 +231,11 @@ export function toPublicState(
   return {
     ...room,
     questions,
+    answeredByTeam: visibleAnsweredByTeam,
     answers: visibleAnswers,
+    gradingAssignments: visibleGradingAssignments,
+    peerGrades: visiblePeerGrades,
+    protests: visibleProtests,
     viewerRole: 'secretary',
     viewerTeamId: teamId,
   };
