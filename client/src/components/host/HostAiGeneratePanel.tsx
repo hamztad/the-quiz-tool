@@ -26,6 +26,13 @@ const STYLE_OPTIONS: { value: AiQuizQuestionStyle; label: string }[] = [
   { value: 'mixed', label: 'Blandet' },
 ];
 
+const LOADING_STEPS = [
+  'Finner gode vinkler',
+  'Skriver spørsmål',
+  'Sjekker fasit',
+  'Stokker flervalgsalternativer',
+];
+
 const selectClassName =
   'box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-sm text-quiz-text focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-inset focus:ring-quiz-accent min-h-[44px]';
 
@@ -82,7 +89,10 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
   };
 
   return (
-    <div className="rounded-2xl border border-quiz-border/60 bg-quiz-bg/50 p-4 sm:p-6 space-y-5 min-w-0 max-w-full overflow-hidden box-border">
+    <div
+      className="rounded-2xl border border-quiz-border/60 bg-quiz-bg/50 p-4 sm:p-6 space-y-5 min-w-0 max-w-full overflow-hidden box-border"
+      aria-busy={loading}
+    >
       <div>
         <h2 className="text-lg font-semibold text-quiz-text">Generer med AI</h2>
         <p className="mt-1 text-sm text-quiz-muted break-words">
@@ -196,13 +206,57 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
         onClick={handleGenerate}
         disabled={loading}
       >
-        {loading ? 'Genererer quiz…' : 'Generer quiz'}
+        {loading ? (
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
+              aria-hidden
+            />
+            Genererer quiz…
+          </span>
+        ) : (
+          'Generer quiz'
+        )}
       </Button>
 
       {loading && (
-        <p className="text-sm text-quiz-muted" role="status">
-          Dette kan ta opptil et halvt minutt. Ikke lukk siden.
-        </p>
+        <div
+          className="rounded-2xl border border-quiz-accent/40 bg-quiz-accent/10 p-4 sm:p-5 overflow-hidden"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+              <span className="absolute h-full w-full rounded-full border border-quiz-accent/30 animate-ping" />
+              <span className="absolute h-11 w-11 rounded-full border-4 border-quiz-accent/20 border-t-quiz-accent animate-spin" />
+              <span className="relative h-3 w-3 rounded-full bg-quiz-accent shadow-[0_0_18px_rgba(124,58,237,0.85)]" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-quiz-text">
+                AI lager {questionCount} spørsmål om {topic}
+              </p>
+              <p className="mt-1 text-xs text-quiz-muted">
+                Dette kan ta opptil et halvt minutt. Ikke lukk siden.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {LOADING_STEPS.map((step, index) => (
+              <div
+                key={step}
+                className="flex items-center gap-2 rounded-xl border border-quiz-border/50 bg-quiz-bg/40 px-3 py-2"
+              >
+                <span
+                  className="h-2 w-2 rounded-full bg-quiz-accent animate-pulse"
+                  style={{ animationDelay: `${index * 180}ms` }}
+                  aria-hidden
+                />
+                <span className="text-xs text-quiz-muted">{step}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {error && (
