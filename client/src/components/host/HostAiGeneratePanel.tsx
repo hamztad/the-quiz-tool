@@ -47,6 +47,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
   const [questionCount, setQuestionCount] = useState(10);
   const [difficulty, setDifficulty] = useState<AiQuizDifficulty>('medium');
   const [questionStyle, setQuestionStyle] = useState<AiQuizQuestionStyle>('mixed');
+  const [includePixabayImages, setIncludePixabayImages] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +79,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
         questionCount,
         difficulty,
         questionStyle,
+        includePixabayImages,
         varietySeed,
       });
       onGenerated(result.questions);
@@ -198,6 +200,24 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
             </select>
           </div>
         </div>
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-quiz-border bg-quiz-surface-elevated/60 p-3">
+          <input
+            type="checkbox"
+            checked={includePixabayImages}
+            onChange={(e) => setIncludePixabayImages(e.target.checked)}
+            disabled={loading}
+            className="mt-1 h-4 w-4 shrink-0 accent-quiz-accent"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-quiz-text">
+              Finn relevante bilder fra Pixabay
+            </span>
+            <span className="mt-1 block text-xs text-quiz-muted">
+              AI prøver å legge ved ett bilde per spørsmål. Du kan fjerne eller bytte bilde etterpå.
+            </span>
+          </span>
+        </label>
       </div>
 
       <Button
@@ -236,13 +256,18 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
                 AI lager {questionCount} spørsmål om {topic}
               </p>
               <p className="mt-1 text-xs text-quiz-muted">
-                Dette kan ta opptil et halvt minutt. Ikke lukk siden.
+                {includePixabayImages
+                  ? 'Dette kan ta litt ekstra tid når bilder hentes. Ikke lukk siden.'
+                  : 'Dette kan ta opptil et halvt minutt. Ikke lukk siden.'}
               </p>
             </div>
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {LOADING_STEPS.map((step, index) => (
+            {(includePixabayImages
+              ? [...LOADING_STEPS, 'Finner relevante bilder']
+              : LOADING_STEPS
+            ).map((step, index) => (
               <div
                 key={step}
                 className="flex items-center gap-2 rounded-xl border border-quiz-border/50 bg-quiz-bg/40 px-3 py-2"

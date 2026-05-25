@@ -4,6 +4,8 @@ import {
   type AiGenerateQuizRequest,
   type AiQuizDifficulty,
   type AiQuizQuestionStyle,
+  type MediaAttachment,
+  type ParsedAiQuizQuestion,
 } from '@quiz-tool/shared';
 import { roomStore } from '../store/memoryStore.js';
 import { AiQuizGenerateError, generateQuizWithOpenAI } from '../services/openaiQuizGenerate.js';
@@ -26,6 +28,15 @@ interface PixabayHit {
 interface PixabayResponse {
   hits?: PixabayHit[];
   totalHits?: number;
+}
+
+interface PixabayImageResult {
+  id: string;
+  tags: string;
+  previewUrl: string;
+  imageUrl: string;
+  pageUrl: string;
+  photographer: string;
 }
 
 interface OpenAiTranslateResponse {
@@ -65,6 +76,91 @@ async function translateNorwegianImageQuery(
   return translated.replace(/^["']|["']$/g, '').slice(0, 80);
 }
 
+async function searchPixabayImages(
+  apiKey: string,
+  query: string,
+  page = 1,
+): Promise<{ results: PixabayImageResult[]; hasMore: boolean }> {
+  const params = new URLSearchParams({
+    key: apiKey,
+    q: query,
+    image_type: 'photo',
+    safesearch: 'true',
+    per_page: '12',
+    page: String(page),
+  });
+
+  const pixabayRes = await fetch(`https://pixabay.com/api/?${params.toString()}`);
+  if (!pixabayRes.ok) {
+    throw new Error(`Pixabay-feil: ${pixabayRes.status}`);
+  }
+
+  const data = (await pixabayRes.json()) as PixabayResponse;
+  const results = (data.hits ?? [])
+    .filter((hit) => hit.webformatURL || hit.largeImageURL)
+    .map((hit) => ({
+      id: String(hit.id),
+      tags: hit.tags ?? '',
+      previewUrl: hit.previewURL ?? hit.webformatURL ?? hit.largeImageURL ?? '',
+      imageUrl: hit.webformatURL ?? hit.largeImageURL ?? '',
+      pageUrl: hit.pageURL ?? '',
+      photographer: hit.user ?? '',
+    }));
+
+  return { results, hasMore: page * 12 < (data.totalHits ?? 0) };
+}
+
+function questionTextForImageSearch(question: ParsedAiQuizQuestion): string {
+  const title = question.lines[0]?.text ?? '';
+  const correct =
+    question.type === 'mc'
+      ? question.options?.find((o) => o.isCorrect)?.text
+      : question.acceptedAnswers?.[0];
+  return [title, correct].filter(Boolean).join(' ');
+}
+
+function mediaFromPixabayResult(result: PixabayImageResult): MediaAttachment {
+  return {
+    type: 'image',
+    url: result.imageUrl,
+    previewUrl: result.previewUrl,
+    alt: result.tags,
+    source: 'pixabay',
+    photographer: result.photographer,
+    pageUrl: result.pageUrl,
+  };
+}
+
+async function attachPixabayImagesToQuestions(
+  questions: ParsedAiQuizQuestion[],
+  pixabayApiKey: string | undefined,
+  openAiApiKey: string,
+): Promise<ParsedAiQuizQuestion[]> {
+  if (!pixabayApiKey) {
+    console.warn('AI image attachment skipped: PIXABAY_API_KEY missing.');
+    return questions;
+  }
+
+  return Promise.all(
+    questions.map(async (question) => {
+      try {
+        const norwegianQuery = questionTextForImageSearch(question).slice(0, 80);
+        if (norwegianQuery.length < 2) return question;
+
+        const translated = await translateNorwegianImageQuery(norwegianQuery, openAiApiKey);
+        const searchQuery = translated || norwegianQuery;
+        const { results } = await searchPixabayImages(pixabayApiKey, searchQuery, 1);
+        const first = results[0];
+        if (!first) return question;
+        return { ...question, media: [mediaFromPixabayResult(first)] };
+      } catch (err) {
+        console.warn('AI image attachment skipped for one question:', err);
+        return question;
+      }
+    }),
+  );
+}
+
 function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
   if (!body || typeof body !== 'object') return false;
   const b = body as Record<string, unknown>;
@@ -80,6 +176,7 @@ function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
     DIFFICULTIES.has(b.difficulty as AiQuizDifficulty) &&
     typeof b.questionStyle === 'string' &&
     STYLES.has(b.questionStyle as AiQuizQuestionStyle) &&
+    (b.includePixabayImages === undefined || typeof b.includePixabayImages === 'boolean') &&
     varietyOk
   );
 }
@@ -143,38 +240,7 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
       }
     }
 
-    const params = new URLSearchParams({
-      key: apiKey,
-      q: searchQuery,
-      image_type: 'photo',
-      safesearch: 'true',
-      per_page: '12',
-      page: String(page),
-    });
-
-    const pixabayRes = await fetch(`https://pixabay.com/api/?${params.toString()}`);
-    if (!pixabayRes.ok) {
-      res.status(502).json({
-        ok: false,
-        code: 'PIXABAY_ERROR',
-        message: 'Kunne ikke hente bilder fra Pixabay akkurat nå.',
-      });
-      return;
-    }
-
-    const data = (await pixabayRes.json()) as PixabayResponse;
-    const results = (data.hits ?? [])
-      .filter((hit) => hit.webformatURL || hit.largeImageURL)
-      .map((hit) => ({
-        id: String(hit.id),
-        tags: hit.tags ?? '',
-        previewUrl: hit.previewURL ?? hit.webformatURL ?? hit.largeImageURL ?? '',
-        imageUrl: hit.webformatURL ?? hit.largeImageURL ?? '',
-        pageUrl: hit.pageURL ?? '',
-        photographer: hit.user ?? '',
-      }));
-
-    const totalHits = data.totalHits ?? 0;
+    const { results, hasMore } = await searchPixabayImages(apiKey, searchQuery, page);
     res.json({
       ok: true,
       results,
@@ -182,7 +248,7 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
       translatedQuery,
       notice,
       page,
-      hasMore: page * 12 < totalHits,
+      hasMore,
     });
   } catch (err) {
     console.error('Pixabay search error:', err);
@@ -216,7 +282,15 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
   }
 
   const hostToken = req.header('x-host-token');
-  const { roomId, topic, questionCount, difficulty, questionStyle, varietySeed } = req.body;
+  const {
+    roomId,
+    topic,
+    questionCount,
+    difficulty,
+    questionStyle,
+    includePixabayImages,
+    varietySeed,
+  } = req.body;
 
   const room = roomStore.get(roomId);
   if (!room || room.hostToken !== hostToken) {
@@ -238,17 +312,26 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
   }
 
   try {
-    const questions = await generateQuizWithOpenAI(
+    let questions = await generateQuizWithOpenAI(
       {
         roomId,
         topic: topic.trim(),
         questionCount: clampAiQuestionCount(questionCount),
         difficulty,
         questionStyle,
+        includePixabayImages,
         varietySeed: typeof varietySeed === 'string' ? varietySeed.trim() : undefined,
       },
       apiKey,
     );
+
+    if (includePixabayImages) {
+      questions = await attachPixabayImagesToQuestions(
+        questions,
+        process.env.PIXABAY_API_KEY?.trim(),
+        apiKey,
+      );
+    }
 
     res.json({ ok: true, questions });
   } catch (err) {

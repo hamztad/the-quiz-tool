@@ -29,6 +29,8 @@ export interface AiGenerateQuizRequest {
   questionCount: number;
   difficulty: AiQuizDifficulty;
   questionStyle: AiQuizQuestionStyle;
+  /** Best-effort: attach one Pixabay image per generated question when possible. */
+  includePixabayImages?: boolean;
   /** Unique per generation — encourages fresh questions from the model. */
   varietySeed?: string;
 }
