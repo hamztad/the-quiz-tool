@@ -201,23 +201,29 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
           </div>
         </div>
 
-        <label className="inline-flex w-full max-w-full cursor-pointer items-start gap-3 rounded-xl border border-quiz-border bg-quiz-surface-elevated/60 p-3 sm:max-w-xl">
+        <div className="w-full max-w-xl rounded-xl border border-quiz-border bg-quiz-surface-elevated/60 p-3">
+          <div className="grid grid-cols-[auto,1fr] items-start gap-3">
           <input
+            id="ai-include-pixabay-images"
             type="checkbox"
             checked={includePixabayImages}
             onChange={(e) => setIncludePixabayImages(e.target.checked)}
             disabled={loading}
-            className="mt-1 h-4 w-4 shrink-0 accent-quiz-accent"
+            className="mt-0.5 h-4 w-4 accent-quiz-accent"
           />
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-quiz-text">
+          <div className="min-w-0">
+            <label
+              htmlFor="ai-include-pixabay-images"
+              className="block cursor-pointer text-sm font-semibold text-quiz-text"
+            >
               Finn relevante bilder fra Pixabay
-            </span>
-            <span className="mt-1 block text-xs text-quiz-muted">
+            </label>
+            <p className="mt-1 text-xs leading-relaxed text-quiz-muted">
               AI prøver å legge ved ett bilde per spørsmål. Du kan fjerne eller bytte bilde etterpå.
-            </span>
-          </span>
-        </label>
+            </p>
+          </div>
+          </div>
+        </div>
       </div>
 
       <Button
