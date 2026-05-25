@@ -60,6 +60,20 @@ function parseQuestion(raw: unknown, index: number): ParsedAiQuizQuestion | null
   const type = raw.type;
   const text = asNonEmptyString(raw.text, 'text', MAX_QUESTION_TEXT);
   if (!text) return null;
+  const bodyRaw = raw.body;
+  const bodyLines =
+    typeof bodyRaw === 'string'
+      ? [bodyRaw]
+      : Array.isArray(bodyRaw)
+        ? bodyRaw
+        : [];
+  const parsedBodyLines = bodyLines
+    .map((line) => asNonEmptyString(line, 'body', MAX_QUESTION_TEXT))
+    .filter((line): line is string => Boolean(line));
+  const lines = [
+    { text, style: 'title' as const },
+    ...parsedBodyLines.map((line) => ({ text: line, style: 'body' as const })),
+  ];
 
   if (type === 'open') {
     const answersRaw = raw.acceptedAnswers;
@@ -78,7 +92,7 @@ function parseQuestion(raw: unknown, index: number): ParsedAiQuizQuestion | null
 
     return {
       type: 'open',
-      lines: [{ text, style: 'title' }],
+      lines,
       hint,
       acceptedAnswers,
       maxPoints: DEFAULT_MAX_POINTS,
@@ -90,7 +104,7 @@ function parseQuestion(raw: unknown, index: number): ParsedAiQuizQuestion | null
     if (!options) return null;
     return {
       type: 'mc',
-      lines: [{ text, style: 'title' }],
+      lines,
       options,
       maxPoints: DEFAULT_MAX_POINTS,
     };

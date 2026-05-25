@@ -30,6 +30,7 @@ JSON-eksempel (bruk nøyaktig denne strukturen for HVERT spørsmål):
 {
   "type": "open",
   "text": "Spørsmålstekst?",
+  "body": "Valgfri kort tilleggstekst, eller utelat feltet",
   "acceptedAnswers": ["Svar 1", "evt. alternativt svar"]
 }`;
   }
@@ -47,6 +48,7 @@ JSON-eksempel (bruk nøyaktig denne strukturen for HVERT spørsmål):
 {
   "type": "mc",
   "text": "Spørsmålstekst?",
+  "body": "Valgfri kort tilleggstekst, eller utelat feltet",
   "options": [
     { "text": "Alternativ A", "correct": true },
     { "text": "Alternativ B", "correct": false },
@@ -63,10 +65,10 @@ ${buildMixedTypePlan(count)}
 - FORBUDT: bare én type for hele quizen
 
 Åpent spørsmål:
-{ "type": "open", "text": "...", "acceptedAnswers": ["..."] }
+{ "type": "open", "text": "...", "body": "valgfritt", "acceptedAnswers": ["..."] }
 
 Flervalg:
-{ "type": "mc", "text": "...", "options": [ fire alternativer, én correct: true ] }`;
+{ "type": "mc", "text": "...", "body": "valgfritt", "options": [ fire alternativer, én correct: true ] }`;
 }
 
 export function buildAiGeneratePrompt(params: AiGenerateQuizRequest): string {
@@ -86,6 +88,7 @@ ${buildStyleBlock(params.questionStyle, count)}
 Generelle krav:
 - All tekst på norsk (naturlig, idiomatisk)
 - Korte, tydelige spørsmål (maks ca. 2 setninger)
+- Bruk "text" som tittel/spørsmål; bruk valgfri "body" kun for kort tilleggstekst
 - Unngå tvetydige formuleringer
 - Unngå opphavsrettsbeskyttede sangtekster eller lange sitater
 - maxPoints er alltid 1 (ikke inkluder maxPoints i JSON)

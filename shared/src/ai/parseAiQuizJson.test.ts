@@ -71,4 +71,18 @@ describe('parseAiQuizJson', () => {
     );
     expect(result.questions).toHaveLength(0);
   });
+
+  it('parses optional body text as internal body lines', () => {
+    const result = parseAiQuizJson(
+      JSON.stringify({
+        questions: [{ ...validOpen, body: ['Første linje', 'Andre linje'] }, validMc],
+      }),
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.questions[0]?.lines).toEqual([
+      { text: 'Hva er hovedstaden i Norge?', style: 'title' },
+      { text: 'Første linje', style: 'body' },
+      { text: 'Andre linje', style: 'body' },
+    ]);
+  });
 });
