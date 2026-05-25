@@ -225,8 +225,7 @@ export function TeamPage() {
   const activeQuestionOpen =
     activeQuestion && (room.questionStatus[activeQuestion.id] ?? 'locked') === 'open';
 
-  const canReviewOwn =
-    room.phase === 'grading' || room.phase === 'leaderboard' || room.phase === 'post_quiz';
+  const canReviewOwn = room.settings.teamReviewOpen === true;
 
   if (canReviewOwn && showOwnReview && teamId) {
     return (
@@ -243,7 +242,7 @@ export function TeamPage() {
   if (room.phase === 'post_quiz') {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Quizen er avsluttet">
-        <ReviewAnswersCta onClick={openOwnReview} />
+        {canReviewOwn && <ReviewAnswersCta onClick={openOwnReview} />}
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Quiz avsluttet av quizmaster</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
@@ -262,7 +261,7 @@ export function TeamPage() {
   if (room.phase === 'grading' && !assignment) {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Retterunde">
-        <ReviewAnswersCta onClick={openOwnReview} />
+        {canReviewOwn && <ReviewAnswersCta onClick={openOwnReview} />}
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
@@ -282,7 +281,7 @@ export function TeamPage() {
         graderTeamId={teamId!}
         teamName={myTeam?.name ?? 'Lag'}
         error={operationalError}
-        onReviewOwn={openOwnReview}
+        onReviewOwn={canReviewOwn ? openOwnReview : undefined}
       />
     );
   }
@@ -303,7 +302,7 @@ export function TeamPage() {
             </Button>
           </div>
         )}
-        <ReviewAnswersCta onClick={openOwnReview} />
+        {canReviewOwn && <ReviewAnswersCta onClick={openOwnReview} />}
         <Leaderboard room={room} />
       </PageShell>
     );

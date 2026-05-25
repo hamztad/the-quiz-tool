@@ -10,7 +10,7 @@ interface PeerGradingViewProps {
   graderTeamId: string;
   teamName: string;
   error: string | null;
-  onReviewOwn: () => void;
+  onReviewOwn?: () => void;
 }
 
 function isQuestionGraded(
@@ -77,17 +77,22 @@ export function PeerGradingView({
         </p>
       )}
 
-      <div className="mb-4">
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="w-full sm:w-auto"
-          onClick={onReviewOwn}
-        >
-          Se egne svar og poeng
-        </Button>
-      </div>
+      {onReviewOwn && (
+        <div className="mb-4 rounded-2xl border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4">
+          <p className="text-sm font-semibold text-quiz-text mb-2">
+            Quizmaster har åpnet gjennomgang for lag.
+          </p>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={onReviewOwn}
+          >
+            Se egne svar og poeng
+          </Button>
+        </div>
+      )}
 
       <div className="mb-6 rounded-2xl border-2 border-quiz-border bg-quiz-surface-elevated p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
         <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">

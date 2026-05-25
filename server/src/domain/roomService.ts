@@ -23,7 +23,7 @@ export function createRoom(title?: string): RoomRecord {
     gradingAssignments: [],
     peerGrades: [],
     protests: [],
-    settings: { showLeaderboard: false },
+    settings: { showLeaderboard: false, teamReviewOpen: false },
     hostToken,
     teamTokens: {},
     expiresAt: Date.now() + 24 * 60 * 60 * 1000,
@@ -205,6 +205,8 @@ export function toPublicState(
 
   const teamId = viewerTeamId;
   const assignment = room.gradingAssignments.find((g) => g.graderTeamId === teamId);
+  const ownAnsweredQuestionIds = new Set(teamId ? (room.answeredByTeam[teamId] ?? []) : []);
+  const teamReviewOpen = room.settings.teamReviewOpen === true;
 
   let visibleAnswers = room.answers.filter((a) => a.teamId === teamId);
 
@@ -218,21 +220,25 @@ export function toPublicState(
   const visibleAnsweredByTeam = teamId
     ? { [teamId]: room.answeredByTeam[teamId] ?? [] }
     : {};
+  const visibleScores = room.scores.filter((s) => s.teamId === teamId);
   const visiblePeerGrades = room.peerGrades.filter(
     (pg) => pg.targetTeamId === teamId || pg.graderTeamId === teamId,
   );
   const visibleProtests = room.protests.filter((p) => p.teamId === teamId);
   const visibleGradingAssignments = assignment ? [assignment] : [];
 
-  const questions = room.questions.map((q) =>
-    redactQuestionForTeam(q, isQuestionRevealedToTeam(room, q.id)),
-  );
+  const questions = room.questions.map((q) => {
+    const revealed =
+      isQuestionRevealedToTeam(room, q.id) || (teamReviewOpen && ownAnsweredQuestionIds.has(q.id));
+    return redactQuestionForTeam(q, revealed);
+  });
 
   return {
     ...room,
     questions,
     answeredByTeam: visibleAnsweredByTeam,
     answers: visibleAnswers,
+    scores: visibleScores,
     gradingAssignments: visibleGradingAssignments,
     peerGrades: visiblePeerGrades,
     protests: visibleProtests,

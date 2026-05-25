@@ -328,6 +328,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       phase: 'grading',
       gradingAssignments: assignments,
       peerGrades: [],
+      settings: { ...r.settings, teamReviewOpen: false },
     }));
     emitRoomStateToAll(io, roomId);
   });
@@ -514,6 +515,17 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       ...r,
       phase: payload.visible ? 'leaderboard' : r.phase === 'leaderboard' ? 'live' : r.phase,
       settings: { ...r.settings, showLeaderboard: payload.visible },
+    }));
+    emitRoomStateToAll(io, roomId);
+  });
+
+  socket.on(CLIENT_EVENTS.TEAM_REVIEW_TOGGLE, (payload: { open: boolean }) => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+
+    roomStore.update(roomId, (r) => ({
+      ...r,
+      settings: { ...r.settings, teamReviewOpen: payload.open },
     }));
     emitRoomStateToAll(io, roomId);
   });

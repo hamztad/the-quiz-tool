@@ -9,7 +9,11 @@ import { Badge } from '../ui/Badge';
 import { useSocket } from '../../hooks/useSocket';
 import { getQuestionFasitText } from '../../lib/hostAnswerKey';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
-import { getTeamQuestionScore, scoreSourceLabel } from '../../lib/teamScoreDisplay';
+import {
+  computeTeamTotalPoints,
+  getTeamQuestionScore,
+  scoreSourceLabel,
+} from '../../lib/teamScoreDisplay';
 
 interface TeamResultsReviewViewProps {
   room: PublicRoomState;
@@ -74,6 +78,7 @@ export function TeamResultsReviewView({
   const [protestDrafts, setProtestDrafts] = useState<Record<string, string>>({});
   const [openProtestId, setOpenProtestId] = useState<string | null>(null);
   const [submittedProtestIds, setSubmittedProtestIds] = useState<Set<string>>(() => new Set());
+  const totalPoints = computeTeamTotalPoints(room, teamId);
 
   const submitProtest = (questionId: string) => {
     socket.emit(CLIENT_EVENTS.PROTEST_SUBMIT, {
@@ -107,6 +112,13 @@ export function TeamResultsReviewView({
         Se hvordan svarene dine ble vurdert. Du kan sende protest til quizmaster hvis du mener
         poengene er feil.
       </p>
+
+      <Card className="mb-5 border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 sm:p-5">
+        <p className="text-sm font-semibold text-quiz-muted">Din totalsum</p>
+        <p className="mt-1 text-3xl font-black text-quiz-text tabular-nums">
+          {totalPoints} poeng
+        </p>
+      </Card>
 
       {answeredQuestions.length === 0 ? (
         <Card className="p-5 text-center">

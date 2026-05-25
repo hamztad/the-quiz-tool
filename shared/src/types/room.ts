@@ -86,6 +86,7 @@ export type RoomPhase = 'lobby' | 'live' | 'grading' | 'leaderboard' | 'post_qui
 
 export interface RoomSettings {
   showLeaderboard: boolean;
+  teamReviewOpen: boolean;
 }
 
 export interface RoomState {

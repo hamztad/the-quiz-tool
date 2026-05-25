@@ -105,6 +105,13 @@ export function HostDashboardPage() {
   const hasProtests = room.protests.length > 0;
   const isPostQuiz = room.phase === 'post_quiz';
   const teamsSeeLeaderboard = room.phase === 'leaderboard' || room.settings.showLeaderboard;
+  const canControlTeamReview =
+    room.phase === 'grading' ||
+    room.phase === 'leaderboard' ||
+    room.phase === 'post_quiz' ||
+    (room.phase === 'live' &&
+      (room.peerGrades.length > 0 ||
+        room.scores.some((s) => s.source === 'peer' || s.source === 'override')));
   const peerGradingCheck = canStartPeerGrading(
     room.teams.length,
     getOpenQuestionIds(room.questions).length,
@@ -209,7 +216,27 @@ export function HostDashboardPage() {
                   Avslutt retterunde
                 </Button>
               )}
+              {canControlTeamReview && (
+                <Button
+                  size="sm"
+                  variant={room.settings.teamReviewOpen ? 'secondary' : 'primary'}
+                  className="w-full sm:w-auto"
+                  onClick={() =>
+                    emit(CLIENT_EVENTS.TEAM_REVIEW_TOGGLE, {
+                      open: !room.settings.teamReviewOpen,
+                    })
+                  }
+                >
+                  {room.settings.teamReviewOpen ? 'Lukk gjennomgang' : 'Åpne gjennomgang for lag'}
+                </Button>
+              )}
             </div>
+          )}
+
+          {room.settings.teamReviewOpen && (
+            <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
+              Lagene kan nå se egne svar og poeng.
+            </p>
           )}
 
           <div className="flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
