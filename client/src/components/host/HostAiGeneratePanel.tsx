@@ -201,7 +201,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
           </div>
         </div>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-quiz-border bg-quiz-surface-elevated/60 p-3">
+        <label className="inline-flex w-full max-w-full cursor-pointer items-start gap-3 rounded-xl border border-quiz-border bg-quiz-surface-elevated/60 p-3 sm:max-w-xl">
           <input
             type="checkbox"
             checked={includePixabayImages}
@@ -209,7 +209,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
             disabled={loading}
             className="mt-1 h-4 w-4 shrink-0 accent-quiz-accent"
           />
-          <span className="min-w-0">
+          <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-quiz-text">
               Finn relevante bilder fra Pixabay
             </span>
