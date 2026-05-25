@@ -38,6 +38,7 @@ describe('redactQuestionForTeam', () => {
     type: 'open',
     lines: [{ text: 'Secret?', style: 'title' }],
     hint: 'tema',
+    acceptedAnswers: ['Paris'],
     maxPoints: 1,
   };
 
@@ -45,6 +46,7 @@ describe('redactQuestionForTeam', () => {
     const redacted = redactQuestionForTeam(question, false);
     expect(redacted.lines).toHaveLength(0);
     expect(redacted.hint).toBeUndefined();
+    expect(redacted.acceptedAnswers).toBeUndefined();
   });
 
   it('keeps content when revealed', () => {

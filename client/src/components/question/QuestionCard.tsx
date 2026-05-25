@@ -54,6 +54,7 @@ export function QuestionCard({
   const hostLabel = hostDisplayStatus ? hostStatusLabels[hostDisplayStatus] : null;
   const showResponseBadge = hostLabel !== badgeLabel;
   const questionTypeLabel = question.type === 'mc' ? 'Flervalg' : 'Åpent svar';
+  const acceptedAnswers = (question.acceptedAnswers ?? []).filter((answer) => answer.trim());
 
   const lockedUnanswered = status === 'locked' && !answered;
   const teamWaiting = viewMode === 'team' && !teamRevealed;
@@ -135,6 +136,27 @@ export function QuestionCard({
             </ol>
           ) : (
             <p className="text-sm text-quiz-muted">Ingen alternativer lagt inn.</p>
+          )}
+        </div>
+      )}
+      {showHostQuestionDetails && question.type === 'open' && teamRevealed && (
+        <div className="mt-3 min-w-0 max-w-full rounded-xl border border-green-500/25 bg-green-500/5 p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-green-300 sm:text-xs">
+            Fasit
+          </p>
+          {acceptedAnswers.length > 0 ? (
+            <ul className="flex min-w-0 max-w-full flex-wrap gap-2">
+              {acceptedAnswers.map((answer, index) => (
+                <li
+                  key={`${answer}-${index}`}
+                  className="min-w-0 max-w-full rounded-full border border-green-500/35 bg-green-500/10 px-3 py-1.5 text-sm font-medium text-green-100 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                >
+                  {answer}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-quiz-muted">Ingen fasit lagt inn.</p>
           )}
         </div>
       )}
