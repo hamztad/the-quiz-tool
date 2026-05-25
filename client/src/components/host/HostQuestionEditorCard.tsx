@@ -263,6 +263,7 @@ function ImageAttachmentEditor({
   const [pixabayQuery, setPixabayQuery] = useState('');
   const [pixabayLoading, setPixabayLoading] = useState(false);
   const [pixabayResults, setPixabayResults] = useState<PixabayImageResult[]>([]);
+  const [resultsVisible, setResultsVisible] = useState(false);
   const image = question.media?.find((m) => m.type === 'image');
 
   const attachImage = (media: MediaAttachment) => {
@@ -298,6 +299,7 @@ function ImageAttachmentEditor({
     try {
       const results = await searchPixabayImages(session, query);
       setPixabayResults(results);
+      setResultsVisible(results.length > 0);
       if (results.length === 0) {
         setError('Fant ingen bilder på Pixabay for dette søket.');
       }
@@ -319,6 +321,7 @@ function ImageAttachmentEditor({
       photographer: result.photographer,
       pageUrl: result.pageUrl,
     });
+    setResultsVisible(false);
   };
 
   return (
@@ -375,7 +378,7 @@ function ImageAttachmentEditor({
           <Input
             value={pixabayQuery}
             onChange={(e) => setPixabayQuery(e.target.value)}
-            placeholder="Søk etter bilde..."
+            placeholder="Søk på engelsk for best resultat"
             className="text-sm"
           />
           <Button
@@ -389,29 +392,51 @@ function ImageAttachmentEditor({
             {pixabayLoading ? 'Søker…' : 'Søk'}
           </Button>
         </div>
+        <p className="-mt-1 text-xs text-quiz-muted">
+          Pixabay gir ofte best treff med engelske søkeord.
+        </p>
 
         {pixabayResults.length > 0 && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {pixabayResults.map((result) => (
-              <button
-                key={result.id}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-medium text-quiz-muted">
+                {pixabayResults.length} bilder funnet
+              </p>
+              <Button
                 type="button"
-                className="min-w-0 rounded-xl border border-quiz-border bg-quiz-bg p-2 text-left hover:border-quiz-accent"
-                onClick={() => attachPixabay(result)}
+                variant="ghost"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => setResultsVisible((current) => !current)}
               >
-                <img
-                  src={result.previewUrl || result.imageUrl}
-                  alt={result.tags}
-                  className="h-28 w-full rounded-lg object-cover"
-                />
-                <span className="mt-2 block text-xs font-medium text-quiz-text">
-                  Velg bilde
-                </span>
-                <span className="block text-xs text-quiz-muted break-words">
-                  Bilde fra Pixabay{result.photographer ? ` · ${result.photographer}` : ''}
-                </span>
-              </button>
-            ))}
+                {resultsVisible ? 'Skjul søkeresultater' : 'Vis søkeresultater'}
+              </Button>
+            </div>
+
+            {resultsVisible && (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {pixabayResults.map((result) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    className="min-w-0 rounded-xl border border-quiz-border bg-quiz-bg p-2 text-left hover:border-quiz-accent"
+                    onClick={() => attachPixabay(result)}
+                  >
+                    <img
+                      src={result.previewUrl || result.imageUrl}
+                      alt={result.tags}
+                      className="mx-auto h-20 w-full max-w-32 rounded-lg object-cover sm:h-24"
+                    />
+                    <span className="mt-2 block text-xs font-medium text-quiz-text">
+                      Velg bilde
+                    </span>
+                    <span className="block text-[11px] leading-snug text-quiz-muted break-words">
+                      Bilde fra Pixabay{result.photographer ? ` · ${result.photographer}` : ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
