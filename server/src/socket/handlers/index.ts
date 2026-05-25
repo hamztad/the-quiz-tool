@@ -532,4 +532,15 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     }));
     emitRoomStateToAll(io, roomId);
   });
+
+  socket.on(CLIENT_EVENTS.ANSWER_KEY_TOGGLE, (payload: { open: boolean }) => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+
+    roomStore.update(roomId, (r) => ({
+      ...r,
+      settings: { ...r.settings, answerKeyOpen: payload.open },
+    }));
+    emitRoomStateToAll(io, roomId);
+  });
 }

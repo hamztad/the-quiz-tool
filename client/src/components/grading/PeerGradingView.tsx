@@ -10,6 +10,7 @@ interface PeerGradingViewProps {
   teamName: string;
   error: string | null;
   reviewHref?: string;
+  answerKeyHref?: string;
 }
 
 function isQuestionGraded(
@@ -33,6 +34,7 @@ export function PeerGradingView({
   teamName,
   error,
   reviewHref,
+  answerKeyHref,
 }: PeerGradingViewProps) {
   const targetTeam = room.teams.find((t) => t.id === assignment.targetTeamId);
   const openQuestions = room.questions.filter(
@@ -86,6 +88,20 @@ export function PeerGradingView({
           </p>
           <span className="box-border inline-flex min-h-[40px] w-full max-w-full min-w-0 items-center justify-center rounded-xl bg-quiz-accent px-3 py-2 text-center text-sm font-medium text-white sm:w-auto">
             Se egne svar og poeng
+          </span>
+        </a>
+      )}
+
+      {answerKeyHref && (
+        <a
+          href={answerKeyHref}
+          className="mb-4 block w-full rounded-2xl border-2 border-green-500/45 bg-green-500/10 p-4 text-left transition-colors hover:bg-green-500/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-400"
+        >
+          <p className="text-sm font-semibold text-quiz-text mb-2">
+            Quizmaster har delt fasit.
+          </p>
+          <span className="box-border inline-flex min-h-[40px] w-full max-w-full min-w-0 items-center justify-center rounded-xl bg-green-600 px-3 py-2 text-center text-sm font-medium text-white sm:w-auto">
+            Se fasit
           </span>
         </a>
       )}

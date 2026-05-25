@@ -1,8 +1,9 @@
-import type { Question, RoomState } from '@quiz-tool/shared';
+import type { PublicRoomState, Question, RoomState } from '@quiz-tool/shared';
 import { isQuestionRevealedToTeam, redactQuestionForTeam } from '@quiz-tool/shared';
 import { MAX_TEAMS, validateQuestionsForSave, validateTeamName } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
 import { generateId, generateJoinCode, generateToken } from '../utils/id.js';
+import { computeLeaderboard } from './leaderboardService.js';
 
 export function createRoom(title?: string): RoomRecord {
   const roomId = generateId('room');
@@ -23,7 +24,7 @@ export function createRoom(title?: string): RoomRecord {
     gradingAssignments: [],
     peerGrades: [],
     protests: [],
-    settings: { showLeaderboard: false, teamReviewOpen: false },
+    settings: { showLeaderboard: false, teamReviewOpen: false, answerKeyOpen: false },
     hostToken,
     teamTokens: {},
     expiresAt: Date.now() + 24 * 60 * 60 * 1000,
@@ -195,7 +196,7 @@ export function toPublicState(
   room: RoomState,
   role: 'host' | 'secretary',
   viewerTeamId?: string,
-): RoomState & { viewerRole: 'host' | 'secretary'; viewerTeamId?: string } {
+): PublicRoomState {
   if (role === 'host') {
     return {
       ...room,
@@ -207,6 +208,7 @@ export function toPublicState(
   const assignment = room.gradingAssignments.find((g) => g.graderTeamId === teamId);
   const ownAnsweredQuestionIds = new Set(teamId ? (room.answeredByTeam[teamId] ?? []) : []);
   const teamReviewOpen = room.settings.teamReviewOpen === true;
+  const answerKeyOpen = room.settings.answerKeyOpen === true;
   const assignedQuestionIds = new Set(
     room.phase === 'grading' && assignment ? assignment.questionIds : [],
   );
@@ -233,6 +235,7 @@ export function toPublicState(
   const visibleGradingAssignments = assignment ? [assignment] : [];
 
   const questions = room.questions.map((q) => {
+    if (answerKeyOpen) return q;
     const showReviewFasit = teamReviewOpen && ownAnsweredQuestionIds.has(q.id);
     const showGradingFasit = assignedQuestionIds.has(q.id);
     const revealed = isQuestionRevealedToTeam(room, q.id) || showReviewFasit || showGradingFasit;
@@ -253,6 +256,7 @@ export function toPublicState(
   return {
     ...room,
     questions,
+    leaderboard: computeLeaderboard(room),
     answeredByTeam: visibleAnsweredByTeam,
     answers: visibleAnswers,
     scores: visibleScores,

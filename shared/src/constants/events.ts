@@ -20,6 +20,7 @@ export const CLIENT_EVENTS = {
   SCORE_OVERRIDE: 'score:override',
   LEADERBOARD_TOGGLE: 'leaderboard:toggle',
   TEAM_REVIEW_TOGGLE: 'teamReview:toggle',
+  ANSWER_KEY_TOGGLE: 'answerKey:toggle',
   TEAM_REMOVE: 'team:remove',
 } as const;
 

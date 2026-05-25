@@ -7,6 +7,7 @@ import {
 } from '@quiz-tool/shared';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
 import { PeerGradingView } from '../components/grading/PeerGradingView';
+import { TeamAnswerKeyView } from '../components/team/TeamAnswerKeyView';
 import { TeamResultsReviewView } from '../components/team/TeamResultsReviewView';
 import { QuestionBody } from '../components/question/QuestionBody';
 import { QuestionCard } from '../components/question/QuestionCard';
@@ -43,6 +44,28 @@ function ReviewAnswersCta({ to }: { to: string }) {
   );
 }
 
+function AnswerKeyCta({ to }: { to: string }) {
+  return (
+    <a
+      href={to}
+      className="mb-5 block w-full rounded-2xl border-2 border-green-500/45 bg-green-500/10 p-4 text-left transition-colors hover:bg-green-500/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-400 sm:p-5"
+      aria-label="Se fasit"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-base font-bold text-quiz-text">Quizmaster har delt fasit</p>
+          <p className="mt-1 text-sm text-quiz-muted">
+            Se alle spørsmål, riktige svar og maks poeng.
+          </p>
+        </div>
+        <span className="box-border inline-flex max-w-full min-w-0 items-center justify-center rounded-xl bg-green-600 px-6 py-4 text-center text-lg font-medium text-white transition-colors hover:opacity-90">
+          Se fasit
+        </span>
+      </div>
+    </a>
+  );
+}
+
 export function TeamPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,7 +87,9 @@ export function TeamPage() {
 
   const teamId = teamSession?.teamId;
   const showOwnReview = searchParams.get('review') === '1';
+  const showAnswerKey = searchParams.get('fasit') === '1';
   const reviewHref = roomId ? `/team/${roomId}?review=1` : '?review=1';
+  const answerKeyHref = roomId ? `/team/${roomId}?fasit=1` : '?fasit=1';
 
   const closeOwnReview = () => {
     setSearchParams((current) => {
@@ -221,6 +246,7 @@ export function TeamPage() {
     activeQuestion && (room.questionStatus[activeQuestion.id] ?? 'locked') === 'open';
 
   const canReviewOwn = room.settings.teamReviewOpen === true;
+  const canSeeAnswerKey = room.settings.answerKeyOpen === true;
 
   if (canReviewOwn && showOwnReview && teamId) {
     return (
@@ -234,9 +260,26 @@ export function TeamPage() {
     );
   }
 
+  if (canSeeAnswerKey && showAnswerKey) {
+    return (
+      <TeamAnswerKeyView
+        room={room}
+        teamName={myTeam?.name ?? 'Lag'}
+        onBack={() => {
+          setSearchParams((current) => {
+            const next = new URLSearchParams(current);
+            next.delete('fasit');
+            return next;
+          });
+        }}
+      />
+    );
+  }
+
   if (room.phase === 'post_quiz') {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Quizen er avsluttet">
+        {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Quiz avsluttet av quizmaster</p>
@@ -256,6 +299,7 @@ export function TeamPage() {
   if (room.phase === 'grading' && !assignment) {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Retterunde">
+        {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
@@ -277,6 +321,7 @@ export function TeamPage() {
         teamName={myTeam?.name ?? 'Lag'}
         error={operationalError}
         reviewHref={canReviewOwn ? reviewHref : undefined}
+        answerKeyHref={canSeeAnswerKey ? answerKeyHref : undefined}
       />
     );
   }
@@ -297,6 +342,7 @@ export function TeamPage() {
             </Button>
           </div>
         )}
+        {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Leaderboard room={room} />
       </PageShell>
@@ -318,6 +364,7 @@ export function TeamPage() {
           </Button>
         </div>
       )}
+      {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
       {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
 
       <div className="quiz-page-content space-y-4">

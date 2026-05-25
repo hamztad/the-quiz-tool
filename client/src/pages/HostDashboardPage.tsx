@@ -230,12 +230,30 @@ export function HostDashboardPage() {
                   {room.settings.teamReviewOpen ? 'Lukk gjennomgang' : 'Åpne gjennomgang for lag'}
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant={room.settings.answerKeyOpen ? 'secondary' : 'primary'}
+                className="w-full sm:w-auto"
+                onClick={() =>
+                  emit(CLIENT_EVENTS.ANSWER_KEY_TOGGLE, {
+                    open: !room.settings.answerKeyOpen,
+                  })
+                }
+              >
+                {room.settings.answerKeyOpen ? 'Skjul fasit for lag' : 'Vis fasit for lag'}
+              </Button>
             </div>
           )}
 
           {room.settings.teamReviewOpen && (
             <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
               Lagene kan nå se egne svar og poeng.
+            </p>
+          )}
+
+          {room.settings.answerKeyOpen && (
+            <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
+              Lagene kan nå se fasit.
             </p>
           )}
 

@@ -87,6 +87,7 @@ export type RoomPhase = 'lobby' | 'live' | 'grading' | 'leaderboard' | 'post_qui
 export interface RoomSettings {
   showLeaderboard: boolean;
   teamReviewOpen: boolean;
+  answerKeyOpen: boolean;
 }
 
 export interface RoomState {
@@ -112,6 +113,7 @@ export type SocketRole = 'host' | 'secretary';
 export interface PublicRoomState extends RoomState {
   viewerTeamId?: string;
   viewerRole: SocketRole;
+  leaderboard?: LeaderboardEntry[];
 }
 
 export interface LeaderboardEntry {
