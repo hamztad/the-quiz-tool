@@ -17,6 +17,7 @@ interface QuestionCardProps {
   teamAnswerPreview?: string | null;
   teamRevealed?: boolean;
   teamEditableHint?: boolean;
+  showHostQuestionDetails?: boolean;
   viewMode?: 'default' | 'team';
   onClick?: () => void;
   className?: string;
@@ -33,6 +34,7 @@ export function QuestionCard({
   teamAnswerPreview,
   teamRevealed = true,
   teamEditableHint = false,
+  showHostQuestionDetails = false,
   viewMode = 'default',
   onClick,
   className = '',
@@ -51,6 +53,7 @@ export function QuestionCard({
 
   const hostLabel = hostDisplayStatus ? hostStatusLabels[hostDisplayStatus] : null;
   const showResponseBadge = hostLabel !== badgeLabel;
+  const questionTypeLabel = question.type === 'mc' ? 'Flervalg' : 'Åpent svar';
 
   const lockedUnanswered = status === 'locked' && !answered;
   const teamWaiting = viewMode === 'team' && !teamRevealed;
@@ -75,7 +78,16 @@ export function QuestionCard({
         >
           {hostDisplayStatus && <HostQuestionStatusBadge status={hostDisplayStatus} />}
           {showResponseBadge && <Badge variant={badgeVariant}>{badgeLabel}</Badge>}
-          {question.type === 'mc' && <Badge variant="neutral">MC</Badge>}
+          {showHostQuestionDetails ? (
+            <>
+              <Badge variant={question.type === 'mc' ? 'active' : 'neutral'}>
+                {questionTypeLabel}
+              </Badge>
+              <Badge variant="neutral">Maks {question.maxPoints}p</Badge>
+            </>
+          ) : (
+            question.type === 'mc' && <Badge variant="neutral">MC</Badge>
+          )}
         </div>
       </div>
       {viewMode === 'team' && teamEditableHint && (
@@ -89,6 +101,42 @@ export function QuestionCard({
         </p>
       ) : (
         <QuestionBody question={question} showHint={viewMode !== 'team' || teamRevealed} />
+      )}
+      {showHostQuestionDetails && question.type === 'mc' && teamRevealed && (
+        <div className="mt-3 min-w-0 max-w-full rounded-xl border border-quiz-border/70 bg-quiz-surface-elevated/50 p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-quiz-muted sm:text-xs">
+            Svaralternativer
+          </p>
+          {question.options && question.options.length > 0 ? (
+            <ol className="grid min-w-0 max-w-full grid-cols-1 gap-2 sm:grid-cols-2">
+              {question.options.map((option, index) => {
+                const marker = String.fromCharCode(65 + index);
+                return (
+                  <li
+                    key={option.id}
+                    className={`flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
+                      option.isCorrect
+                        ? 'border-green-500/45 bg-green-500/10 text-green-100'
+                        : 'border-quiz-border/70 bg-quiz-bg/35 text-quiz-text'
+                    }`}
+                  >
+                    <span className="shrink-0 font-semibold tabular-nums">{marker}.</span>
+                    <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
+                      {option.text}
+                    </span>
+                    {option.isCorrect && (
+                      <span className="shrink-0 rounded-full border border-green-500/40 bg-green-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-200">
+                        Riktig
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          ) : (
+            <p className="text-sm text-quiz-muted">Ingen alternativer lagt inn.</p>
+          )}
+        </div>
       )}
       {teamRevealed && teamAnswerPreview && (
         <div className="mt-3 rounded-xl border border-quiz-border/70 bg-quiz-surface-elevated px-3 py-2.5">

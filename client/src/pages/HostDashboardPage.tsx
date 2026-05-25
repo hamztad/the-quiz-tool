@@ -349,6 +349,7 @@ export function HostDashboardPage() {
                         status={runtimeStatus}
                         answered={answeredCount > 0}
                         hostDisplayStatus={displayStatus}
+                        showHostQuestionDetails
                         className={incomplete ? 'border-dashed border-slate-400/40' : ''}
                       >
                         {incomplete && (
