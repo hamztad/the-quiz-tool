@@ -10,6 +10,8 @@ import { AiQuizGenerateError, generateQuizWithOpenAI } from '../services/openaiQ
 
 const DIFFICULTIES = new Set<AiQuizDifficulty>(['easy', 'medium', 'hard']);
 const STYLES = new Set<AiQuizQuestionStyle>(['open', 'mc', 'mixed']);
+const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_TRANSLATE_MODEL = 'gpt-4o-mini';
 
 interface PixabayHit {
   id: number;
@@ -23,6 +25,43 @@ interface PixabayHit {
 
 interface PixabayResponse {
   hits?: PixabayHit[];
+}
+
+interface OpenAiTranslateResponse {
+  choices?: Array<{
+    message?: { content?: string | null };
+  }>;
+}
+
+async function translateNorwegianImageQuery(
+  query: string,
+  apiKey: string,
+): Promise<string | null> {
+  const response = await fetch(OPENAI_CHAT_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: OPENAI_TRANSLATE_MODEL,
+      temperature: 0,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Translate short Norwegian image search queries to concise English keywords for Pixabay. Return only the translated query, no quotes or explanation.',
+        },
+        { role: 'user', content: query },
+      ],
+    }),
+  });
+
+  if (!response.ok) return null;
+  const body = (await response.json()) as OpenAiTranslateResponse;
+  const translated = body.choices?.[0]?.message?.content?.trim();
+  if (!translated) return null;
+  return translated.replace(/^["']|["']$/g, '').slice(0, 80);
 }
 
 function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
@@ -53,13 +92,14 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
       ok: false,
       code: 'MISSING_API_KEY',
       message:
-        'Pixabay-søk er ikke konfigurert på serveren (PIXABAY_API_KEY mangler). Du kan fortsatt laste opp bilde lokalt.',
+        'Pixabay-søk er ikke konfigurert på serveren (PIXABAY_API_KEY mangler). Kontakt administrator.',
     });
     return;
   }
 
   const roomId = typeof req.query.roomId === 'string' ? req.query.roomId : '';
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const language = req.query.language === 'nb' ? 'nb' : 'en';
   const hostToken = req.header('x-host-token');
 
   if (!roomId || q.length < 2 || q.length > 80) {
@@ -81,15 +121,34 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
     return;
   }
 
-  const params = new URLSearchParams({
-    key: apiKey,
-    q,
-    image_type: 'photo',
-    safesearch: 'true',
-    per_page: '12',
-  });
-
   try {
+    let searchQuery = q;
+    let translatedQuery: string | undefined;
+    let notice: string | undefined;
+
+    if (language === 'nb') {
+      const openAiKey = process.env.OPENAI_API_KEY?.trim();
+      if (openAiKey) {
+        const translated = await translateNorwegianImageQuery(q, openAiKey);
+        if (translated) {
+          searchQuery = translated;
+          translatedQuery = translated;
+        } else {
+          notice = 'Kunne ikke oversette akkurat nå, så vi søkte med originalteksten.';
+        }
+      } else {
+        notice = 'OpenAI-oversetting er ikke konfigurert, så vi søkte med originalteksten.';
+      }
+    }
+
+    const params = new URLSearchParams({
+      key: apiKey,
+      q: searchQuery,
+      image_type: 'photo',
+      safesearch: 'true',
+      per_page: '12',
+    });
+
     const pixabayRes = await fetch(`https://pixabay.com/api/?${params.toString()}`);
     if (!pixabayRes.ok) {
       res.status(502).json({
@@ -112,7 +171,7 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
         photographer: hit.user ?? '',
       }));
 
-    res.json({ ok: true, results });
+    res.json({ ok: true, results, query: q, translatedQuery, notice });
   } catch (err) {
     console.error('Pixabay search error:', err);
     res.status(500).json({

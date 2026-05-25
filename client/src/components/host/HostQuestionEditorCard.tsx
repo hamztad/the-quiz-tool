@@ -261,9 +261,10 @@ function ImageAttachmentEditor({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pixabayQuery, setPixabayQuery] = useState('');
-  const [pixabayLoading, setPixabayLoading] = useState(false);
+  const [pixabayLoading, setPixabayLoading] = useState<'nb' | 'en' | null>(null);
   const [pixabayResults, setPixabayResults] = useState<PixabayImageResult[]>([]);
   const [resultsVisible, setResultsVisible] = useState(false);
+  const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const image = question.media?.find((m) => m.type === 'image');
 
   const attachImage = (media: MediaAttachment) => {
@@ -282,7 +283,7 @@ function ImageAttachmentEditor({
     attachImage({ ...image, alt });
   };
 
-  const handlePixabaySearch = async () => {
+  const handlePixabaySearch = async (language: 'nb' | 'en') => {
     const query = pixabayQuery.trim();
     if (!roomId || query.length < 2) {
       setError('Skriv minst to tegn for å søke etter bilde.');
@@ -294,20 +295,26 @@ function ImageAttachmentEditor({
       return;
     }
 
-    setPixabayLoading(true);
+    setPixabayLoading(language);
     setError(null);
+    setSearchNotice(null);
     try {
-      const results = await searchPixabayImages(session, query);
-      setPixabayResults(results);
-      setResultsVisible(results.length > 0);
-      if (results.length === 0) {
+      const response = await searchPixabayImages(session, query, language);
+      setPixabayResults(response.results);
+      setResultsVisible(response.results.length > 0);
+      if (response.translatedQuery) {
+        setSearchNotice(`Oversatt søk: ${response.translatedQuery}`);
+      } else if (response.notice) {
+        setSearchNotice(response.notice);
+      }
+      if (response.results.length === 0) {
         setError('Fant ingen bilder på Pixabay for dette søket.');
       }
     } catch (err) {
       setPixabayResults([]);
       setError(err instanceof Error ? err.message : 'Kunne ikke søke etter bilder.');
     } finally {
-      setPixabayLoading(false);
+      setPixabayLoading(null);
     }
   };
 
@@ -378,23 +385,41 @@ function ImageAttachmentEditor({
           <Input
             value={pixabayQuery}
             onChange={(e) => setPixabayQuery(e.target.value)}
-            placeholder="Søk på engelsk for best resultat"
+            placeholder="Søk på norsk eller engelsk"
             className="text-sm"
           />
+        </div>
+        <p className="-mt-1 text-xs text-quiz-muted">
+          Norske søk oversettes til engelsk før bildesøk.
+        </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
             type="button"
             variant="secondary"
             size="sm"
-            className="w-full sm:w-auto"
-            onClick={handlePixabaySearch}
-            disabled={pixabayLoading}
+            className="w-full"
+            onClick={() => handlePixabaySearch('nb')}
+            disabled={pixabayLoading !== null}
           >
-            {pixabayLoading ? 'Søker…' : 'Søk'}
+            {pixabayLoading === 'nb' ? 'Søker…' : '🇳🇴 Søk norsk'}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            onClick={() => handlePixabaySearch('en')}
+            disabled={pixabayLoading !== null}
+          >
+            {pixabayLoading === 'en' ? 'Searching…' : '🇬🇧 Search English'}
           </Button>
         </div>
-        <p className="-mt-1 text-xs text-quiz-muted">
-          Pixabay gir ofte best treff med engelske søkeord.
-        </p>
+
+        {searchNotice && (
+          <p className="text-xs text-quiz-muted break-words" role="status">
+            {searchNotice}
+          </p>
+        )}
 
         {pixabayResults.length > 0 && (
           <div className="space-y-2">

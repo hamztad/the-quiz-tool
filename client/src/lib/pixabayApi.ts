@@ -12,6 +12,9 @@ export interface PixabayImageResult {
 interface PixabaySearchSuccess {
   ok: true;
   results: PixabayImageResult[];
+  query?: string;
+  translatedQuery?: string;
+  notice?: string;
 }
 
 interface PixabaySearchError {
@@ -22,8 +25,9 @@ interface PixabaySearchError {
 export async function searchPixabayImages(
   session: HostSession,
   query: string,
-): Promise<PixabayImageResult[]> {
-  const params = new URLSearchParams({ roomId: session.roomId, q: query });
+  language: 'nb' | 'en',
+): Promise<PixabaySearchSuccess> {
+  const params = new URLSearchParams({ roomId: session.roomId, q: query, language });
   const res = await fetch(`/api/ai/pixabay-search?${params.toString()}`, {
     headers: {
       'X-Host-Token': session.hostToken,
@@ -35,5 +39,5 @@ export async function searchPixabayImages(
     throw new Error(!data.ok ? data.message : 'Kunne ikke søke etter bilder.');
   }
 
-  return data.results;
+  return data;
 }
