@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   CLIENT_EVENTS,
   isQuestionRevealedToTeam,
@@ -21,11 +21,11 @@ import { formatTeamAnswerDisplay } from '../lib/teamAnswerDisplay';
 
 const HIGHLIGHT_MS = 5000;
 
-function ReviewAnswersCta({ onClick }: { onClick: () => void }) {
+function ReviewAnswersCta({ to }: { to: string }) {
   return (
-    <Card
-      className="mb-5 border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 sm:p-5"
-      onClick={onClick}
+    <Link
+      to={to}
+      className="mb-5 block w-full rounded-2xl border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 text-left transition-colors hover:bg-quiz-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent sm:p-5"
       aria-label="Se egne svar og poeng"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -39,13 +39,12 @@ function ReviewAnswersCta({ onClick }: { onClick: () => void }) {
           Se egne svar og poeng
         </span>
       </div>
-    </Card>
+    </Link>
   );
 }
 
 export function TeamPage() {
   const { roomId } = useParams<{ roomId: string }>();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { socket, connected } = useSocket();
   const {
@@ -65,18 +64,7 @@ export function TeamPage() {
 
   const teamId = teamSession?.teamId;
   const showOwnReview = searchParams.get('review') === '1';
-
-  const openOwnReview = () => {
-    if (roomId) {
-      navigate(`/team/${roomId}?review=1`);
-      return;
-    }
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      next.set('review', '1');
-      return next;
-    });
-  };
+  const reviewHref = roomId ? `/team/${roomId}?review=1` : '?review=1';
 
   const closeOwnReview = () => {
     setSearchParams((current) => {
@@ -249,7 +237,7 @@ export function TeamPage() {
   if (room.phase === 'post_quiz') {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Quizen er avsluttet">
-        {canReviewOwn && <ReviewAnswersCta onClick={openOwnReview} />}
+        {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Quiz avsluttet av quizmaster</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
@@ -268,7 +256,7 @@ export function TeamPage() {
   if (room.phase === 'grading' && !assignment) {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Retterunde">
-        {canReviewOwn && <ReviewAnswersCta onClick={openOwnReview} />}
+        {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
@@ -288,7 +276,7 @@ export function TeamPage() {
         graderTeamId={teamId!}
         teamName={myTeam?.name ?? 'Lag'}
         error={operationalError}
-        onReviewOwn={canReviewOwn ? openOwnReview : undefined}
+        reviewHref={canReviewOwn ? reviewHref : undefined}
       />
     );
   }
@@ -309,7 +297,7 @@ export function TeamPage() {
             </Button>
           </div>
         )}
-        {canReviewOwn && <ReviewAnswersCta onClick={openOwnReview} />}
+        {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Leaderboard room={room} />
       </PageShell>
     );
@@ -330,7 +318,7 @@ export function TeamPage() {
           </Button>
         </div>
       )}
-      {canReviewOwn && <ReviewAnswersCta onClick={openOwnReview} />}
+      {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
 
       <div className="quiz-page-content space-y-4">
           {activeQuestionOpen ? (

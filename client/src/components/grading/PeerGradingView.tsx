@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { PublicRoomState } from '@quiz-tool/shared';
 import { PageShell } from '../layout/PageShell';
 import { PeerGradingQuestionCard } from './PeerGradingQuestionCard';
@@ -9,7 +10,7 @@ interface PeerGradingViewProps {
   graderTeamId: string;
   teamName: string;
   error: string | null;
-  onReviewOwn?: () => void;
+  reviewHref?: string;
 }
 
 function isQuestionGraded(
@@ -32,7 +33,7 @@ export function PeerGradingView({
   graderTeamId,
   teamName,
   error,
-  onReviewOwn,
+  reviewHref,
 }: PeerGradingViewProps) {
   const targetTeam = room.teams.find((t) => t.id === assignment.targetTeamId);
   const openQuestions = room.questions.filter(
@@ -76,11 +77,10 @@ export function PeerGradingView({
         </p>
       )}
 
-      {onReviewOwn && (
-        <button
-          type="button"
+      {reviewHref && (
+        <Link
+          to={reviewHref}
           className="mb-4 block w-full rounded-2xl border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 text-left transition-colors hover:bg-quiz-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
-          onClick={onReviewOwn}
         >
           <p className="text-sm font-semibold text-quiz-text mb-2">
             Quizmaster har åpnet gjennomgang for lag.
@@ -88,7 +88,7 @@ export function PeerGradingView({
           <span className="box-border inline-flex min-h-[40px] w-full max-w-full min-w-0 items-center justify-center rounded-xl bg-quiz-accent px-3 py-2 text-center text-sm font-medium text-white sm:w-auto">
             Se egne svar og poeng
           </span>
-        </button>
+        </Link>
       )}
 
       <div className="mb-6 rounded-2xl border-2 border-quiz-border bg-quiz-surface-elevated p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
