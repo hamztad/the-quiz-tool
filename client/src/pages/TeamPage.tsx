@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   CLIENT_EVENTS,
   isQuestionRevealedToTeam,
@@ -23,7 +23,11 @@ const HIGHLIGHT_MS = 5000;
 
 function ReviewAnswersCta({ onClick }: { onClick: () => void }) {
   return (
-    <Card className="mb-5 border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 sm:p-5">
+    <Card
+      className="mb-5 border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 sm:p-5"
+      onClick={onClick}
+      aria-label="Se egne svar og poeng"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-base font-bold text-quiz-text">Egne svar og poeng er klare</p>
@@ -31,9 +35,9 @@ function ReviewAnswersCta({ onClick }: { onClick: () => void }) {
             Se fasit, poeng og send protest på enkeltspørsmål.
           </p>
         </div>
-        <Button type="button" size="lg" className="w-full shrink-0 sm:w-auto" onClick={onClick}>
+        <span className="box-border inline-flex max-w-full min-w-0 items-center justify-center rounded-xl bg-quiz-accent px-6 py-4 text-center text-lg font-medium text-white transition-colors hover:opacity-90">
           Se egne svar og poeng
-        </Button>
+        </span>
       </div>
     </Card>
   );
@@ -41,6 +45,7 @@ function ReviewAnswersCta({ onClick }: { onClick: () => void }) {
 
 export function TeamPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { socket, connected } = useSocket();
   const {
@@ -62,6 +67,10 @@ export function TeamPage() {
   const showOwnReview = searchParams.get('review') === '1';
 
   const openOwnReview = () => {
+    if (roomId) {
+      navigate(`/team/${roomId}?review=1`);
+      return;
+    }
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       next.set('review', '1');

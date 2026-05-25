@@ -136,7 +136,7 @@ export function TeamResultsReviewView({
         </p>
       </Card>
 
-      {answeredQuestions.length > 0 && gradedCount === 0 && (
+      {gradedCount === 0 && (
         <Card className="mb-5 border border-yellow-500/40 bg-yellow-500/10 p-4">
           <p className="text-sm font-medium text-yellow-100">
             Gjennomgang er åpnet, men ingen poeng er registrert ennå.

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { PublicRoomState } from '@quiz-tool/shared';
 import { PageShell } from '../layout/PageShell';
-import { Button } from '../ui/Button';
 import { PeerGradingQuestionCard } from './PeerGradingQuestionCard';
 
 interface PeerGradingViewProps {
@@ -78,20 +77,18 @@ export function PeerGradingView({
       )}
 
       {onReviewOwn && (
-        <div className="mb-4 rounded-2xl border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4">
+        <button
+          type="button"
+          className="mb-4 block w-full rounded-2xl border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 text-left transition-colors hover:bg-quiz-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
+          onClick={onReviewOwn}
+        >
           <p className="text-sm font-semibold text-quiz-text mb-2">
             Quizmaster har åpnet gjennomgang for lag.
           </p>
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={onReviewOwn}
-          >
+          <span className="box-border inline-flex min-h-[40px] w-full max-w-full min-w-0 items-center justify-center rounded-xl bg-quiz-accent px-3 py-2 text-center text-sm font-medium text-white sm:w-auto">
             Se egne svar og poeng
-          </Button>
-        </div>
+          </span>
+        </button>
       )}
 
       <div className="mb-6 rounded-2xl border-2 border-quiz-border bg-quiz-surface-elevated p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
