@@ -26,12 +26,32 @@ export function QuestionBody({ question, showHint = true }: QuestionBodyProps) {
       )}
       {question.media?.map((m, i) =>
         m.type === 'image' ? (
-          <img
-            key={i}
-            src={m.url}
-            alt={m.alt ?? ''}
-            className="mt-3 max-h-48 max-w-full rounded-xl object-contain"
-          />
+          <figure key={i} className="mt-3">
+            <img
+              src={m.url}
+              alt={m.alt ?? ''}
+              className="max-h-64 max-w-full rounded-xl object-contain"
+            />
+            {m.source === 'pixabay' && (
+              <figcaption className="mt-1 text-xs text-quiz-muted break-words">
+                Bilde fra Pixabay
+                {m.photographer ? ` · ${m.photographer}` : ''}
+                {m.pageUrl ? (
+                  <>
+                    {' · '}
+                    <a
+                      href={m.pageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-quiz-accent hover:underline"
+                    >
+                      Kilde
+                    </a>
+                  </>
+                ) : null}
+              </figcaption>
+            )}
+          </figure>
         ) : null,
       )}
     </div>

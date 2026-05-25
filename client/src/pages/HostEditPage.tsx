@@ -424,6 +424,7 @@ export function HostEditPage() {
                     q,
                     room.questionStatus[q.id] ?? 'locked',
                   )}
+                  roomId={roomId}
                   isHighlighted={highlightedId === q.id}
                   isExpanded={expandedIds.has(q.id)}
                   onToggleExpand={() => toggleExpand(q.id)}

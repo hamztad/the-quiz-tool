@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Question } from '@quiz-tool/shared';
+import type { MediaAttachment, Question } from '@quiz-tool/shared';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -11,6 +11,8 @@ import {
 } from '../../lib/questionFactory';
 import type { HostQuestionDisplayStatus } from '../../lib/questionDisplayStatus';
 import { generateId } from '../../lib/id';
+import { searchPixabayImages, type PixabayImageResult } from '../../lib/pixabayApi';
+import { getHostSession } from '../../lib/tokens';
 
 interface HostQuestionEditorCardProps {
   question: Question;
@@ -21,6 +23,7 @@ interface HostQuestionEditorCardProps {
   onToggleExpand: () => void;
   onChange: (question: Question) => void;
   onDelete: () => void;
+  roomId?: string;
   titleInputRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
@@ -33,6 +36,7 @@ export function HostQuestionEditorCard({
   onToggleExpand,
   onChange,
   onDelete,
+  roomId,
   titleInputRef,
 }: HostQuestionEditorCardProps) {
   const localTitleRef = useRef<HTMLTextAreaElement>(null);
@@ -172,6 +176,8 @@ export function HostQuestionEditorCard({
             <McOptionsEditor question={question} onChange={onChange} />
           )}
 
+          <ImageAttachmentEditor question={question} onChange={onChange} roomId={roomId} />
+
           <details
             open={moreOpen}
             onToggle={(e) => setMoreOpen((e.target as HTMLDetailsElement).open)}
@@ -241,6 +247,181 @@ function PointsChip({ points }: { points: number }) {
     >
       {points}p
     </span>
+  );
+}
+
+function ImageAttachmentEditor({
+  question,
+  onChange,
+  roomId,
+}: {
+  question: Question;
+  onChange: (q: Question) => void;
+  roomId?: string;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [pixabayQuery, setPixabayQuery] = useState('');
+  const [pixabayLoading, setPixabayLoading] = useState(false);
+  const [pixabayResults, setPixabayResults] = useState<PixabayImageResult[]>([]);
+  const image = question.media?.find((m) => m.type === 'image');
+
+  const attachImage = (media: MediaAttachment) => {
+    onChange({ ...question, media: [media] });
+    setError(null);
+  };
+
+  const removeImage = () => {
+    onChange({ ...question, media: undefined });
+    setPixabayResults([]);
+    setError(null);
+  };
+
+  const updateAlt = (alt: string) => {
+    if (!image) return;
+    attachImage({ ...image, alt });
+  };
+
+  const handlePixabaySearch = async () => {
+    const query = pixabayQuery.trim();
+    if (!roomId || query.length < 2) {
+      setError('Skriv minst to tegn for å søke etter bilde.');
+      return;
+    }
+    const session = getHostSession(roomId);
+    if (!session) {
+      setError('Fant ikke quizmaster-økt. Oppdater siden og prøv igjen.');
+      return;
+    }
+
+    setPixabayLoading(true);
+    setError(null);
+    try {
+      const results = await searchPixabayImages(session, query);
+      setPixabayResults(results);
+      if (results.length === 0) {
+        setError('Fant ingen bilder på Pixabay for dette søket.');
+      }
+    } catch (err) {
+      setPixabayResults([]);
+      setError(err instanceof Error ? err.message : 'Kunne ikke søke etter bilder.');
+    } finally {
+      setPixabayLoading(false);
+    }
+  };
+
+  const attachPixabay = (result: PixabayImageResult) => {
+    attachImage({
+      type: 'image',
+      url: result.imageUrl,
+      previewUrl: result.previewUrl,
+      alt: result.tags,
+      source: 'pixabay',
+      photographer: result.photographer,
+      pageUrl: result.pageUrl,
+    });
+  };
+
+  return (
+    <section className="rounded-lg border border-quiz-border bg-quiz-bg p-3 space-y-3 min-w-0 max-w-full overflow-hidden">
+      <div>
+        <p className="text-xs font-semibold text-quiz-text">Søk bilde fra Pixabay</p>
+        <p className="mt-1 text-xs text-quiz-muted">
+          Velg et bilde fra Pixabay. Kilde og fotograf lagres automatisk med spørsmålet.
+        </p>
+      </div>
+
+      {image && (
+        <figure className="rounded-xl border border-quiz-border/70 bg-quiz-surface/60 p-3">
+          <img
+            src={image.url}
+            alt={image.alt ?? ''}
+            className="max-h-56 max-w-full rounded-lg object-contain"
+          />
+          {image.source === 'pixabay' && (
+            <figcaption className="mt-2 text-xs text-quiz-muted break-words">
+              Bilde fra Pixabay
+              {image.photographer ? ` · ${image.photographer}` : ''}
+              {image.pageUrl ? (
+                <>
+                  {' · '}
+                  <a
+                    href={image.pageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-quiz-accent hover:underline"
+                  >
+                    Kilde
+                  </a>
+                </>
+              ) : null}
+            </figcaption>
+          )}
+          <div className="mt-3 space-y-2">
+            <Input
+              value={image.alt ?? ''}
+              onChange={(e) => updateAlt(e.target.value)}
+              placeholder="Alt-tekst / kort bildebeskrivelse"
+              className="text-sm"
+            />
+            <Button type="button" variant="ghost" size="sm" onClick={removeImage}>
+              Fjern bilde
+            </Button>
+          </div>
+        </figure>
+      )}
+
+      <div className="space-y-3 rounded-xl border border-quiz-border/60 bg-quiz-surface/40 p-3">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            value={pixabayQuery}
+            onChange={(e) => setPixabayQuery(e.target.value)}
+            placeholder="Søk etter bilde..."
+            className="text-sm"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={handlePixabaySearch}
+            disabled={pixabayLoading}
+          >
+            {pixabayLoading ? 'Søker…' : 'Søk'}
+          </Button>
+        </div>
+
+        {pixabayResults.length > 0 && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {pixabayResults.map((result) => (
+              <button
+                key={result.id}
+                type="button"
+                className="min-w-0 rounded-xl border border-quiz-border bg-quiz-bg p-2 text-left hover:border-quiz-accent"
+                onClick={() => attachPixabay(result)}
+              >
+                <img
+                  src={result.previewUrl || result.imageUrl}
+                  alt={result.tags}
+                  className="h-28 w-full rounded-lg object-cover"
+                />
+                <span className="mt-2 block text-xs font-medium text-quiz-text">
+                  Velg bilde
+                </span>
+                <span className="block text-xs text-quiz-muted break-words">
+                  Bilde fra Pixabay{result.photographer ? ` · ${result.photographer}` : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <p className="text-sm text-red-300 break-words" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
   );
 }
 

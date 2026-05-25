@@ -11,6 +11,20 @@ import { AiQuizGenerateError, generateQuizWithOpenAI } from '../services/openaiQ
 const DIFFICULTIES = new Set<AiQuizDifficulty>(['easy', 'medium', 'hard']);
 const STYLES = new Set<AiQuizQuestionStyle>(['open', 'mc', 'mixed']);
 
+interface PixabayHit {
+  id: number;
+  tags?: string;
+  previewURL?: string;
+  webformatURL?: string;
+  largeImageURL?: string;
+  pageURL?: string;
+  user?: string;
+}
+
+interface PixabayResponse {
+  hits?: PixabayHit[];
+}
+
 function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
   if (!body || typeof body !== 'object') return false;
   const b = body as Record<string, unknown>;
@@ -31,6 +45,83 @@ function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
 }
 
 export const aiQuizRouter = Router();
+
+aiQuizRouter.get('/pixabay-search', async (req, res) => {
+  const apiKey = process.env.PIXABAY_API_KEY?.trim();
+  if (!apiKey) {
+    res.status(503).json({
+      ok: false,
+      code: 'MISSING_API_KEY',
+      message:
+        'Pixabay-søk er ikke konfigurert på serveren (PIXABAY_API_KEY mangler). Du kan fortsatt laste opp bilde lokalt.',
+    });
+    return;
+  }
+
+  const roomId = typeof req.query.roomId === 'string' ? req.query.roomId : '';
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const hostToken = req.header('x-host-token');
+
+  if (!roomId || q.length < 2 || q.length > 80) {
+    res.status(400).json({
+      ok: false,
+      code: 'INVALID_REQUEST',
+      message: 'Skriv minst to tegn for å søke etter bilde.',
+    });
+    return;
+  }
+
+  const room = roomStore.get(roomId);
+  if (!room || room.hostToken !== hostToken) {
+    res.status(403).json({
+      ok: false,
+      code: 'FORBIDDEN',
+      message: 'Ugyldig quizmaster-tilgang.',
+    });
+    return;
+  }
+
+  const params = new URLSearchParams({
+    key: apiKey,
+    q,
+    image_type: 'photo',
+    safesearch: 'true',
+    per_page: '12',
+  });
+
+  try {
+    const pixabayRes = await fetch(`https://pixabay.com/api/?${params.toString()}`);
+    if (!pixabayRes.ok) {
+      res.status(502).json({
+        ok: false,
+        code: 'PIXABAY_ERROR',
+        message: 'Kunne ikke hente bilder fra Pixabay akkurat nå.',
+      });
+      return;
+    }
+
+    const data = (await pixabayRes.json()) as PixabayResponse;
+    const results = (data.hits ?? [])
+      .filter((hit) => hit.webformatURL || hit.largeImageURL)
+      .map((hit) => ({
+        id: String(hit.id),
+        tags: hit.tags ?? '',
+        previewUrl: hit.previewURL ?? hit.webformatURL ?? hit.largeImageURL ?? '',
+        imageUrl: hit.webformatURL ?? hit.largeImageURL ?? '',
+        pageUrl: hit.pageURL ?? '',
+        photographer: hit.user ?? '',
+      }));
+
+    res.json({ ok: true, results });
+  } catch (err) {
+    console.error('Pixabay search error:', err);
+    res.status(500).json({
+      ok: false,
+      code: 'SERVER_ERROR',
+      message: 'Noe gikk galt under Pixabay-søk. Prøv igjen.',
+    });
+  }
+});
 
 aiQuizRouter.post('/generate-quiz', async (req, res) => {
   const apiKey = process.env.OPENAI_API_KEY?.trim();

@@ -44,12 +44,36 @@ function isMcOption(value: unknown): boolean {
   );
 }
 
+function isMediaAttachment(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  const validSource = value.source === undefined || value.source === 'pixabay';
+  const validOptionalStrings =
+    (value.alt === undefined || typeof value.alt === 'string') &&
+    (value.previewUrl === undefined || typeof value.previewUrl === 'string') &&
+    (value.photographer === undefined || typeof value.photographer === 'string') &&
+    (value.pageUrl === undefined || typeof value.pageUrl === 'string');
+
+  return (
+    value.type === 'image' &&
+    typeof value.url === 'string' &&
+    value.url.length <= 2_000 &&
+    validSource &&
+    validOptionalStrings
+  );
+}
+
 function isQuestion(value: unknown): value is Question {
   if (!isRecord(value)) return false;
   if (typeof value.id !== 'string' || typeof value.order !== 'number') return false;
   if (!isQuestionType(value.type)) return false;
   if (!Array.isArray(value.lines) || !value.lines.every(isQuestionLine)) return false;
   if (typeof value.maxPoints !== 'number') return false;
+  if (
+    value.media !== undefined &&
+    (!Array.isArray(value.media) || !value.media.every(isMediaAttachment))
+  ) {
+    return false;
+  }
 
   if (value.type === 'open') {
     if (value.options !== undefined) return false;

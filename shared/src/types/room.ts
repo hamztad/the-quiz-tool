@@ -7,8 +7,14 @@ export interface QuestionLine {
 
 export interface MediaAttachment {
   type: 'image';
+  /** Remote image URL selected through the backend Pixabay search proxy. */
   url: string;
   alt?: string;
+  source?: 'pixabay';
+  /** Small preview URL when source provides one, e.g. Pixabay thumbnails. */
+  previewUrl?: string;
+  photographer?: string;
+  pageUrl?: string;
 }
 
 export interface McOption {
