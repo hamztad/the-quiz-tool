@@ -23,8 +23,8 @@ const HIGHLIGHT_MS = 5000;
 
 function ReviewAnswersCta({ to }: { to: string }) {
   return (
-    <Link
-      to={to}
+    <a
+      href={to}
       className="mb-5 block w-full rounded-2xl border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 text-left transition-colors hover:bg-quiz-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent sm:p-5"
       aria-label="Se egne svar og poeng"
     >
@@ -39,7 +39,7 @@ function ReviewAnswersCta({ to }: { to: string }) {
           Se egne svar og poeng
         </span>
       </div>
-    </Link>
+    </a>
   );
 }
 
