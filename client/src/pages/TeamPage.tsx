@@ -321,6 +321,7 @@ export function TeamPage() {
           </Button>
         </div>
       )}
+      {canReviewOwn && <ReviewAnswersCta onClick={openOwnReview} />}
 
       <div className="quiz-page-content space-y-4">
           {activeQuestionOpen ? (

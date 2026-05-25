@@ -36,4 +36,26 @@ describe('team review selectors', () => {
       ),
     ).toEqual([{ teamId: 'team-a', questionId: 'q-1', points: 2, source: 'peer' }]);
   });
+
+  it('keeps A/B/C circular grading separate from each team review', () => {
+    const answers = [
+      { teamId: 'team-a', questionId: 'q-a' },
+      { teamId: 'team-b', questionId: 'q-b' },
+      { teamId: 'team-c', questionId: 'q-c' },
+    ];
+    const peerGrades = [
+      { graderTeamId: 'team-a', targetTeamId: 'team-b', questionId: 'q-b', points: 0 },
+      { graderTeamId: 'team-b', targetTeamId: 'team-c', questionId: 'q-c', points: 1 },
+      { graderTeamId: 'team-c', targetTeamId: 'team-a', questionId: 'q-a', points: 2 },
+    ];
+
+    expect(ownAnswerQuestionIds(answers, 'team-a')).toEqual(['q-a']);
+    expect(ownAnswerQuestionIds(answers, 'team-a')).not.toContain('q-b');
+    expect(ownAwardedPeerGrades(peerGrades, 'team-a')).toEqual([
+      { graderTeamId: 'team-c', targetTeamId: 'team-a', questionId: 'q-a', points: 2 },
+    ]);
+    expect(ownAwardedPeerGrades(peerGrades, 'team-a')).not.toContainEqual(
+      { graderTeamId: 'team-a', targetTeamId: 'team-b', questionId: 'q-b', points: 0 },
+    );
+  });
 });

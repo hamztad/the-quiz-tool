@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { CLIENT_EVENTS, type Protest, type PublicRoomState, type Question } from '@quiz-tool/shared';
+import {
+  CLIENT_EVENTS,
+  ownAnswerQuestionIds,
+  type Protest,
+  type PublicRoomState,
+  type Question,
+} from '@quiz-tool/shared';
 import { QuestionBody } from '../question/QuestionBody';
 import { PageShell } from '../layout/PageShell';
 import { Button } from '../ui/Button';
@@ -84,7 +90,11 @@ export function TeamResultsReviewView({
   const reviewTeamId = getReviewTeamId(room, teamId);
   const ownAnswers = room.answers.filter((a) => a.teamId === reviewTeamId);
   const ownAnswerByQuestionId = new Map(ownAnswers.map((a) => [a.questionId, a]));
-  const answeredQuestions = room.questions.filter((q) => ownAnswerByQuestionId.has(q.id));
+  const ownQuestionIds = new Set(ownAnswerQuestionIds(room.answers, reviewTeamId));
+  const answeredQuestions = room.questions.filter((q) => ownQuestionIds.has(q.id));
+  const gradedCount = answeredQuestions.filter(
+    (question) => getTeamQuestionScore(room, reviewTeamId, question.id).points !== null,
+  ).length;
   const totalPoints = answeredQuestions.reduce((sum, question) => {
     const score = getTeamQuestionScore(room, reviewTeamId, question.id);
     return sum + (score.points ?? 0);
@@ -125,6 +135,14 @@ export function TeamResultsReviewView({
           {totalPoints} poeng
         </p>
       </Card>
+
+      {answeredQuestions.length > 0 && gradedCount === 0 && (
+        <Card className="mb-5 border border-yellow-500/40 bg-yellow-500/10 p-4">
+          <p className="text-sm font-medium text-yellow-100">
+            Gjennomgang er åpnet, men ingen poeng er registrert ennå.
+          </p>
+        </Card>
+      )}
 
       {answeredQuestions.length === 0 ? (
         <Card className="p-5 text-center">

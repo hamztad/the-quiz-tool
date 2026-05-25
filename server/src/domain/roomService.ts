@@ -207,6 +207,9 @@ export function toPublicState(
   const assignment = room.gradingAssignments.find((g) => g.graderTeamId === teamId);
   const ownAnsweredQuestionIds = new Set(teamId ? (room.answeredByTeam[teamId] ?? []) : []);
   const teamReviewOpen = room.settings.teamReviewOpen === true;
+  const assignedQuestionIds = new Set(
+    room.phase === 'grading' && assignment ? assignment.questionIds : [],
+  );
 
   let visibleAnswers = room.answers.filter((a) => a.teamId === teamId);
 
@@ -230,9 +233,21 @@ export function toPublicState(
   const visibleGradingAssignments = assignment ? [assignment] : [];
 
   const questions = room.questions.map((q) => {
-    const revealed =
-      isQuestionRevealedToTeam(room, q.id) || (teamReviewOpen && ownAnsweredQuestionIds.has(q.id));
-    return redactQuestionForTeam(q, revealed);
+    const showReviewFasit = teamReviewOpen && ownAnsweredQuestionIds.has(q.id);
+    const showGradingFasit = assignedQuestionIds.has(q.id);
+    const revealed = isQuestionRevealedToTeam(room, q.id) || showReviewFasit || showGradingFasit;
+    const redacted = redactQuestionForTeam(q, revealed);
+    if (showReviewFasit || showGradingFasit || redacted.lines.length === 0) {
+      return redacted;
+    }
+    return {
+      ...redacted,
+      acceptedAnswers: undefined,
+      options:
+        redacted.type === 'mc'
+          ? redacted.options?.map((o) => ({ ...o, isCorrect: false }))
+          : undefined,
+    };
   });
 
   return {
