@@ -201,29 +201,29 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
           </div>
         </div>
 
-        <div className="w-full max-w-xl rounded-xl border border-quiz-border bg-quiz-surface-elevated/60 p-3">
-          <div className="grid grid-cols-[auto,1fr] items-start gap-3">
+        <label
+          htmlFor="ai-include-pixabay-images"
+          className={`flex w-full max-w-xl cursor-pointer items-start gap-3 rounded-xl border border-quiz-border bg-quiz-surface-elevated/60 p-3 transition-colors hover:border-quiz-accent/50 hover:bg-quiz-surface-elevated/80 sm:gap-4 ${
+            loading ? 'cursor-not-allowed opacity-70' : ''
+          }`}
+        >
           <input
             id="ai-include-pixabay-images"
             type="checkbox"
             checked={includePixabayImages}
             onChange={(e) => setIncludePixabayImages(e.target.checked)}
             disabled={loading}
-            className="mt-0.5 h-4 w-4 accent-quiz-accent"
+            className="mt-0.5 h-5 w-5 shrink-0 rounded border-quiz-border bg-quiz-bg text-quiz-accent accent-quiz-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-quiz-accent"
           />
-          <div className="min-w-0">
-            <label
-              htmlFor="ai-include-pixabay-images"
-              className="block cursor-pointer text-sm font-semibold text-quiz-text"
-            >
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold leading-5 text-quiz-text">
               Finn relevante bilder fra Pixabay
-            </label>
-            <p className="mt-1 text-xs leading-relaxed text-quiz-muted">
+            </span>
+            <span className="mt-1 block text-xs leading-relaxed text-quiz-muted">
               AI prøver å legge ved ett bilde per spørsmål. Du kan fjerne eller bytte bilde etterpå.
-            </p>
-          </div>
-          </div>
-        </div>
+            </span>
+          </span>
+        </label>
       </div>
 
       <Button
