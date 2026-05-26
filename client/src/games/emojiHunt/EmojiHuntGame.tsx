@@ -156,6 +156,22 @@ export function EmojiHuntGame({
     }, 60);
   };
 
+  const resetAttempt = () => {
+    clearTimers();
+    targetsRef.current = [];
+    foundRef.current = [];
+    targetDurationsRef.current = [];
+    roundLockedRef.current = false;
+    setTargets([]);
+    setFound([]);
+    setOptions([]);
+    setDisplayMs(0);
+    setMessage('Trykk Start runde når dere er klare.');
+    setMessageKind('neutral');
+    setHighlight({});
+    setPhaseState('idle');
+  };
+
   const clickEmoji = (option: EmojiHuntOption) => {
     if (disabled || phaseRef.current !== 'playing' || roundLockedRef.current) return;
     const isHit = targetsRef.current.includes(option.emoji) && !foundRef.current.includes(option.emoji);
@@ -215,11 +231,11 @@ export function EmojiHuntGame({
         </div>
         <button
           type="button"
-          onClick={startAttempt}
-          disabled={disabled || phase === 'playing'}
+          onClick={resetAttempt}
+          disabled={disabled}
           className="rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-2 font-black text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-50 sm:order-none"
         >
-          {latestMs === null ? 'Start' : 'Prøv igjen'}
+          Start på nytt
         </button>
         <div className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-white">
           {formatEmojiHuntMs(displayMs)}
@@ -242,7 +258,7 @@ export function EmojiHuntGame({
             ))
           ) : (
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-white/80">
-              Trykk Start
+              Trykk Start runde
             </span>
           )}
         </div>
@@ -275,9 +291,14 @@ export function EmojiHuntGame({
             );
           })}
           {phase !== 'playing' && options.length === 0 && (
-            <p className="col-span-4 px-4 text-sm font-semibold text-white/80">
-              Start runden når dere er klare.
-            </p>
+            <button
+              type="button"
+              onClick={startAttempt}
+              disabled={disabled}
+              className="col-span-4 rounded-2xl border-2 border-sky-100/45 bg-sky-400 px-6 py-4 text-base font-black text-sky-950 shadow-lg transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Start runde
+            </button>
           )}
         </div>
       </div>
