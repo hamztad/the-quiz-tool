@@ -1,6 +1,8 @@
 import {
+  createDefaultEmojiHuntConfig,
   createDefaultRainbowPuzzleConfig,
   createDefaultTimerChallengeConfig,
+  type GameId,
   type Question,
 } from '@quiz-tool/shared';
 import { generateId } from './id';
@@ -54,6 +56,24 @@ export function createRainbowPuzzleQuestion(order: number): Question {
     game: createDefaultRainbowPuzzleConfig(),
     maxPoints: 5,
   };
+}
+
+export function createEmojiHuntQuestion(order: number): Question {
+  return {
+    id: generateId('q'),
+    order,
+    type: 'game',
+    gameType: 'emojiHunt',
+    lines: [{ text: 'Emoji-jakt', style: 'title' }],
+    game: createDefaultEmojiHuntConfig(),
+    maxPoints: 5,
+  };
+}
+
+export function createGameQuestion(order: number, gameId: GameId): Question {
+  if (gameId === 'rainbowPuzzle') return createRainbowPuzzleQuestion(order);
+  if (gameId === 'emojiHunt') return createEmojiHuntQuestion(order);
+  return createTimerChallengeQuestion(order);
 }
 
 /** Assign fresh ids and sequential order when appending parsed import to a list */

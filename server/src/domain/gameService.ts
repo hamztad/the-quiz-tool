@@ -1,7 +1,9 @@
 import {
+  buildEmojiHuntResults,
   buildRainbowPuzzleResults,
   buildTimerChallengeResults,
   gameResultsToScoreEntries,
+  isEmojiHuntSubmissionPayload,
   isRainbowPuzzleSubmissionPayload,
   type GameSubmissionPayload,
 } from '@quiz-tool/shared';
@@ -128,6 +130,15 @@ export function submitGameResult(
       gameId: 'rainbowPuzzle',
       score: Math.max(0, Math.floor(payload.score)),
     };
+  } else if (question.game.gameId === 'emojiHunt') {
+    if (!isEmojiHuntSubmissionPayload(payload)) {
+      throw new Error('Ugyldig spillinnsending.');
+    }
+    const maxTotalMs = question.game.targetCount * question.game.maxMsPerTarget;
+    submissionPayload = {
+      gameId: 'emojiHunt',
+      totalMs: Math.min(maxTotalMs, Math.max(0, Math.round(payload.totalMs))),
+    };
   } else {
     throw new Error('Dette spillet er ikke støttet ennå.');
   }
@@ -187,6 +198,13 @@ export function calculateGameQuestionResults(room: RoomRecord, questionId: strin
     );
   } else if (question.game.gameId === 'rainbowPuzzle') {
     results = buildRainbowPuzzleResults(
+      questionId,
+      question.maxPoints,
+      question.game,
+      submissions,
+    );
+  } else if (question.game.gameId === 'emojiHunt') {
+    results = buildEmojiHuntResults(
       questionId,
       question.maxPoints,
       question.game,

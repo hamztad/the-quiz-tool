@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { CLIENT_EVENTS, questionsToQuizText, type Question } from '@quiz-tool/shared';
+import { builtInGames, CLIENT_EVENTS, questionsToQuizText, type GameId, type Question } from '@quiz-tool/shared';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
 import { HostQuestionEditorCard } from '../components/host/HostQuestionEditorCard';
@@ -17,8 +17,7 @@ import { useSocket } from '../hooks/useSocket';
 import {
   createMcQuestion,
   createOpenQuestion,
-  createRainbowPuzzleQuestion,
-  createTimerChallengeQuestion,
+  createGameQuestion,
   isQuestionIncomplete,
   normalizeQuestionsForSave,
   stampImportedQuestions,
@@ -58,6 +57,7 @@ export function HostEditPage() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
+  const [gamePickerOpen, setGamePickerOpen] = useState(false);
   const editorListRef = useRef<HTMLDivElement>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevEditModeRef = useRef<QuizEditMode>(editMode);
@@ -153,18 +153,24 @@ export function HostEditPage() {
     setSaveMessage(null);
   };
 
-  const addQuestion = (type: 'open' | 'mc' | 'timerChallenge' | 'rainbowPuzzle') => {
+  const addQuestion = (type: 'open' | 'mc') => {
     const nextQuestion =
       type === 'open'
         ? createOpenQuestion(draftQuestions.length)
-        : type === 'mc'
-          ? createMcQuestion(draftQuestions.length)
-          : type === 'timerChallenge'
-            ? createTimerChallengeQuestion(draftQuestions.length)
-            : createRainbowPuzzleQuestion(draftQuestions.length);
+        : createMcQuestion(draftQuestions.length);
     const nextList = [...draftQuestions, nextQuestion];
     updateDraft(nextList);
     setEditMode('editor');
+    setExpandedIds(new Set([nextQuestion.id]));
+    flashHighlight(nextQuestion.id, nextList.length - 1);
+  };
+
+  const addGameQuestion = (gameId: GameId) => {
+    const nextQuestion = createGameQuestion(draftQuestions.length, gameId);
+    const nextList = [...draftQuestions, nextQuestion];
+    updateDraft(nextList);
+    setEditMode('editor');
+    setGamePickerOpen(false);
     setExpandedIds(new Set([nextQuestion.id]));
     flashHighlight(nextQuestion.id, nextList.length - 1);
   };
@@ -366,12 +372,31 @@ export function HostEditPage() {
               <Button type="button" variant="secondary" onClick={() => addQuestion('mc')}>
                 + Flervalg (MC)
               </Button>
-              <Button type="button" variant="secondary" onClick={() => addQuestion('timerChallenge')}>
-                + Stoppklokka
+            </div>
+            <div className="mt-3 rounded-xl border border-quiz-border/70 bg-quiz-bg/50 p-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setGamePickerOpen((open) => !open)}
+                aria-expanded={gamePickerOpen}
+              >
+                + Spill
               </Button>
-              <Button type="button" variant="secondary" onClick={() => addQuestion('rainbowPuzzle')}>
-                + Rainbow Puzzle
-              </Button>
+              {gamePickerOpen && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {builtInGames.map((game) => (
+                    <button
+                      key={game.id}
+                      type="button"
+                      onClick={() => addGameQuestion(game.id)}
+                      className="min-h-[64px] rounded-xl border border-quiz-border bg-quiz-surface-elevated px-3 py-2 text-left transition-colors hover:border-quiz-accent hover:bg-quiz-accent/10"
+                    >
+                      <span className="block text-sm font-bold text-quiz-text">{game.label}</span>
+                      <span className="mt-0.5 block text-xs text-quiz-muted">{game.description}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {addedNotice && (
               <p

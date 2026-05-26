@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createDefaultEmojiHuntConfig } from '../games/modules/emojiHunt.js';
 import type { Question } from '../types/room.js';
 import { buildQuizFileExport, parseQuizFile, QUIZ_FILE_FORMAT } from './quizFile.js';
 import { questionsToQuizText } from './questionsToQuizText.js';
@@ -42,6 +43,25 @@ describe('parseQuizFile', () => {
     const exported = buildQuizFileExport([]);
     const result = parseQuizFile(exported);
     expect(result.ok).toBe(false);
+  });
+
+  it('validates Emoji-jakt game config', () => {
+    const exported = buildQuizFileExport([
+      {
+        id: 'q-emoji',
+        order: 0,
+        type: 'game',
+        gameType: 'emojiHunt',
+        lines: [{ text: 'Emoji-jakt', style: 'title' }],
+        game: createDefaultEmojiHuntConfig(),
+        maxPoints: 5,
+      },
+    ]);
+
+    expect(parseQuizFile(exported).ok).toBe(true);
+    const invalid = JSON.parse(JSON.stringify(exported));
+    invalid.questions[0].game.targetCount = 6;
+    expect(parseQuizFile(invalid).ok).toBe(false);
   });
 });
 

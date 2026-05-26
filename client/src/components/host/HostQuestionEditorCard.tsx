@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type {
+  EmojiHuntConfig,
   GamePointBand,
   MediaAttachment,
   Question,
@@ -92,7 +93,7 @@ export function HostQuestionEditorCard({
       ...question,
       maxPoints: nextMaxPoints,
       game:
-        question.game?.pointMode === 'rankedBands' && question.game.gameId !== 'rainbowPuzzle'
+        question.game?.pointMode === 'rankedBands' && question.game.gameId === 'timerChallenge'
           ? { ...question.game, pointBands: [{ rank: 1, points: nextMaxPoints }] }
           : question.game,
     });
@@ -663,6 +664,99 @@ function GameQuestionEditor({
           <p className="mt-1 text-xs text-quiz-muted">
             Lagene spiller et fargerikt 5x5-brett. Høyeste poengsum vinner.
           </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {[1, 2, 3].map((rank) => (
+            <label key={rank} className="block min-w-0">
+              <span className="mb-1 block text-xs font-medium text-quiz-muted">
+                {rank}. plass
+              </span>
+              <Input
+                type="number"
+                min={0}
+                value={bands.find((band) => band.rank === rank)?.points ?? 0}
+                onChange={(event) => setBand(rank, Number(event.target.value))}
+                className="bg-quiz-bg py-2 min-h-[44px]"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (question.game?.gameId === 'emojiHunt') {
+    const config = question.game;
+    const bands = config.pointBands ?? [
+      { rank: 1, points: 5 },
+      { rank: 2, points: 3 },
+      { rank: 3, points: 1 },
+    ];
+    const updateGame = (next: EmojiHuntConfig) => {
+      onChange({
+        ...question,
+        gameType: 'emojiHunt',
+        game: next,
+      });
+    };
+    const setBand = (rank: number, points: number) => {
+      updateGame({
+        ...config,
+        pointBands: [1, 2, 3].map((item) => ({
+          rank: item,
+          points: item === rank ? Math.max(0, Math.round(points)) : (bands.find((b) => b.rank === item)?.points ?? 0),
+        })),
+      });
+    };
+
+    return (
+      <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
+        <div>
+          <p className="text-xs font-semibold text-sky-200">Spill: Emoji-jakt</p>
+          <p className="mt-1 text-xs text-quiz-muted">
+            Lagene finner målemojier raskest mulig. Laveste tid vinner.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block min-w-0">
+            <span className="mb-1 block text-xs font-medium text-quiz-muted">
+              Antall målemojier
+            </span>
+            <select
+              value={config.targetCount}
+              onChange={(event) =>
+                updateGame({
+                  ...config,
+                  targetCount: Number(event.target.value) as EmojiHuntConfig['targetCount'],
+                })
+              }
+              className="box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-inset focus:ring-quiz-accent min-h-[44px]"
+            >
+              {[2, 3, 4, 5].map((count) => (
+                <option key={count} value={count}>
+                  {count} emoji
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block min-w-0">
+            <span className="mb-1 block text-xs font-medium text-quiz-muted">
+              Maks sekunder per emoji
+            </span>
+            <Input
+              type="number"
+              min={1}
+              max={30}
+              value={Math.round(config.maxMsPerTarget / 1000)}
+              onChange={(event) =>
+                updateGame({
+                  ...config,
+                  maxMsPerTarget: Math.max(1, Number(event.target.value)) * 1000,
+                })
+              }
+              className="bg-quiz-bg py-2 min-h-[44px]"
+            />
+          </label>
         </div>
         <div className="grid gap-2 sm:grid-cols-3">
           {[1, 2, 3].map((rank) => (

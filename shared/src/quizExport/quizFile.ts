@@ -87,6 +87,22 @@ function isGameQuestionConfig(value: unknown): value is GameQuestionConfig {
         value.pointMode === 'directScoreToPoints')
     );
   }
+  if (value.gameId === 'emojiHunt') {
+    return (
+      (value.targetCount === 2 ||
+        value.targetCount === 3 ||
+        value.targetCount === 4 ||
+        value.targetCount === 5) &&
+      typeof value.maxMsPerTarget === 'number' &&
+      value.maxMsPerTarget > 0 &&
+      value.optionCount === 20 &&
+      value.rankingMode === 'lowest' &&
+      value.resultKind === 'ranked' &&
+      (value.pointMode === 'winnerTakesAll' ||
+        value.pointMode === 'rankedBands' ||
+        value.pointMode === 'directScoreToPoints')
+    );
+  }
   return false;
 }
 

@@ -1,4 +1,4 @@
-export type GameId = 'timerChallenge' | 'rainbowPuzzle' | 'anagram' | 'mathRace';
+export type GameId = 'timerChallenge' | 'rainbowPuzzle' | 'emojiHunt' | 'anagram' | 'mathRace';
 
 export type RankingMode = 'highest' | 'lowest';
 
@@ -48,9 +48,19 @@ export interface RainbowPuzzleConfig extends GameQuestionConfigBase {
   resultKind: 'ranked';
 }
 
+export interface EmojiHuntConfig extends GameQuestionConfigBase {
+  gameId: 'emojiHunt';
+  targetCount: 2 | 3 | 4 | 5;
+  maxMsPerTarget: number;
+  optionCount: 20;
+  rankingMode: 'lowest';
+  resultKind: 'ranked';
+}
+
 export type GameQuestionConfig =
   | TimerChallengeConfig
   | RainbowPuzzleConfig
+  | EmojiHuntConfig
   | AnagramGameConfig
   | MathRaceGameConfig;
 
@@ -100,9 +110,15 @@ export interface RainbowPuzzleSubmissionPayload {
   score: number;
 }
 
+export interface EmojiHuntSubmissionPayload {
+  gameId: 'emojiHunt';
+  totalMs: number;
+}
+
 export type GameSubmissionPayload =
   | TimerChallengeSubmissionPayload
   | RainbowPuzzleSubmissionPayload
+  | EmojiHuntSubmissionPayload
   | AnagramSubmissionPayload
   | MathRaceSubmissionPayload;
 

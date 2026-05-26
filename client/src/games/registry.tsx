@@ -1,5 +1,6 @@
 import {
   CLIENT_EVENTS,
+  formatEmojiHuntMs,
   formatTimerMs,
   rankGameEntries,
   type PublicRoomState,
@@ -7,11 +8,13 @@ import {
 } from '@quiz-tool/shared';
 import type {
   GameSubmission,
+  EmojiHuntSubmissionPayload,
   RainbowPuzzleSubmissionPayload,
   TimerChallengeSubmissionPayload,
 } from '@quiz-tool/shared';
 import { useEffect, useRef } from 'react';
 import { useSocket } from '../hooks/useSocket';
+import { EmojiHuntGame } from './emojiHunt/EmojiHuntGame';
 import { RainbowPuzzleGame } from './rainbowPuzzle/RainbowPuzzleGame';
 
 interface TeamGameViewProps {
@@ -38,6 +41,9 @@ export function TeamGameView({ room, question, teamId }: TeamGameViewProps) {
   if (question.game?.gameId === 'rainbowPuzzle') {
     return <RainbowPuzzleTeamView room={room} question={question} teamId={teamId} />;
   }
+  if (question.game?.gameId === 'emojiHunt') {
+    return <EmojiHuntTeamView room={room} question={question} teamId={teamId} />;
+  }
 
   return (
     <p className="mt-4 rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-sm text-quiz-muted">
@@ -57,6 +63,10 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
   const provisionalRainbow =
     question.game?.gameId === 'rainbowPuzzle' && results.length === 0
       ? bestRainbowSubmissions(submissions)
+      : [];
+  const provisionalEmoji =
+    question.game?.gameId === 'emojiHunt' && results.length === 0
+      ? bestEmojiHuntSubmissions(submissions)
       : [];
 
   return (
@@ -107,8 +117,33 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
           })}
         </ol>
       )}
+      {provisionalEmoji.length > 0 && (
+        <ol className="mt-3 space-y-2">
+          {provisionalEmoji.map((entry) => {
+            const team = room.teams.find((item) => item.id === entry.teamId);
+            return (
+              <li
+                key={`${question.id}-${entry.teamId}`}
+                className="flex min-w-0 items-center gap-2 rounded-lg border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm"
+              >
+                <span className="shrink-0 font-bold tabular-nums">#{entry.rank}</span>
+                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Lag'}</span>
+                <span className="shrink-0 font-semibold text-sky-100">
+                  {formatEmojiHuntMs(entry.totalMs)}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
     </div>
   );
+}
+
+function isEmojiHuntSubmission(
+  submission: GameSubmission,
+): submission is GameSubmission & { payload: EmojiHuntSubmissionPayload } {
+  return submission.payload.gameId === 'emojiHunt';
 }
 
 function isRainbowSubmission(
@@ -130,6 +165,21 @@ function bestRainbowSubmissions(submissions: GameSubmission[]): { teamId: string
     Array.from(bestByTeam.entries()).map(([teamId, score]) => ({ teamId, rankValue: score })),
     'highest',
   ).map((entry) => ({ teamId: entry.teamId, score: entry.rankValue, rank: entry.rank }));
+}
+
+function bestEmojiHuntSubmissions(submissions: GameSubmission[]): { teamId: string; totalMs: number; rank: number }[] {
+  const bestByTeam = new Map<string, number>();
+  for (const submission of submissions) {
+    if (!isEmojiHuntSubmission(submission)) continue;
+    const current = bestByTeam.get(submission.teamId);
+    if (current === undefined || submission.payload.totalMs < current) {
+      bestByTeam.set(submission.teamId, submission.payload.totalMs);
+    }
+  }
+  return rankGameEntries(
+    Array.from(bestByTeam.entries()).map(([teamId, totalMs]) => ({ teamId, rankValue: totalMs })),
+    'lowest',
+  ).map((entry) => ({ teamId: entry.teamId, totalMs: entry.rankValue, rank: entry.rank }));
 }
 
 function timerFeedback(diffMs: number): string {
@@ -166,6 +216,40 @@ function RainbowPuzzleTeamView({ room, question, teamId }: TeamGameViewProps) {
   };
 
   return <RainbowPuzzleGame bestScore={bestScore} onComplete={submitScore} />;
+}
+
+function EmojiHuntTeamView({ room, question, teamId }: TeamGameViewProps) {
+  const { socket } = useSocket();
+  const submissions = room.gameSubmissions
+    .filter((item) => item.questionId === question.id && item.teamId === teamId)
+    .filter(isEmojiHuntSubmission)
+    .sort((a, b) => a.serverReceivedAt - b.serverReceivedAt);
+  const latestMs = submissions.at(-1)?.payload.totalMs ?? null;
+  const bestMs =
+    submissions.length > 0
+      ? Math.min(...submissions.map((item) => item.payload.totalMs))
+      : null;
+  const config = question.game?.gameId === 'emojiHunt' ? question.game : null;
+
+  const submitTime = (totalMs: number) => {
+    socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
+      questionId: question.id,
+      payload: { gameId: 'emojiHunt', totalMs },
+    });
+  };
+
+  if (!config) return null;
+
+  return (
+    <EmojiHuntGame
+      targetCount={config.targetCount}
+      maxMsPerTarget={config.maxMsPerTarget}
+      optionCount={config.optionCount}
+      latestMs={latestMs}
+      bestMs={bestMs}
+      onComplete={submitTime}
+    />
+  );
 }
 
 function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {

@@ -19,6 +19,9 @@ export function getQuestionFasitText(question: Question): string | null {
     if (question.game?.gameId === 'rainbowPuzzle') {
       return 'Rainbow Puzzle: høyeste fullførte poengsum vinner.';
     }
+    if (question.game?.gameId === 'emojiHunt') {
+      return `Emoji-jakt: finn ${question.game.targetCount} emoji raskest mulig.`;
+    }
     return 'Spillresultat beregnes automatisk.';
   }
   const accepted = (question.acceptedAnswers ?? []).filter((a) => a.trim());
