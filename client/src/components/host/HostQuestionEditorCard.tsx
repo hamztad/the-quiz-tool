@@ -852,7 +852,7 @@ function GameQuestionEditor({
             {config.obstacleCount} hindre · mynter {config.coinValues.map((value) => `${value / 1000}K`).join(', ')}
           </p>
           <p className="mt-1 text-xs text-quiz-muted">
-            1 poeng per ms i lufta. Bonusball låses opp ved {config.bonusBallThreshold.toLocaleString('nb-NO')} poeng på ett brett.
+            1 poeng per ms i lufta. Mynter gir 1k, 2k og 3k, med +{config.allCoinsBonus.toLocaleString('nb-NO')} for alle tre.
           </p>
         </div>
         <div className="grid gap-2 sm:grid-cols-3">

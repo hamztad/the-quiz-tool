@@ -29,7 +29,7 @@ export const builtInGames: BuiltInGameDefinition[] = [
   {
     id: 'dropBall',
     label: 'Drop Ball',
-    description: 'Slipp ballen i score-slots og jakt bonusball-jackpot.',
+    description: 'Slipp ballen, samle mynter og fjern hindre for høyest score.',
     createDefaultConfig: createDefaultDropBallConfig,
   },
   {

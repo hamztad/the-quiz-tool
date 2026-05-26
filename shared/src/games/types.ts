@@ -102,14 +102,12 @@ export interface EmojiHuntConfig extends GameQuestionConfigBase {
 }
 
 export type DropBallTotalRounds = 1 | 2 | 3;
-export type DropBallBallKind = 'normal' | 'bonus';
 
 export interface DropBallConfig extends GameQuestionConfigBase {
   gameId: 'dropBall';
   totalRounds: DropBallTotalRounds;
   obstacleCount: number;
   coinValues: number[];
-  bonusBallThreshold: number;
   maxAirTimeMs: number;
   allCoinsBonus: number;
   allObstaclesBonus: number;
@@ -198,7 +196,6 @@ export interface EmojiHuntSubmissionPayload {
 
 export interface DropBallRoundResult {
   roundIndex: number;
-  ballKind: DropBallBallKind;
   airTimeMs: number;
   obstacleHits: number;
   coinValues: number[];
@@ -208,7 +205,6 @@ export interface DropBallRoundResult {
   allObstaclesBonus: number;
   perfectBoardBonus: number;
   score: number;
-  unlockedBonus: boolean;
 }
 
 export interface DropBallSubmissionPayload {

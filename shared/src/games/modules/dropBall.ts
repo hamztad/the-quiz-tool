@@ -1,5 +1,4 @@
 import type {
-  DropBallBallKind,
   DropBallConfig,
   DropBallRoundResult,
   DropBallSubmissionPayload,
@@ -12,7 +11,6 @@ import { quizPointsForRank } from '../scoring.js';
 export const DROP_BALL_DEFAULT_ROUNDS = 3;
 export const DROP_BALL_OBSTACLE_COUNT = 14;
 export const DROP_BALL_COIN_VALUES = [1000, 2000, 3000] as const;
-export const DROP_BALL_BONUS_BALL_THRESHOLD = 40_000;
 export const DROP_BALL_MAX_AIR_TIME_MS = 30_000;
 export const DROP_BALL_ALL_COINS_BONUS = 5000;
 export const DROP_BALL_ALL_OBSTACLES_BONUS = 10_000;
@@ -22,11 +20,10 @@ export function createDefaultDropBallConfig(): DropBallConfig {
   return {
     gameId: 'dropBall',
     title: 'Drop Ball',
-    instructions: 'Slipp ballen tre ganger. Fjern hindre, samle mynter og få høyest totalscore.',
+    instructions: 'Slipp ballen tre ganger. Fjern hindre, samle 1k/2k/3k-mynter og få hattrick-bonus for alle tre.',
     totalRounds: DROP_BALL_DEFAULT_ROUNDS,
     obstacleCount: DROP_BALL_OBSTACLE_COUNT,
     coinValues: [...DROP_BALL_COIN_VALUES],
-    bonusBallThreshold: DROP_BALL_BONUS_BALL_THRESHOLD,
     maxAirTimeMs: DROP_BALL_MAX_AIR_TIME_MS,
     allCoinsBonus: DROP_BALL_ALL_COINS_BONUS,
     allObstaclesBonus: DROP_BALL_ALL_OBSTACLES_BONUS,
@@ -61,8 +58,6 @@ export function isValidDropBallConfig(config: DropBallConfig): boolean {
     config.coinValues.length > 0 &&
     config.coinValues.length <= 10 &&
     config.coinValues.every((score) => Number.isFinite(score) && score >= 0) &&
-    Number.isFinite(config.bonusBallThreshold) &&
-    config.bonusBallThreshold >= 0 &&
     Number.isFinite(config.maxAirTimeMs) &&
     config.maxAirTimeMs >= 1000 &&
     Number.isFinite(config.allCoinsBonus) &&
@@ -84,7 +79,6 @@ export function calculateDropBallObstaclePoints(obstacleHits: number): number {
 
 export function calculateDropBallBoardScore(
   config: DropBallConfig,
-  ballKind: DropBallBallKind,
   airTimeMs: number,
   obstacleHits: number,
   coinValues: number[],
@@ -119,7 +113,6 @@ export function calculateDropBallBoardScore(
 
   return {
     roundIndex,
-    ballKind,
     airTimeMs: safeAirTimeMs,
     obstacleHits: safeObstacleHits,
     coinValues: safeCoinValues,
@@ -129,14 +122,12 @@ export function calculateDropBallBoardScore(
     allObstaclesBonus,
     perfectBoardBonus,
     score,
-    unlockedBonus: score >= config.bonusBallThreshold,
   };
 }
 
 export function calculateDropBallMaxBoardScore(config: DropBallConfig): number {
   return calculateDropBallBoardScore(
     config,
-    'bonus',
     config.maxAirTimeMs,
     config.obstacleCount,
     config.coinValues,
@@ -144,9 +135,7 @@ export function calculateDropBallMaxBoardScore(config: DropBallConfig): number {
 }
 
 export function calculateDropBallMaxScore(config: DropBallConfig): number {
-  // A quiz attempt can contain the normal boards plus at most one extra bonus board
-  // per normal board. This keeps server-side score clamping bounded.
-  return calculateDropBallMaxBoardScore(config) * config.totalRounds * 2;
+  return calculateDropBallMaxBoardScore(config) * config.totalRounds;
 }
 
 export function clampDropBallScore(score: number, config: DropBallConfig): number {
@@ -159,10 +148,9 @@ export function sanitizeDropBallRounds(
   config: DropBallConfig,
 ): DropBallRoundResult[] {
   if (!Array.isArray(rounds)) return [];
-  return rounds.slice(0, config.totalRounds * 2).map((round, index) =>
+  return rounds.slice(0, config.totalRounds).map((round, index) =>
     calculateDropBallBoardScore(
       config,
-      round.ballKind === 'bonus' ? 'bonus' : 'normal',
       round.airTimeMs,
       round.obstacleHits,
       round.coinValues,

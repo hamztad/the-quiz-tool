@@ -12,7 +12,7 @@ describe('dropBall', () => {
   it('scores airtime, obstacle chain, coins and completion bonuses', () => {
     const config = createDefaultDropBallConfig();
 
-    expect(calculateDropBallBoardScore(config, 'normal', 7000, 3, [1000], 0)).toMatchObject({
+    expect(calculateDropBallBoardScore(config, 7000, 3, [1000], 0)).toMatchObject({
       airTimeMs: 7000,
       obstacleHits: 3,
       obstaclePoints: 600,
@@ -21,9 +21,8 @@ describe('dropBall', () => {
       allObstaclesBonus: 0,
       perfectBoardBonus: 0,
       score: 8600,
-      unlockedBonus: false,
     });
-    expect(calculateDropBallBoardScore(config, 'bonus', 12_000, 14, [1000, 2000, 3000], 1)).toMatchObject({
+    expect(calculateDropBallBoardScore(config, 12_000, 14, [1000, 2000, 3000], 1)).toMatchObject({
       airTimeMs: 12_000,
       obstacleHits: 14,
       obstaclePoints: 10_500,
@@ -32,9 +31,8 @@ describe('dropBall', () => {
       allObstaclesBonus: 10_000,
       perfectBoardBonus: 25_000,
       score: 68_500,
-      unlockedBonus: true,
     });
-    expect(calculateDropBallMaxScore(config)).toBe(519_000);
+    expect(calculateDropBallMaxScore(config)).toBe(259_500);
   });
 
   it('sanitizes client board breakdowns', () => {
@@ -43,7 +41,6 @@ describe('dropBall', () => {
     expect(sanitizeDropBallRounds([
       {
         roundIndex: 9,
-        ballKind: 'bonus',
         airTimeMs: 99_000,
         obstacleHits: 99,
         coinValues: [1000, 1000, 2000, 3000, 99_000],
@@ -53,7 +50,6 @@ describe('dropBall', () => {
         allObstaclesBonus: 0,
         perfectBoardBonus: 0,
         score: 0,
-        unlockedBonus: false,
       },
     ], config)).toMatchObject([
       {
