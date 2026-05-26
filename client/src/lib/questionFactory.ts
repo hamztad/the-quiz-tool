@@ -1,4 +1,8 @@
-import { createDefaultTimerChallengeConfig, type Question } from '@quiz-tool/shared';
+import {
+  createDefaultRainbowPuzzleConfig,
+  createDefaultTimerChallengeConfig,
+  type Question,
+} from '@quiz-tool/shared';
 import { generateId } from './id';
 
 export function createOpenQuestion(order: number): Question {
@@ -33,9 +37,22 @@ export function createTimerChallengeQuestion(order: number): Question {
     id: generateId('q'),
     order,
     type: 'game',
+    gameType: 'timerChallenge',
     lines: [{ text: 'Stopp klokka nærmest mulig målet', style: 'title' }],
     game: createDefaultTimerChallengeConfig(),
     maxPoints: 1,
+  };
+}
+
+export function createRainbowPuzzleQuestion(order: number): Question {
+  return {
+    id: generateId('q'),
+    order,
+    type: 'game',
+    gameType: 'rainbowPuzzle',
+    lines: [{ text: 'Rainbow Puzzle', style: 'title' }],
+    game: createDefaultRainbowPuzzleConfig(),
+    maxPoints: 5,
   };
 }
 
@@ -99,6 +116,7 @@ export function normalizeQuestionsForSave(questions: Question[]): Question[] {
       q.type === 'mc'
         ? q.options?.map((o) => ({ ...o, text: o.text.trim() || 'Alternativ' }))
         : undefined,
+    gameType: q.type === 'game' ? (q.gameType ?? q.game?.gameId) : undefined,
     game: q.type === 'game' ? q.game : undefined,
   }));
 }

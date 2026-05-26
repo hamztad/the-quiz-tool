@@ -1,4 +1,4 @@
-export type GameId = 'timerChallenge' | 'anagram' | 'mathRace';
+export type GameId = 'timerChallenge' | 'rainbowPuzzle' | 'anagram' | 'mathRace';
 
 export type RankingMode = 'highest' | 'lowest';
 
@@ -40,8 +40,17 @@ export interface MathRaceGameConfig extends GameQuestionConfigBase {
   problems: string[];
 }
 
+export interface RainbowPuzzleConfig extends GameQuestionConfigBase {
+  gameId: 'rainbowPuzzle';
+  gridSize: 5;
+  colors: RainbowPuzzleColor[];
+  rankingMode: 'highest';
+  resultKind: 'ranked';
+}
+
 export type GameQuestionConfig =
   | TimerChallengeConfig
+  | RainbowPuzzleConfig
   | AnagramGameConfig
   | MathRaceGameConfig;
 
@@ -76,8 +85,24 @@ export interface MathRaceSubmissionPayload {
   completedAtMs?: number;
 }
 
+export type RainbowPuzzleColor =
+  | 'red'
+  | 'blue'
+  | 'yellow'
+  | 'orange'
+  | 'pink'
+  | 'green'
+  | 'black'
+  | 'white';
+
+export interface RainbowPuzzleSubmissionPayload {
+  gameId: 'rainbowPuzzle';
+  score: number;
+}
+
 export type GameSubmissionPayload =
   | TimerChallengeSubmissionPayload
+  | RainbowPuzzleSubmissionPayload
   | AnagramSubmissionPayload
   | MathRaceSubmissionPayload;
 

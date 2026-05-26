@@ -16,6 +16,9 @@ export function getQuestionFasitText(question: Question): string | null {
     if (question.game?.gameId === 'timerChallenge') {
       return `Stoppklokka: nærmest ${(question.game.targetMs / 1000).toFixed(0)} sekunder vinner.`;
     }
+    if (question.game?.gameId === 'rainbowPuzzle') {
+      return 'Rainbow Puzzle: høyeste fullførte poengsum vinner.';
+    }
     return 'Spillresultat beregnes automatisk.';
   }
   const accepted = (question.acceptedAnswers ?? []).filter((a) => a.trim());

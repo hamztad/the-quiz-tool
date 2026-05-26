@@ -17,6 +17,7 @@ import { useSocket } from '../hooks/useSocket';
 import {
   createMcQuestion,
   createOpenQuestion,
+  createRainbowPuzzleQuestion,
   createTimerChallengeQuestion,
   isQuestionIncomplete,
   normalizeQuestionsForSave,
@@ -152,13 +153,15 @@ export function HostEditPage() {
     setSaveMessage(null);
   };
 
-  const addQuestion = (type: 'open' | 'mc' | 'timerChallenge') => {
+  const addQuestion = (type: 'open' | 'mc' | 'timerChallenge' | 'rainbowPuzzle') => {
     const nextQuestion =
       type === 'open'
         ? createOpenQuestion(draftQuestions.length)
         : type === 'mc'
           ? createMcQuestion(draftQuestions.length)
-          : createTimerChallengeQuestion(draftQuestions.length);
+          : type === 'timerChallenge'
+            ? createTimerChallengeQuestion(draftQuestions.length)
+            : createRainbowPuzzleQuestion(draftQuestions.length);
     const nextList = [...draftQuestions, nextQuestion];
     updateDraft(nextList);
     setEditMode('editor');
@@ -365,6 +368,9 @@ export function HostEditPage() {
               </Button>
               <Button type="button" variant="secondary" onClick={() => addQuestion('timerChallenge')}>
                 + Stoppklokka
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => addQuestion('rainbowPuzzle')}>
+                + Rainbow Puzzle
               </Button>
             </div>
             {addedNotice && (

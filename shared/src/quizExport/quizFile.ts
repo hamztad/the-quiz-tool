@@ -75,6 +75,18 @@ function isGameQuestionConfig(value: unknown): value is GameQuestionConfig {
         value.pointMode === 'directScoreToPoints')
     );
   }
+  if (value.gameId === 'rainbowPuzzle') {
+    return (
+      value.gridSize === 5 &&
+      Array.isArray(value.colors) &&
+      value.colors.length > 0 &&
+      value.rankingMode === 'highest' &&
+      value.resultKind === 'ranked' &&
+      (value.pointMode === 'winnerTakesAll' ||
+        value.pointMode === 'rankedBands' ||
+        value.pointMode === 'directScoreToPoints')
+    );
+  }
   return false;
 }
 
@@ -85,6 +97,7 @@ function isQuestion(value: unknown): value is Question {
   if (!Array.isArray(value.lines) || !value.lines.every(isQuestionLine)) return false;
   if (typeof value.maxPoints !== 'number') return false;
   if (value.type !== 'game' && value.game !== undefined) return false;
+  if (value.type !== 'game' && value.gameType !== undefined) return false;
 
   if (
     value.media !== undefined &&
@@ -107,6 +120,12 @@ function isQuestion(value: unknown): value is Question {
 
   if (value.type === 'game') {
     if (value.options !== undefined || value.acceptedAnswers !== undefined) return false;
+    if (
+      value.gameType !== undefined &&
+      (!isRecord(value.game) || value.gameType !== value.game.gameId)
+    ) {
+      return false;
+    }
     return isGameQuestionConfig(value.game);
   }
 

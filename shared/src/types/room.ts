@@ -1,4 +1,5 @@
 import type {
+  GameId,
   GameQuestionConfig,
   GameResult,
   GameRound,
@@ -39,6 +40,7 @@ export interface Question {
   hint?: string;
   acceptedAnswers?: string[];
   options?: McOption[];
+  gameType?: GameId;
   game?: GameQuestionConfig;
   media?: MediaAttachment[];
   maxPoints: number;

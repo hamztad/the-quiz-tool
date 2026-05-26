@@ -1,7 +1,18 @@
-import { CLIENT_EVENTS, formatTimerMs, type PublicRoomState, type Question } from '@quiz-tool/shared';
-import type { GameSubmission, TimerChallengeSubmissionPayload } from '@quiz-tool/shared';
+import {
+  CLIENT_EVENTS,
+  formatTimerMs,
+  rankGameEntries,
+  type PublicRoomState,
+  type Question,
+} from '@quiz-tool/shared';
+import type {
+  GameSubmission,
+  RainbowPuzzleSubmissionPayload,
+  TimerChallengeSubmissionPayload,
+} from '@quiz-tool/shared';
 import { useEffect, useRef } from 'react';
 import { useSocket } from '../hooks/useSocket';
+import { RainbowPuzzleGame } from './rainbowPuzzle/RainbowPuzzleGame';
 
 interface TeamGameViewProps {
   room: PublicRoomState;
@@ -24,6 +35,9 @@ export function TeamGameView({ room, question, teamId }: TeamGameViewProps) {
       />
     );
   }
+  if (question.game?.gameId === 'rainbowPuzzle') {
+    return <RainbowPuzzleTeamView room={room} question={question} teamId={teamId} />;
+  }
 
   return (
     <p className="mt-4 rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-sm text-quiz-muted">
@@ -40,6 +54,10 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
     .sort((a, b) => a.rank - b.rank);
   const submissions = room.gameSubmissions.filter((submission) => submission.questionId === question.id);
   const submittedTeamCount = new Set(submissions.map((submission) => submission.teamId)).size;
+  const provisionalRainbow =
+    question.game?.gameId === 'rainbowPuzzle' && results.length === 0
+      ? bestRainbowSubmissions(submissions)
+      : [];
 
   return (
     <div className="mt-3 rounded-xl border border-blue-500/25 bg-blue-500/5 p-3">
@@ -70,8 +88,48 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
           })}
         </ol>
       )}
+      {provisionalRainbow.length > 0 && (
+        <ol className="mt-3 space-y-2">
+          {provisionalRainbow.map((entry) => {
+            const team = room.teams.find((item) => item.id === entry.teamId);
+            return (
+              <li
+                key={`${question.id}-${entry.teamId}`}
+                className="flex min-w-0 items-center gap-2 rounded-lg border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-2 text-sm"
+              >
+                <span className="shrink-0 font-bold tabular-nums">#{entry.rank}</span>
+                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Lag'}</span>
+                <span className="shrink-0 font-semibold text-fuchsia-100">
+                  {entry.score} poeng
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
     </div>
   );
+}
+
+function isRainbowSubmission(
+  submission: GameSubmission,
+): submission is GameSubmission & { payload: RainbowPuzzleSubmissionPayload } {
+  return submission.payload.gameId === 'rainbowPuzzle';
+}
+
+function bestRainbowSubmissions(submissions: GameSubmission[]): { teamId: string; score: number; rank: number }[] {
+  const bestByTeam = new Map<string, number>();
+  for (const submission of submissions) {
+    if (!isRainbowSubmission(submission)) continue;
+    const current = bestByTeam.get(submission.teamId);
+    if (current === undefined || submission.payload.score > current) {
+      bestByTeam.set(submission.teamId, submission.payload.score);
+    }
+  }
+  return rankGameEntries(
+    Array.from(bestByTeam.entries()).map(([teamId, score]) => ({ teamId, rankValue: score })),
+    'highest',
+  ).map((entry) => ({ teamId: entry.teamId, score: entry.rankValue, rank: entry.rank }));
 }
 
 function timerFeedback(diffMs: number): string {
@@ -88,6 +146,26 @@ function isTimerSubmission(
   submission: GameSubmission,
 ): submission is GameSubmission & { payload: TimerChallengeSubmissionPayload } {
   return submission.payload.gameId === 'timerChallenge';
+}
+
+function RainbowPuzzleTeamView({ room, question, teamId }: TeamGameViewProps) {
+  const { socket } = useSocket();
+  const submissions = room.gameSubmissions
+    .filter((item) => item.questionId === question.id && item.teamId === teamId)
+    .filter(isRainbowSubmission);
+  const bestScore =
+    submissions.length > 0
+      ? Math.max(...submissions.map((item) => item.payload.score))
+      : null;
+
+  const submitScore = (score: number) => {
+    socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
+      questionId: question.id,
+      payload: { gameId: 'rainbowPuzzle', score },
+    });
+  };
+
+  return <RainbowPuzzleGame bestScore={bestScore} onComplete={submitScore} />;
 }
 
 function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {

@@ -169,6 +169,8 @@ export function QuestionCard({
           <p className="text-sm text-quiz-text">
             {question.game.gameId === 'timerChallenge'
               ? `Stoppklokka: nærmest ${(question.game.targetMs / 1000).toFixed(0)} sekunder vinner.`
+              : question.game.gameId === 'rainbowPuzzle'
+                ? 'Rainbow Puzzle: høyeste fullførte poengsum vinner.'
               : 'Innebygd spill'}
           </p>
         </div>

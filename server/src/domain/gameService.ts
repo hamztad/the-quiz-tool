@@ -1,6 +1,8 @@
 import {
+  buildRainbowPuzzleResults,
   buildTimerChallengeResults,
   gameResultsToScoreEntries,
+  isRainbowPuzzleSubmissionPayload,
   type GameSubmissionPayload,
 } from '@quiz-tool/shared';
 import type { GameResult, GameRound, GameSubmission } from '@quiz-tool/shared';
@@ -104,7 +106,7 @@ export function submitGameResult(
   const teamStart = room.gameStarts.find(
     (item) => item.questionId === questionId && item.teamId === teamId,
   );
-  if (!round || !teamStart) {
+  if (!round || (question.game.gameId === 'timerChallenge' && !teamStart)) {
     throw new Error('Spillet er ikke startet.');
   }
 
@@ -116,7 +118,15 @@ export function submitGameResult(
     }
     submissionPayload = {
       gameId: 'timerChallenge',
-      elapsedMs: Math.max(0, now - teamStart.startedAt),
+      elapsedMs: Math.max(0, now - teamStart!.startedAt),
+    };
+  } else if (question.game.gameId === 'rainbowPuzzle') {
+    if (!isRainbowPuzzleSubmissionPayload(payload)) {
+      throw new Error('Ugyldig spillinnsending.');
+    }
+    submissionPayload = {
+      gameId: 'rainbowPuzzle',
+      score: Math.max(0, Math.floor(payload.score)),
     };
   } else {
     throw new Error('Dette spillet er ikke støttet ennå.');
@@ -170,6 +180,13 @@ export function calculateGameQuestionResults(room: RoomRecord, questionId: strin
   const submissions = room.gameSubmissions.filter((item) => item.questionId === questionId);
   if (question.game.gameId === 'timerChallenge') {
     results = buildTimerChallengeResults(
+      questionId,
+      question.maxPoints,
+      question.game,
+      submissions,
+    );
+  } else if (question.game.gameId === 'rainbowPuzzle') {
+    results = buildRainbowPuzzleResults(
       questionId,
       question.maxPoints,
       question.game,

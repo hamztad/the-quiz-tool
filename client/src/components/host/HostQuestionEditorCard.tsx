@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import type { MediaAttachment, Question, TimerChallengeConfig } from '@quiz-tool/shared';
+import type {
+  GamePointBand,
+  MediaAttachment,
+  Question,
+  TimerChallengeConfig,
+} from '@quiz-tool/shared';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -87,7 +92,7 @@ export function HostQuestionEditorCard({
       ...question,
       maxPoints: nextMaxPoints,
       game:
-        question.game?.pointMode === 'rankedBands'
+        question.game?.pointMode === 'rankedBands' && question.game.gameId !== 'rainbowPuzzle'
           ? { ...question.game, pointBands: [{ rank: 1, points: nextMaxPoints }] }
           : question.game,
     });
@@ -630,6 +635,55 @@ function GameQuestionEditor({
   question: Question;
   onChange: (q: Question) => void;
 }) {
+  if (question.game?.gameId === 'rainbowPuzzle') {
+    const updateGame = (pointBands: GamePointBand[]) => {
+      onChange({
+        ...question,
+        gameType: 'rainbowPuzzle',
+        game: { ...question.game!, pointBands },
+      });
+    };
+    const bands = question.game.pointBands ?? [
+      { rank: 1, points: 5 },
+      { rank: 2, points: 3 },
+      { rank: 3, points: 1 },
+    ];
+    const setBand = (rank: number, points: number) => {
+      const next = [1, 2, 3].map((item) => ({
+        rank: item,
+        points: item === rank ? Math.max(0, Math.round(points)) : (bands.find((b) => b.rank === item)?.points ?? 0),
+      }));
+      updateGame(next);
+    };
+
+    return (
+      <div className="rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
+        <div>
+          <p className="text-xs font-semibold text-fuchsia-200">Spill: Rainbow Puzzle</p>
+          <p className="mt-1 text-xs text-quiz-muted">
+            Lagene spiller et fargerikt 5x5-brett. Høyeste poengsum vinner.
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {[1, 2, 3].map((rank) => (
+            <label key={rank} className="block min-w-0">
+              <span className="mb-1 block text-xs font-medium text-quiz-muted">
+                {rank}. plass
+              </span>
+              <Input
+                type="number"
+                min={0}
+                value={bands.find((band) => band.rank === rank)?.points ?? 0}
+                onChange={(event) => setBand(rank, Number(event.target.value))}
+                className="bg-quiz-bg py-2 min-h-[44px]"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (question.game?.gameId !== 'timerChallenge') {
     return (
       <div className="rounded-lg border border-quiz-border bg-quiz-bg p-3 text-sm text-quiz-muted">

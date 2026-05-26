@@ -403,13 +403,15 @@ export function TeamPage() {
                   ))}
                 </div>
               )}
-              <Button
-                className="w-full mt-4"
-                onClick={() => submitAnswer(activeQuestion)}
-                disabled={!answerText.trim()}
-              >
-                Send svar
-              </Button>
+              {activeQuestion.type !== 'game' && (
+                <Button
+                  className="w-full mt-4"
+                  onClick={() => submitAnswer(activeQuestion)}
+                  disabled={!answerText.trim()}
+                >
+                  Send svar
+                </Button>
+              )}
             </Card>
           ) : (
             <>
