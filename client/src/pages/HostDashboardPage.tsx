@@ -66,6 +66,7 @@ export function HostDashboardPage() {
   );
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [showFinalLockConfirm, setShowFinalLockConfirm] = useState(false);
   const [exportedHash, setExportedHash] = useState('');
   const activeQuestions = room?.questions ?? [];
   const activeQuestionsHash = quizContentHash(activeQuestions);
@@ -145,6 +146,13 @@ export function HostDashboardPage() {
     room.teams.length,
     getOpenQuestionIds(room.questions).length,
   );
+  const pendingProtests = room.protests.filter((protest) => protest.status === 'pending').length;
+  const canLockFinalResult =
+    !room.settings.finalResultLocked &&
+    pendingProtests === 0 &&
+    room.phase !== 'grading' &&
+    (room.phase === 'leaderboard' || room.phase === 'post_quiz');
+  const finalWinner = room.finalLeaderboardSnapshot?.entries[0];
 
   const endQuizForTeams = () => {
     if (
@@ -186,6 +194,11 @@ export function HostDashboardPage() {
     }
     emit(CLIENT_EVENTS.TEAM_REMOVE, { teamId });
     if (selectedTeamId === teamId) setSelectedTeamId(null);
+  };
+
+  const lockFinalResult = () => {
+    setShowFinalLockConfirm(false);
+    emit(CLIENT_EVENTS.FINAL_RESULT_LOCK);
   };
 
   return (
@@ -288,6 +301,55 @@ export function HostDashboardPage() {
             </p>
           )}
 
+          {room.settings.finalResultLocked ? (
+            <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 px-4 py-4">
+              <p className="text-sm font-black text-green-200">Endelig resultat er låst</p>
+              <p className="mt-1 text-sm text-quiz-text">
+                {finalWinner
+                  ? `Vinner: ${finalWinner.teamName} med ${finalWinner.totalPoints} poeng.`
+                  : 'Sluttresultatet er lagret som offisiell snapshot.'}
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="mt-3"
+                onClick={() => emit(CLIENT_EVENTS.FINAL_RESULT_UNLOCK)}
+              >
+                Åpne resultat igjen
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-quiz-border bg-quiz-surface-elevated/40 px-4 py-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold text-quiz-text">Endelig resultat</p>
+                  <p className="mt-1 text-xs text-quiz-muted">
+                    Lås sluttresultatet når retting og protester er ferdige.
+                  </p>
+                  {pendingProtests > 0 && (
+                    <p className="mt-1 text-xs text-yellow-200">
+                      {pendingProtests} protest{pendingProtests === 1 ? '' : 'er'} må behandles først.
+                    </p>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!canLockFinalResult}
+                  title={
+                    canLockFinalResult
+                      ? undefined
+                      : 'Avslutt quizen eller vis leaderboard, og behandle protester først.'
+                  }
+                  onClick={() => setShowFinalLockConfirm(true)}
+                >
+                  Lås endelig resultat
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Link to={`/host/${roomId}/present?invite=1`} className="w-full min-w-0 sm:w-auto">
               <Button variant="secondary" size="sm" className="w-full sm:w-auto">
@@ -352,6 +414,41 @@ export function HostDashboardPage() {
 
           {showAnswerKey && (
             <HostAnswerKeyPanel room={room} onClose={() => setShowAnswerKey(false)} />
+          )}
+
+          {showFinalLockConfirm && (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="final-lock-title"
+              onClick={() => setShowFinalLockConfirm(false)}
+            >
+              <div
+                className="w-full max-w-md rounded-2xl border border-quiz-border bg-quiz-surface p-5 shadow-xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <h2 id="final-lock-title" className="text-lg font-black text-quiz-text">
+                  Lås sluttresultat?
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-quiz-muted">
+                  Dette låser sluttresultatet. Lagene får se endelig plassering, og vinneren får
+                  en vinnerplakat.
+                </p>
+                <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setShowFinalLockConfirm(false)}
+                  >
+                    Avbryt
+                  </Button>
+                  <Button type="button" onClick={lockFinalResult}>
+                    Lås sluttresultat
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
 
           {selectedTeamId && (

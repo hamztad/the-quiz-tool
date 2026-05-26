@@ -21,6 +21,9 @@ export function submitOrUpdateAnswer(
   if (room.phase !== 'live') {
     throw new Error('Quizen er ikke startet ennå.');
   }
+  if (room.settings.finalResultLocked) {
+    throw new Error('Endelig resultat er låst.');
+  }
 
   const status = room.questionStatus[questionId];
   if (status !== 'open') {

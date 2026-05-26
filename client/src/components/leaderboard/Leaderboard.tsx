@@ -27,7 +27,14 @@ export function Leaderboard(props: LeaderboardProps) {
 
   return (
     <Card className="min-w-0 max-w-full overflow-hidden">
-      <h2 className="text-lg font-bold">Leaderboard</h2>
+      <h2 className="text-lg font-bold">
+        {room.settings.finalResultLocked ? 'Endelig leaderboard' : 'Leaderboard'}
+      </h2>
+      {room.settings.finalResultLocked && (
+        <p className="mt-1 mb-3 text-xs font-medium text-green-300">
+          Sluttresultatet er låst av quizmaster.
+        </p>
+      )}
       {hostInteractive && (
         <p className="text-xs text-quiz-muted mt-1 mb-3 break-words">
           Trykk på lagnavn for besvarelser og poeng. × kaster ut lag som har forlatt.
@@ -58,10 +65,12 @@ export function Leaderboard(props: LeaderboardProps) {
                   className="min-w-0 flex-1 text-left font-medium break-words [overflow-wrap:anywhere] rounded-lg -m-1 p-1 hover:text-quiz-accent transition-colors"
                   aria-pressed={isSelected}
                 >
+                  {i === 0 && room.settings.finalResultLocked ? '★ ' : ''}
                   {entry.teamName}
                 </button>
               ) : (
                 <span className="min-w-0 flex-1 font-medium break-words [overflow-wrap:anywhere]">
+                  {i === 0 && room.settings.finalResultLocked ? '★ ' : ''}
                   {entry.teamName}
                 </span>
               )}

@@ -1,4 +1,4 @@
-import type { LeaderboardEntry, ScoreEntry, Team } from '../types/room.js';
+import type { FinalLeaderboardSnapshot, LeaderboardEntry, RoomState, ScoreEntry, Team } from '../types/room.js';
 
 export function computeLeaderboardFromScores(
   teams: Team[],
@@ -18,4 +18,32 @@ export function computeLeaderboardFromScores(
       totalPoints: totals.get(team.id) ?? 0,
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints);
+}
+
+export function buildFinalLeaderboardSnapshot(
+  teams: Team[],
+  scores: Pick<ScoreEntry, 'teamId' | 'points'>[],
+  lockedAt = Date.now(),
+): FinalLeaderboardSnapshot {
+  return {
+    lockedAt,
+    entries: computeLeaderboardFromScores(teams, scores),
+  };
+}
+
+export function getOfficialLeaderboard(room: Pick<RoomState, 'teams' | 'scores' | 'settings' | 'finalLeaderboardSnapshot'>): LeaderboardEntry[] {
+  if (room.settings.finalResultLocked && room.finalLeaderboardSnapshot) {
+    return room.finalLeaderboardSnapshot.entries;
+  }
+  return computeLeaderboardFromScores(room.teams, room.scores);
+}
+
+export function getTeamFinalPlacement(
+  room: Pick<RoomState, 'settings' | 'finalLeaderboardSnapshot'>,
+  teamId: string,
+): { placement: number; entry: LeaderboardEntry } | null {
+  if (!room.settings.finalResultLocked || !room.finalLeaderboardSnapshot) return null;
+  const index = room.finalLeaderboardSnapshot.entries.findIndex((entry) => entry.teamId === teamId);
+  if (index < 0) return null;
+  return { placement: index + 1, entry: room.finalLeaderboardSnapshot.entries[index] };
 }

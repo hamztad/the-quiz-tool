@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   CLIENT_EVENTS,
+  getTeamFinalPlacement,
   isQuestionRevealedToTeam,
   parseOrderingAnswer,
   serializeOrderingAnswer,
@@ -26,6 +27,69 @@ import { TeamGameView } from '../games/registry';
 import { SortableOrderingList } from '../components/ordering/SortableOrderingList';
 
 const HIGHLIGHT_MS = 5000;
+
+function WinnerCertificate({
+  teamName,
+  score,
+  lockedAt,
+  quizTitle,
+}: {
+  teamName: string;
+  score: number;
+  lockedAt?: number;
+  quizTitle: string;
+}) {
+  const dateText = lockedAt
+    ? new Intl.DateTimeFormat('nb-NO', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(new Date(lockedAt))
+    : new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium' }).format(new Date());
+
+  return (
+    <section className="mb-5 overflow-hidden rounded-3xl border-2 border-yellow-300/60 bg-gradient-to-br from-yellow-300/25 via-quiz-accent/20 to-quiz-surface p-5 text-center shadow-xl sm:p-7">
+      <p className="text-xs font-black uppercase tracking-[0.25em] text-yellow-200">Vinner av quizen</p>
+      <h2 className="mt-3 text-3xl font-black text-quiz-text break-words [overflow-wrap:anywhere] sm:text-4xl">
+        {teamName}
+      </h2>
+      <div className="mx-auto mt-5 grid max-w-sm grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-yellow-300/40 bg-yellow-300/10 px-3 py-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-yellow-100">Plassering</p>
+          <p className="mt-1 text-2xl font-black text-yellow-100">1. plass</p>
+        </div>
+        <div className="rounded-2xl border border-quiz-accent/40 bg-quiz-accent/10 px-3 py-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-quiz-muted">Poeng</p>
+          <p className="mt-1 text-2xl font-black text-quiz-accent">{score} p</p>
+        </div>
+      </div>
+      <p className="mt-5 text-sm font-medium text-quiz-text">{quizTitle}</p>
+      <p className="mt-1 text-xs text-quiz-muted">{dateText}</p>
+      <p className="mt-5 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-quiz-text">
+        Gratulerer! Dette er den offisielle vinnerplakaten etter at quizmaster låste
+        sluttresultatet.
+      </p>
+    </section>
+  );
+}
+
+function FinalPlacementCard({
+  placement,
+  score,
+}: {
+  placement: number;
+  score: number;
+}) {
+  return (
+    <Card className="mb-5 border-2 border-green-500/40 bg-green-500/10 p-5 text-center">
+      <p className="text-sm font-semibold text-green-200">Endelig plassering</p>
+      <p className="mt-2 text-3xl font-black text-quiz-text">{placement}. plass</p>
+      <p className="mt-1 text-sm text-quiz-muted">{score} poeng</p>
+      <p className="mt-3 text-sm text-quiz-text">
+        Sluttresultatet er låst av quizmaster. Takk for innsatsen!
+      </p>
+    </Card>
+  );
+}
 
 function ReviewAnswersCta({ to }: { to: string }) {
   return (
@@ -285,6 +349,23 @@ export function TeamPage() {
 
   const canReviewOwn = room.settings.teamReviewOpen === true;
   const canSeeAnswerKey = room.settings.answerKeyOpen === true;
+  const finalPlacement = teamId ? getTeamFinalPlacement(room, teamId) : null;
+  const finalLockedAt = room.finalLeaderboardSnapshot?.lockedAt;
+  const finalResultContent = finalPlacement ? (
+    finalPlacement.placement === 1 ? (
+      <WinnerCertificate
+        teamName={finalPlacement.entry.teamName}
+        score={finalPlacement.entry.totalPoints}
+        lockedAt={finalLockedAt}
+        quizTitle={`Quiz ${room.joinCode}`}
+      />
+    ) : (
+      <FinalPlacementCard
+        placement={finalPlacement.placement}
+        score={finalPlacement.entry.totalPoints}
+      />
+    )
+  ) : null;
 
   if (canReviewOwn && showOwnReview && teamId) {
     return (
@@ -317,6 +398,7 @@ export function TeamPage() {
   if (room.phase === 'post_quiz') {
     return (
       <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Quizen er avsluttet">
+        {finalResultContent}
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
@@ -387,6 +469,7 @@ export function TeamPage() {
         )}
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
+        {finalResultContent}
         <Leaderboard room={room} />
       </PageShell>
     );

@@ -70,6 +70,9 @@ export function startTeamGame(
   if (room.phase !== 'live') {
     throw new Error('Quizen er ikke startet ennå.');
   }
+  if (room.settings.finalResultLocked) {
+    throw new Error('Endelig resultat er låst.');
+  }
 
   if (room.questionStatus[questionId] !== 'open') {
     throw new Error('Spillet er ikke åpent.');
@@ -107,6 +110,9 @@ export function submitGameResult(
 ): RoomRecord {
   if (room.phase !== 'live') {
     throw new Error('Quizen er ikke startet ennå.');
+  }
+  if (room.settings.finalResultLocked) {
+    throw new Error('Endelig resultat er låst.');
   }
 
   if (room.questionStatus[questionId] !== 'open') {

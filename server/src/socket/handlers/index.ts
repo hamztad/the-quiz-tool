@@ -21,11 +21,13 @@ import {
   endQuizForTeams,
   findTeamIdByBrowserToken,
   joinTeam,
+  lockFinalResult,
   markTeamSocketConnected,
   markTeamSocketDisconnected,
   removeTeam,
   setQuestions,
   startQuiz,
+  unlockFinalResult,
   updateQuestions,
 } from '../../domain/roomService.js';
 import { roomStore } from '../../store/memoryStore.js';
@@ -59,6 +61,15 @@ function requireHost(socket: Socket, roomId: string): boolean {
 function requireSecretary(socket: Socket, roomId: string): boolean {
   if (socket.data.role !== 'secretary' || socket.data.roomId !== roomId) {
     emitError(socket, 'Kun lagsekretær kan utføre denne handlingen.');
+    return false;
+  }
+  return true;
+}
+
+function ensureFinalResultUnlocked(socket: Socket, roomId: string): boolean {
+  const room = roomStore.get(roomId);
+  if (room?.settings.finalResultLocked) {
+    emitError(socket, 'Endelig resultat er låst. Åpne resultatet igjen før du endrer poeng.');
     return false;
   }
   return true;
@@ -259,6 +270,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.TEAM_REMOVE, (payload: { teamId: string }) => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
 
     try {
       roomStore.update(roomId, (r) => removeTeam(r, payload.teamId));
@@ -283,6 +295,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.QUIZ_END, () => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
     const room = roomStore.get(roomId);
     const access = checkRoomAccess(room);
     if (!access.ok) {
@@ -309,6 +322,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.QUIZ_QUESTIONS_SET, (payload: { questions: Question[] }) => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
     try {
       const withIds = payload.questions.map((q, i) => ({
         ...q,
@@ -327,6 +341,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.QUIZ_START, () => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
     try {
       roomStore.update(roomId, (r) => startQuiz(r));
       emitRoomStateToAll(io, roomId);
@@ -338,6 +353,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.QUESTION_OPEN, (payload: { questionId: string }) => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
     roomStore.update(roomId, (r) => openQuestion(r, payload.questionId));
     emitRoomStateToAll(io, roomId);
   });
@@ -352,6 +368,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.QUESTION_UNLOCK, (payload: { questionId: string }) => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
     roomStore.update(roomId, (r) => openQuestion(r, payload.questionId));
     emitRoomStateToAll(io, roomId);
   });
@@ -359,6 +376,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.ROUND_LOCK, (payload: { questionIds: string[] }) => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
     roomStore.update(roomId, (r) => lockRound(r, payload.questionIds));
     emitRoomStateToAll(io, roomId);
   });
@@ -422,6 +440,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.GRADING_START, () => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
     const room = roomStore.get(roomId);
     if (!room) return;
 
@@ -448,6 +467,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.GRADING_END, () => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
     roomStore.update(roomId, (r) => {
       const scores = mergePeerGradesToScores(r);
       return { ...r, phase: 'live', scores, gradingAssignments: [] };
@@ -461,6 +481,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       const roomId = socket.data.roomId as string;
       const graderTeamId = socket.data.teamId as string;
       if (!requireSecretary(socket, roomId)) return;
+      if (!ensureFinalResultUnlocked(socket, roomId)) return;
 
       const room = roomStore.get(roomId);
       if (!room || room.phase !== 'grading') {
@@ -513,6 +534,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     const roomId = socket.data.roomId as string;
     const teamId = socket.data.teamId as string;
     if (!requireSecretary(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
 
     try {
       roomStore.update(roomId, (r) => {
@@ -567,6 +589,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     (payload: { protestId: string; approved: boolean; points?: number }) => {
       const roomId = socket.data.roomId as string;
       if (!requireHost(socket, roomId)) return;
+      if (!ensureFinalResultUnlocked(socket, roomId)) return;
 
       roomStore.update(roomId, (r) => {
         const protest = r.protests.find((p) => p.id === payload.protestId);
@@ -599,6 +622,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     (payload: { teamId: string; questionId: string; points: number }) => {
       const roomId = socket.data.roomId as string;
       if (!requireHost(socket, roomId)) return;
+      if (!ensureFinalResultUnlocked(socket, roomId)) return;
 
       roomStore.update(roomId, (r) => {
         const question = r.questions.find((q) => q.id === payload.questionId);
@@ -628,6 +652,24 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       phase: payload.visible ? 'leaderboard' : r.phase === 'leaderboard' ? 'live' : r.phase,
       settings: { ...r.settings, showLeaderboard: payload.visible },
     }));
+    emitRoomStateToAll(io, roomId);
+  });
+
+  socket.on(CLIENT_EVENTS.FINAL_RESULT_LOCK, () => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+    try {
+      roomStore.update(roomId, (r) => lockFinalResult(r));
+      emitRoomStateToAll(io, roomId);
+    } catch (e) {
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke låse sluttresultat');
+    }
+  });
+
+  socket.on(CLIENT_EVENTS.FINAL_RESULT_UNLOCK, () => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+    roomStore.update(roomId, (r) => unlockFinalResult(r));
     emitRoomStateToAll(io, roomId);
   });
 

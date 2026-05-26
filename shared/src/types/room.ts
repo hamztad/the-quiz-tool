@@ -118,6 +118,12 @@ export interface RoomSettings {
   teamReviewOpen: boolean;
   answerKeyOpen: boolean;
   allowNewTeams: boolean;
+  finalResultLocked: boolean;
+}
+
+export interface FinalLeaderboardSnapshot {
+  lockedAt: number;
+  entries: LeaderboardEntry[];
 }
 
 export interface RoomState {
@@ -137,6 +143,7 @@ export interface RoomState {
   gameSubmissions: GameSubmission[];
   gameResults: GameResult[];
   scores: ScoreEntry[];
+  finalLeaderboardSnapshot?: FinalLeaderboardSnapshot;
   gradingAssignments: GradingAssignment[];
   peerGrades: PeerGrade[];
   protests: Protest[];

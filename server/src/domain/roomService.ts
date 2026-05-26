@@ -2,6 +2,7 @@ import type { PublicRoomState, Question, RoomState } from '@quiz-tool/shared';
 import { isQuestionRevealedToTeam, redactQuestionForTeam } from '@quiz-tool/shared';
 import { MAX_TEAMS, validateQuestionsForSave, validateTeamName } from '@quiz-tool/shared';
 import { createConnectedTeamPresence, markTeamConnected, markTeamDisconnected } from '@quiz-tool/shared';
+import { buildFinalLeaderboardSnapshot } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
 import { generateId, generateJoinCode, generateToken } from '../utils/id.js';
 import { computeLeaderboard } from './leaderboardService.js';
@@ -30,7 +31,13 @@ export function createRoom(title?: string): RoomRecord {
     gradingAssignments: [],
     peerGrades: [],
     protests: [],
-    settings: { showLeaderboard: false, teamReviewOpen: false, answerKeyOpen: false, allowNewTeams: true },
+    settings: {
+      showLeaderboard: false,
+      teamReviewOpen: false,
+      answerKeyOpen: false,
+      allowNewTeams: true,
+      finalResultLocked: false,
+    },
     hostToken,
     teamTokens: {},
     teamBrowserTokens: {},
@@ -143,6 +150,7 @@ export function setQuestions(room: RoomRecord, questions: Question[]): RoomRecor
     gameSubmissions: [],
     gameResults: [],
     scores: [],
+    finalLeaderboardSnapshot: undefined,
     answeredByTeam: Object.fromEntries(room.teams.map((t) => [t.id, []])),
     gradingAssignments: [],
     peerGrades: [],
@@ -252,6 +260,38 @@ export function startQuiz(room: RoomRecord): RoomRecord {
   return { ...room, phase: 'live' };
 }
 
+export function lockFinalResult(room: RoomRecord, now = Date.now()): RoomRecord {
+  const pendingProtests = room.protests.some((protest) => protest.status === 'pending');
+  if (pendingProtests) {
+    throw new Error('Alle protester må behandles før sluttresultatet kan låses.');
+  }
+  if (room.phase === 'grading') {
+    throw new Error('Avslutt retterunden før sluttresultatet låses.');
+  }
+  if (room.phase !== 'leaderboard' && room.phase !== 'post_quiz') {
+    throw new Error('Sluttresultatet kan låses etter at quizen er avsluttet eller leaderboard er åpnet.');
+  }
+  return {
+    ...room,
+    settings: {
+      ...room.settings,
+      showLeaderboard: true,
+      finalResultLocked: true,
+    },
+    finalLeaderboardSnapshot: buildFinalLeaderboardSnapshot(room.teams, room.scores, now),
+  };
+}
+
+export function unlockFinalResult(room: RoomRecord): RoomRecord {
+  return {
+    ...room,
+    settings: {
+      ...room.settings,
+      finalResultLocked: false,
+    },
+  };
+}
+
 /** Soft end: teams see avsluttet-melding; host keeps post-quiz access */
 export function endQuizForTeams(room: RoomRecord): RoomRecord {
   return {
@@ -320,6 +360,7 @@ export function toPublicState(
   const leaderboardVisible =
     room.phase === 'leaderboard' ||
     room.settings.showLeaderboard ||
+    room.settings.finalResultLocked ||
     room.phase === 'post_quiz';
 
   const hideTeamOnlySecrets = (question: (typeof room.questions)[number]) => {
@@ -361,7 +402,11 @@ export function toPublicState(
   return {
     ...room,
     questions,
-    leaderboard: leaderboardVisible ? computeLeaderboard(room) : undefined,
+    leaderboard: leaderboardVisible
+      ? room.settings.finalResultLocked && room.finalLeaderboardSnapshot
+        ? room.finalLeaderboardSnapshot.entries
+        : computeLeaderboard(room)
+      : undefined,
     answeredByTeam: visibleAnsweredByTeam,
     answers: visibleAnswers,
     gameRounds: visibleGameRounds,

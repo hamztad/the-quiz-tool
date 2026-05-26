@@ -21,6 +21,8 @@ export const CLIENT_EVENTS = {
   PROTEST_RESOLVE: 'protest:resolve',
   SCORE_OVERRIDE: 'score:override',
   LEADERBOARD_TOGGLE: 'leaderboard:toggle',
+  FINAL_RESULT_LOCK: 'finalResult:lock',
+  FINAL_RESULT_UNLOCK: 'finalResult:unlock',
   TEAM_REVIEW_TOGGLE: 'teamReview:toggle',
   ANSWER_KEY_TOGGLE: 'answerKey:toggle',
   TEAM_JOIN_TOGGLE: 'teamJoin:toggle',
