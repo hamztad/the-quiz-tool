@@ -164,10 +164,10 @@ function drawNeonBar(context: CanvasRenderingContext2D, body: Matter.Body, color
 function drawGameBoard(
   canvas: HTMLCanvasElement,
   config: DropBallConfig,
+  dropX: number,
   boardIndex: number,
   pendingBonus: boolean,
   sim: SimState | null,
-  snapshot: DropBallSnapshot,
 ) {
   const context = canvas.getContext('2d');
   if (!context) return;
@@ -196,6 +196,19 @@ function drawGameBoard(
   context.font = '900 14px system-ui, sans-serif';
   context.textAlign = 'center';
   context.fillText('Trykk der du vil slippe ballen', CANVAS_WIDTH / 2, 55);
+  if (!sim) {
+    context.save();
+    context.shadowColor = pendingBonus ? '#fde047' : '#dbeafe';
+    context.shadowBlur = pendingBonus ? 18 : 12;
+    context.beginPath();
+    context.arc(dropX, LAUNCH_HEIGHT - 18, pendingBonus ? BONUS_BALL_RADIUS : NORMAL_BALL_RADIUS, 0, Math.PI * 2);
+    context.fillStyle = pendingBonus ? '#fde047' : '#f8fafc';
+    context.fill();
+    context.strokeStyle = pendingBonus ? '#f97316' : '#bfdbfe';
+    context.lineWidth = 3;
+    context.stroke();
+    context.restore();
+  }
 
   const obstacleColor = new Map(baseBumpers.map((bumper) => [bumper.id, bumper.color]));
   if (sim) {
@@ -269,15 +282,6 @@ function drawGameBoard(
   context.font = '800 13px system-ui, sans-serif';
   context.fillText(`Brett ${boardIndex + 1} av ${config.totalRounds}`, CANVAS_WIDTH / 2, FLOOR_Y - 5);
 
-  context.textAlign = 'left';
-  context.fillStyle = 'rgba(15,23,42,0.58)';
-  context.fillRect(14, 94, 142, 50);
-  context.fillStyle = '#f8fafc';
-  context.font = '900 12px system-ui, sans-serif';
-  context.fillText(`${formatDropBallScore(snapshot.currentScore)}`, 24, 116);
-  context.font = '700 10px system-ui, sans-serif';
-  context.fillText(`${snapshot.airTimeMs} ms luft · ${snapshot.obstacleHits} hindre`, 24, 134);
-
   if (pendingBonus) {
     context.textAlign = 'right';
     context.fillStyle = '#fef08a';
@@ -297,9 +301,9 @@ function createSimulation(
   const ballRadius = ballKind === 'bonus' ? BONUS_BALL_RADIUS : NORMAL_BALL_RADIUS;
   const ball = Matter.Bodies.circle(dropX, LAUNCH_HEIGHT - 18, ballRadius, {
     label: 'ball',
-    restitution: ballKind === 'bonus' ? 0.98 : 0.86,
-    friction: 0.015,
-    frictionAir: ballKind === 'bonus' ? 0.002 : 0.004,
+    restitution: ballKind === 'bonus' ? 1.18 : 1.08,
+    friction: 0.006,
+    frictionAir: ballKind === 'bonus' ? 0.0015 : 0.0025,
     density: ballKind === 'bonus' ? 0.0024 : 0.0016,
   });
   Matter.Body.setVelocity(ball, {
@@ -307,7 +311,7 @@ function createSimulation(
     y: ballKind === 'bonus' ? 6.8 : 6.2,
   });
 
-  const wallOptions = { isStatic: true, restitution: 0.92, friction: 0.02 };
+  const wallOptions = { isStatic: true, restitution: 1.08, friction: 0.01 };
   const walls = [
     Matter.Bodies.rectangle(-8, CANVAS_HEIGHT / 2, 16, CANVAS_HEIGHT, wallOptions),
     Matter.Bodies.rectangle(CANVAS_WIDTH + 8, CANVAS_HEIGHT / 2, 16, CANVAS_HEIGHT, wallOptions),
@@ -328,8 +332,8 @@ function createSimulation(
     const body = Matter.Bodies.rectangle(bumper.x, bumper.y, bumper.width, bumper.height, {
       isStatic: true,
       angle: bumper.angle,
-      restitution: 1.02,
-      friction: 0.02,
+      restitution: 1.45,
+      friction: 0.004,
       label: `obstacle:${bumper.id}`,
       chamfer: { radius: 7 },
     });
@@ -392,6 +396,15 @@ function createSimulation(
       if (other.label.startsWith('obstacle:')) {
         const id = other.label.split(':')[1];
         if (!id || sim.obstacleHits.has(id)) continue;
+        const dx = sim.ball.position.x - other.position.x;
+        const dy = sim.ball.position.y - other.position.y;
+        const distance = Math.max(1, Math.hypot(dx, dy));
+        const currentSpeed = Math.hypot(sim.ball.velocity.x, sim.ball.velocity.y);
+        const bounceSpeed = Math.max(ballKind === 'bonus' ? 10 : 8.5, currentSpeed * 1.28);
+        Matter.Body.setVelocity(sim.ball, {
+          x: (dx / distance) * bounceSpeed + sim.ball.velocity.x * 0.2,
+          y: (dy / distance) * bounceSpeed + sim.ball.velocity.y * 0.1,
+        });
         sim.obstacleHits.add(id);
         sim.obstacleBodies.delete(id);
         Matter.Composite.remove(engine.world, other);
@@ -474,8 +487,8 @@ export function DropBallGame({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || simRef.current) return;
-    drawGameBoard(canvas, config, boardIndex, pendingBonus, null, snapshot);
-  }, [boardIndex, config, dropX, pendingBonus, snapshot]);
+    drawGameBoard(canvas, config, dropX, boardIndex, pendingBonus, null);
+  }, [boardIndex, config, dropX, pendingBonus]);
 
   const animate = (sim: SimState) => {
     const now = performance.now();
@@ -497,7 +510,7 @@ export function DropBallGame({
 
     const canvas = canvasRef.current;
     if (canvas) {
-      drawGameBoard(canvas, config, sim.boardIndex, sim.ballKind === 'bonus', sim, nextSnapshot);
+      drawGameBoard(canvas, config, dropX, sim.boardIndex, sim.ballKind === 'bonus', sim);
     }
 
     if (nextSnapshot.bottomTouched) {
@@ -559,7 +572,6 @@ export function DropBallGame({
     const rect = event.currentTarget.getBoundingClientRect();
     const nextX = clampDropX(((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH);
     setDropX(nextX);
-    startDropAt(nextX);
   };
 
   return (
@@ -592,12 +604,23 @@ export function DropBallGame({
         </div>
       </div>
 
+      {phase === 'ready' && (
+        <button
+          type="button"
+          onClick={() => startDropAt(dropX)}
+          disabled={disabled}
+          className="mt-5 inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-fuchsia-200/30 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-blue-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.28)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+        >
+          Slipp ballen
+        </button>
+      )}
+
       <div className="mx-auto mt-5 max-w-[23rem] overflow-hidden rounded-3xl border-2 border-cyan-300/35 bg-violet-950/80 shadow-[inset_0_0_36px_rgba(15,23,42,0.4)]">
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="block h-auto w-full touch-none"
+          className="block h-auto w-full touch-pan-y"
           onPointerDown={handleCanvasPointer}
           aria-label="Drop Ball-spillebrett"
         />
@@ -661,16 +684,6 @@ export function DropBallGame({
       )}
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        {phase === 'ready' && (
-          <button
-            type="button"
-            onClick={() => startDropAt(dropX)}
-            disabled={disabled}
-            className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-fuchsia-200/30 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-blue-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.28)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            Slipp
-          </button>
-        )}
         {phase === 'betweenBoards' && (
           <button
             type="button"
