@@ -13,7 +13,7 @@ import { normalizeJoinCode } from '../lib/joinUrls';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useSocket } from '../hooks/useSocket';
-import { getStoredTeamSession, saveTeamSession } from '../lib/tokens';
+import { getOrCreateBrowserTeamToken, getStoredTeamSession, saveTeamSession } from '../lib/tokens';
 
 export function JoinPage() {
   const { code: codeParam } = useParams();
@@ -27,6 +27,8 @@ export function JoinPage() {
   const [teamName, setTeamName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [overrideExistingSession, setOverrideExistingSession] = useState(false);
+  const [forceNewTeam, setForceNewTeam] = useState(false);
   const storedTeamSession = getStoredTeamSession();
   const storedSessionMatchesRoom =
     Boolean(storedTeamSession) &&
@@ -48,6 +50,15 @@ export function JoinPage() {
     }
   }, [hasPresetCode]);
 
+  const continueExistingTeam = () => {
+    if (!storedTeamSession) return;
+    navigate(`/team/${storedTeamSession.roomId}?restored=1`);
+  };
+
+  const showExistingTeamPrompt = Boolean(
+    storedTeamSession && storedSessionMatchesRoom && !overrideExistingSession,
+  );
+
   const join = () => {
     const nameResult = validateTeamName(teamName);
     if (!joinCode.trim()) {
@@ -61,16 +72,25 @@ export function JoinPage() {
     setLoading(true);
     setError(null);
 
-    const onJoined = (data: { roomId: string; teamId: string; teamToken: string }) => {
+    const browserToken = getOrCreateBrowserTeamToken();
+
+    const onJoined = (data: {
+      roomId: string;
+      teamId: string;
+      teamToken: string;
+      teamName?: string;
+      restored?: boolean;
+    }) => {
       setLoading(false);
       saveTeamSession({
         roomId: data.roomId,
         teamId: data.teamId,
         teamToken: data.teamToken,
-        teamName: nameResult.name,
+        browserToken,
+        teamName: data.teamName ?? nameResult.name,
         joinCode: joinCode.trim(),
       });
-      navigate(`/team/${data.roomId}`);
+      navigate(`/team/${data.roomId}${data.restored ? '?restored=1' : ''}`);
     };
 
     socket.once(SERVER_EVENTS.ROOM_JOINED, onJoined);
@@ -86,14 +106,39 @@ export function JoinPage() {
         navigate(`/rom-utilgjengelig?reason=${reason}`, { replace: true });
         return;
       }
+      if (e.code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {
+        setError('Quizmaster har stengt for nye lag. Hvis du allerede er med, bruk Fortsett-knappen.');
+        return;
+      }
       setError('Kunne ikke bli med. Sjekk romkoden og lagnavnet, eller be om en ny invitasjon.');
     });
 
     socket.emit(
       CLIENT_EVENTS.ROOM_JOIN,
-      { joinCode: joinCode.trim(), teamName: nameResult.name },
-      (res: { roomId: string; teamId: string; teamToken: string } | undefined) => {
-        if (res?.roomId) onJoined(res);
+      {
+        joinCode: joinCode.trim(),
+        teamName: nameResult.name,
+        browserToken,
+        forceNewTeam,
+      },
+      (res:
+        | {
+            roomId: string;
+            teamId: string;
+            teamToken: string;
+            teamName?: string;
+            restored?: boolean;
+          }
+        | { ok: false; code: string }
+        | undefined) => {
+        if (res && 'ok' in res && res.ok === false) {
+          setLoading(false);
+          if (res.code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {
+            setError('Quizmaster har stengt for nye lag.');
+          }
+          return;
+        }
+        if (res && 'roomId' in res) onJoined(res);
       },
     );
   };
@@ -121,6 +166,52 @@ export function JoinPage() {
             <p className="mt-2 text-3xl font-bold tracking-wide text-quiz-accent break-all [overflow-wrap:anywhere]">
               {joinCode}
             </p>
+          </div>
+        )}
+
+        {showExistingTeamPrompt ? (
+          <div className="w-full rounded-3xl border-2 border-quiz-accent/45 bg-quiz-accent/10 p-5 text-center shadow-lg">
+            <p className="text-sm font-semibold text-quiz-muted">Du er allerede med i denne quizen som</p>
+            <p className="mt-2 text-2xl font-black text-quiz-text break-words [overflow-wrap:anywhere]">
+              {storedTeamSession?.teamName ?? 'laget ditt'}
+            </p>
+            <p className="mt-3 text-sm text-quiz-muted leading-relaxed">
+              Fortsett her for å unngå dobbelt lag. Svar, poeng og spillforsøk blir hentet tilbake.
+            </p>
+            <div className="mt-5 space-y-2">
+              <Button type="button" size="lg" className="w-full min-h-[52px]" onClick={continueExistingTeam}>
+                Fortsett som eksisterende lag
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  setOverrideExistingSession(true);
+                  setForceNewTeam(false);
+                }}
+              >
+                Bytt lag
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-quiz-muted"
+                onClick={() => {
+                  setOverrideExistingSession(true);
+                  setForceNewTeam(true);
+                }}
+              >
+                Opprett nytt lag likevel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+        {storedTeamSession && storedSessionMatchesRoom && overrideExistingSession && (
+          <div className="w-full rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+            Denne enheten deltar allerede i quizen. Fortsett eksisterende lag hvis du ikke bevisst
+            lager et ekstra lag.
           </div>
         )}
 
@@ -172,26 +263,11 @@ export function JoinPage() {
           </p>
         )}
 
-        {storedTeamSession && storedSessionMatchesRoom && (
-          <div className="w-full rounded-2xl border border-quiz-accent/40 bg-quiz-accent/10 p-4 text-center">
-            <p className="text-sm text-quiz-muted">
-              Har du allerede blitt med på denne enheten?
-            </p>
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              className="mt-3 w-full"
-              onClick={() => navigate(`/team/${storedTeamSession.roomId}`)}
-            >
-              Fortsett som {storedTeamSession.teamName ?? 'laget ditt'}
-            </Button>
-          </div>
-        )}
-
         <Button size="lg" className="w-full min-h-[52px] text-lg" onClick={join} disabled={!connected || loading}>
-          {loading ? 'Kobler til…' : 'Bli med i quiz'}
+          {loading ? 'Kobler til…' : forceNewTeam ? 'Opprett nytt lag' : 'Bli med i quiz'}
         </Button>
+          </>
+        )}
 
         {!connected && <p className="text-sm text-quiz-muted text-center">Kobler til server…</p>}
       </div>

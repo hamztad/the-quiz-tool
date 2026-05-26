@@ -2,6 +2,7 @@ import type { Server, Socket } from 'socket.io';
 import {
   buildGradingAssignments,
   canStartPeerGrading,
+  canCreateNewTeam,
   CLIENT_EVENTS,
   getOpenQuestionIds,
   hasActiveProtest,
@@ -15,7 +16,18 @@ import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import { createProtest, mergePeerGradesToScores, upsertScore } from '../../domain/gradingService.js';
 import { startTeamGame, submitGameResult } from '../../domain/gameService.js';
 import { lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
-import { createRoom, endQuizForTeams, joinTeam, removeTeam, setQuestions, startQuiz, updateQuestions } from '../../domain/roomService.js';
+import {
+  createRoom,
+  endQuizForTeams,
+  findTeamIdByBrowserToken,
+  joinTeam,
+  markTeamSocketConnected,
+  markTeamSocketDisconnected,
+  removeTeam,
+  setQuestions,
+  startQuiz,
+  updateQuestions,
+} from '../../domain/roomService.js';
 import { roomStore } from '../../store/memoryStore.js';
 import { generateId } from '../../utils/id.js';
 import { emitRoomStateToAll, emitRoomStateToSocket } from '../emitRoomState.js';
@@ -31,6 +43,7 @@ function emitRoomAccessError(socket: Socket, code: string) {
     [ROOM_ERROR_CODES.ROOM_EXPIRED]: 'Rommet har utløpt.',
     [ROOM_ERROR_CODES.JOIN_CODE_INVALID]: 'Ugyldig join-kode.',
     [ROOM_ERROR_CODES.SESSION_INVALID]: 'Kunne ikke koble til laget igjen. Bli med på nytt med romkode og lagnavn.',
+    [ROOM_ERROR_CODES.TEAM_JOIN_LOCKED]: 'Quizmaster har stengt for nye lag.',
   };
   emitError(socket, messages[code] ?? 'Rommet er ikke tilgjengelig.', code);
 }
@@ -79,6 +92,23 @@ function disconnectRemovedTeam(io: Server, roomId: string, teamId: string) {
   }
 }
 
+function hasOtherConnectedTeamSocket(io: Server, socket: Socket, roomId: string, teamId: string): boolean {
+  const sockets = io.sockets.adapter.rooms.get(roomId);
+  if (!sockets) return false;
+  for (const socketId of sockets) {
+    if (socketId === socket.id) continue;
+    const teamSocket = io.sockets.sockets.get(socketId);
+    if (
+      teamSocket?.data.role === 'secretary' &&
+      teamSocket.data.teamId === teamId &&
+      teamSocket.connected
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(CLIENT_EVENTS.ROOM_CREATE, (_payload: { title?: string }, ack?: (res: unknown) => void) => {
     try {
@@ -108,7 +138,10 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
   socket.on(
     CLIENT_EVENTS.ROOM_JOIN,
-    (payload: { joinCode: string; teamName: string }, ack?: (res: unknown) => void) => {
+    (
+      payload: { joinCode: string; teamName: string; browserToken?: string; forceNewTeam?: boolean },
+      ack?: (res: unknown) => void,
+    ) => {
       try {
         const room = roomStore.getByJoinCode(payload.joinCode);
         const access = checkRoomAccess(room);
@@ -129,11 +162,41 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
           return;
         }
 
-        const { room: updated, teamId, teamToken } = joinTeam(access.room, payload.teamName);
+        const duplicateTeamId = findTeamIdByBrowserToken(access.room, payload.browserToken);
+        if (duplicateTeamId && !payload.forceNewTeam) {
+          const team = access.room.teams.find((item) => item.id === duplicateTeamId);
+          const teamToken = access.room.teamTokens[duplicateTeamId];
+          if (team && teamToken) {
+            roomStore.update(access.room.id, (r) => markTeamSocketConnected(r, duplicateTeamId));
+            attachSocket(socket, access.room.id, 'secretary', duplicateTeamId);
+            const joined = {
+              roomId: access.room.id,
+              teamId: duplicateTeamId,
+              teamToken,
+              teamName: team.name,
+              restored: true,
+              duplicateBrowser: true,
+            };
+            socket.emit(SERVER_EVENTS.ROOM_JOINED, joined);
+            emitRoomStateToAll(io, access.room.id);
+            ack?.(joined);
+            return;
+          }
+        }
+
+        if (!canCreateNewTeam(access.room.settings)) {
+          emitRoomAccessError(socket, ROOM_ERROR_CODES.TEAM_JOIN_LOCKED);
+          ack?.({ ok: false, code: ROOM_ERROR_CODES.TEAM_JOIN_LOCKED });
+          return;
+        }
+
+        const { room: updated, teamId, teamToken } = joinTeam(access.room, payload.teamName, {
+          browserToken: payload.browserToken,
+        });
         roomStore.update(access.room.id, () => updated);
         attachSocket(socket, access.room.id, 'secretary', teamId);
 
-        const joined = { roomId: access.room.id, teamId, teamToken };
+        const joined = { roomId: access.room.id, teamId, teamToken, teamName: payload.teamName };
         socket.emit(SERVER_EVENTS.ROOM_JOINED, joined);
         emitRoomStateToAll(io, access.room.id);
         ack?.(joined);
@@ -177,6 +240,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
             ack?.({ ok: false, code: ROOM_ERROR_CODES.SESSION_INVALID });
             return;
           }
+          roomStore.update(activeRoom.id, (r) => markTeamSocketConnected(r, teamId));
           attachSocket(socket, activeRoom.id, 'secretary', teamId);
           emitRoomStateToSocket(socket, activeRoom.id);
           ack?.({ ok: true, role: 'secretary', teamId });
@@ -203,6 +267,17 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke fjerne lag');
     }
+  });
+
+  socket.on('disconnect', () => {
+    const roomId = socket.data.roomId as string | undefined;
+    const teamId = socket.data.teamId as string | undefined;
+    if (socket.data.role !== 'secretary' || !roomId || !teamId) return;
+    const room = roomStore.get(roomId);
+    if (!room || !room.teams.some((team) => team.id === teamId)) return;
+    if (hasOtherConnectedTeamSocket(io, socket, roomId, teamId)) return;
+    roomStore.update(roomId, (r) => markTeamSocketDisconnected(r, teamId));
+    emitRoomStateToAll(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.QUIZ_END, () => {
@@ -574,6 +649,17 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     roomStore.update(roomId, (r) => ({
       ...r,
       settings: { ...r.settings, answerKeyOpen: payload.open },
+    }));
+    emitRoomStateToAll(io, roomId);
+  });
+
+  socket.on(CLIENT_EVENTS.TEAM_JOIN_TOGGLE, (payload: { allowNewTeams: boolean }) => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+
+    roomStore.update(roomId, (r) => ({
+      ...r,
+      settings: { ...r.settings, allowNewTeams: payload.allowNewTeams },
     }));
     emitRoomStateToAll(io, roomId);
   });

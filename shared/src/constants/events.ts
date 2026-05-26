@@ -23,6 +23,7 @@ export const CLIENT_EVENTS = {
   LEADERBOARD_TOGGLE: 'leaderboard:toggle',
   TEAM_REVIEW_TOGGLE: 'teamReview:toggle',
   ANSWER_KEY_TOGGLE: 'answerKey:toggle',
+  TEAM_JOIN_TOGGLE: 'teamJoin:toggle',
   TEAM_REMOVE: 'team:remove',
 } as const;
 

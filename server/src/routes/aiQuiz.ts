@@ -11,7 +11,7 @@ import { roomStore } from '../store/memoryStore.js';
 import { AiQuizGenerateError, generateQuizWithOpenAI } from '../services/openaiQuizGenerate.js';
 
 const DIFFICULTIES = new Set<AiQuizDifficulty>(['easy', 'medium', 'hard']);
-const STYLES = new Set<AiQuizQuestionStyle>(['open', 'mc', 'mixed']);
+const STYLES = new Set<AiQuizQuestionStyle>(['open', 'mc', 'mixed', 'quizPackage']);
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_TRANSLATE_MODEL = 'gpt-4o-mini';
 
@@ -316,7 +316,7 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
       {
         roomId,
         topic: topic.trim(),
-        questionCount: clampAiQuestionCount(questionCount),
+        questionCount: questionStyle === 'quizPackage' ? 5 : clampAiQuestionCount(questionCount),
         difficulty,
         questionStyle,
         includePixabayImages,

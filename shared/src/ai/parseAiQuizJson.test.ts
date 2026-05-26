@@ -85,4 +85,110 @@ describe('parseAiQuizJson', () => {
       { text: 'Andre linje', style: 'body' },
     ]);
   });
+
+  it('parses a valid quiz package with five fixed slots', () => {
+    const result = parseAiQuizJson(
+      JSON.stringify({
+        questions: [
+          validOpen,
+          { ...validMc, type: 'multipleChoice' },
+          {
+            type: 'ordering',
+            text: 'Sorter landene fra nord til sør',
+            body: null,
+            directionLabel: 'Nord øverst → Sør nederst',
+            directionLabelTop: 'Nord',
+            directionLabelBottom: 'Sør',
+            items: ['Norge', 'Tyskland', 'Italia'],
+            correctOrder: ['Norge', 'Tyskland', 'Italia'],
+          },
+          {
+            type: 'puzzle',
+            puzzleType: 'anagram',
+            text: 'Løs anagrammet',
+            body: null,
+            answerText: 'NORDLYS',
+            expressions: [],
+          },
+          {
+            type: 'game',
+            gameId: 'emojiHunt',
+            text: 'Emoji-jakt',
+            body: null,
+          },
+        ],
+      }),
+      'quizPackage',
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.questions.map((question) => question.type)).toEqual([
+      'open',
+      'mc',
+      'ordering',
+      'game',
+      'game',
+    ]);
+    expect(result.questions[2]?.maxPoints).toBe(2);
+    expect(result.questions[3]?.game?.gameId).toBe('anagram');
+    expect(result.questions[4]?.game?.gameId).toBe('emojiHunt');
+  });
+
+  it('rejects quiz packages with missing required slots', () => {
+    const result = parseAiQuizJson(
+      JSON.stringify({
+        questions: [validOpen, validMc, validOpen, validMc, validOpen],
+      }),
+      'quizPackage',
+    );
+
+    expect(result.questions).toHaveLength(0);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        'Oppgave 3 må være rekkefølge.',
+        'Oppgave 4 må være anagram eller regnerace.',
+        'Oppgave 5 må være et annet eksisterende spill.',
+      ]),
+    );
+  });
+
+  it('parses math race as the quiz package puzzle slot', () => {
+    const result = parseAiQuizJson(
+      JSON.stringify({
+        questions: [
+          validOpen,
+          validMc,
+          {
+            type: 'ordering',
+            text: 'Sorter fra størst til minst',
+            body: null,
+            directionLabel: 'Størst øverst → Minst nederst',
+            directionLabelTop: 'Størst',
+            directionLabelBottom: 'Minst',
+            items: ['Elefant', 'Hund', 'Mus'],
+            correctOrder: ['Elefant', 'Hund', 'Mus'],
+          },
+          {
+            type: 'puzzle',
+            puzzleType: 'mathRace',
+            text: 'Regnerace',
+            body: null,
+            answerText: '',
+            expressions: ['2 + 2', '3 * 4', '10 - 7'],
+          },
+          {
+            type: 'game',
+            gameId: 'rainbowPuzzle',
+            text: 'Rainbow Puzzle',
+            body: null,
+          },
+        ],
+      }),
+      'quizPackage',
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.questions[3]?.game?.gameId).toBe('mathExpression');
+    expect(result.questions[3]?.game?.mode).toBe('race');
+  });
 });

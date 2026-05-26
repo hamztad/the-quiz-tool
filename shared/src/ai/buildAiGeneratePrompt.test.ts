@@ -29,6 +29,14 @@ describe('buildAiGeneratePrompt', () => {
     expect(prompt).toContain('Spørsmål 1: type "open"');
     expect(prompt).toContain('Spørsmål 2: type "mc"');
   });
+
+  it('requires exact five-slot quiz package structure', () => {
+    const prompt = buildAiGeneratePrompt({ ...base, questionStyle: 'quizPackage' });
+    expect(prompt).toContain('nøyaktig 5 spørsmål');
+    expect(prompt).toContain('type "ordering"');
+    expect(prompt).toContain('puzzleType enten "anagram" ELLER "mathRace"');
+    expect(prompt).toContain('gameId enten "rainbowPuzzle", "emojiHunt" eller "dropBall"');
+  });
 });
 
 describe('validateAiQuestionStyle', () => {

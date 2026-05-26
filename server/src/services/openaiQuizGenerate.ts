@@ -29,7 +29,7 @@ interface OpenAiChatResponse {
 
 type OpenAiMessage = { role: 'system' | 'user'; content: string };
 
-function aiQuizResponseFormat() {
+function aiQuizResponseFormat(style: AiGenerateQuizRequest['questionStyle']) {
   const textField = { type: 'string', minLength: 1, maxLength: 400 };
   const bodyField = {
     anyOf: [
@@ -58,7 +58,7 @@ function aiQuizResponseFormat() {
     additionalProperties: false,
     required: ['type', 'text', 'body', 'options'],
     properties: {
-      type: { type: 'string', enum: ['mc'] },
+      type: { type: 'string', enum: ['mc', 'multipleChoice'] },
       text: textField,
       body: bodyField,
       options: {
@@ -77,6 +77,75 @@ function aiQuizResponseFormat() {
       },
     },
   };
+  const orderingQuestion = {
+    type: 'object',
+    additionalProperties: false,
+    required: [
+      'type',
+      'text',
+      'body',
+      'directionLabel',
+      'directionLabelTop',
+      'directionLabelBottom',
+      'items',
+      'correctOrder',
+    ],
+    properties: {
+      type: { type: 'string', enum: ['ordering'] },
+      text: textField,
+      body: bodyField,
+      directionLabel: { type: 'string', minLength: 1, maxLength: 120 },
+      directionLabelTop: { type: 'string', minLength: 1, maxLength: 80 },
+      directionLabelBottom: { type: 'string', minLength: 1, maxLength: 80 },
+      items: {
+        type: 'array',
+        minItems: 3,
+        maxItems: 5,
+        items: { type: 'string', minLength: 1, maxLength: 80 },
+      },
+      correctOrder: {
+        type: 'array',
+        minItems: 3,
+        maxItems: 5,
+        items: { type: 'string', minLength: 1, maxLength: 80 },
+      },
+    },
+  };
+  const puzzleQuestion = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['type', 'puzzleType', 'text', 'body', 'answerText', 'expressions'],
+    properties: {
+      type: { type: 'string', enum: ['puzzle'] },
+      puzzleType: { type: 'string', enum: ['anagram', 'mathRace'] },
+      text: textField,
+      body: bodyField,
+      answerText: { type: 'string', maxLength: 80 },
+      expressions: {
+        type: 'array',
+        minItems: 0,
+        maxItems: 6,
+        items: { type: 'string', minLength: 1, maxLength: 40 },
+      },
+    },
+  };
+  const gameQuestion = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['type', 'gameId', 'text', 'body'],
+    properties: {
+      type: { type: 'string', enum: ['game'] },
+      gameId: { type: 'string', enum: ['rainbowPuzzle', 'emojiHunt', 'dropBall'] },
+      text: textField,
+      body: bodyField,
+    },
+  };
+  const questionItems =
+    style === 'quizPackage'
+      ? { anyOf: [openQuestion, mcQuestion, orderingQuestion, puzzleQuestion, gameQuestion] }
+      : { anyOf: [openQuestion, mcQuestion] };
+  const minItems = style === 'quizPackage' ? 5 : 2;
+  const maxItems = style === 'quizPackage' ? 5 : 10;
 
   return {
     type: 'json_schema',
@@ -90,11 +159,9 @@ function aiQuizResponseFormat() {
         properties: {
           questions: {
             type: 'array',
-            minItems: 2,
-            maxItems: 10,
-            items: {
-              anyOf: [openQuestion, mcQuestion],
-            },
+            minItems,
+            maxItems,
+            items: questionItems,
           },
         },
       },
@@ -121,7 +188,22 @@ function truncateForLog(value: string, max = 2000): string {
 }
 
 function buildRepairPrompt(params: AiGenerateQuizRequest, invalidJson: string, errors: string[]): string {
-  const count = clampAiQuestionCount(params.questionCount);
+  const count = params.questionStyle === 'quizPackage' ? 5 : clampAiQuestionCount(params.questionCount);
+  const packageRequirements =
+    params.questionStyle === 'quizPackage'
+      ? `
+- Quizpakke må ha disse fem slottene:
+  1 open
+  2 multipleChoice/mc
+  3 ordering
+  4 puzzle med puzzleType anagram eller mathRace
+  5 game med gameId rainbowPuzzle, emojiHunt eller dropBall
+- Ordering må ha 3-5 items og correctOrder med de samme tekstene
+- Ikke inkluder unsupported game types`
+      : `
+- type må følge ønsket spørsmålstype: ${params.questionStyle}
+- Open: { "type": "open", "text": "...", "body": null, "acceptedAnswers": ["..."] }
+- MC: { "type": "mc", "text": "...", "body": null, "options": [nøyaktig 4 alternativer, nøyaktig én correct true] }`;
   return `Rett JSON-svaret slik at det passer The Quiz Tool-formatet.
 
 Valideringsfeil:
@@ -131,9 +213,7 @@ Krav:
 - Returner KUN gyldig JSON, ingen markdown eller forklaring
 - Top-level: { "questions": [...] }
 - Nøyaktig ${count} spørsmål
-- type må følge ønsket spørsmålstype: ${params.questionStyle}
-- Open: { "type": "open", "text": "...", "body": null, "acceptedAnswers": ["..."] }
-- MC: { "type": "mc", "text": "...", "body": null, "options": [nøyaktig 4 alternativer, nøyaktig én correct true] }
+${packageRequirements}
 - Ikke inkluder maxPoints; systemet setter 1 poeng
 - All tekst skal være på norsk
 
@@ -160,6 +240,7 @@ export async function generateQuizWithOpenAI(
       { role: 'user', content: prompt },
     ],
     0.45,
+    params.questionStyle,
   );
 
   const initial = validateGeneratedContent(initialContent, params.questionStyle, questionCount);
@@ -180,6 +261,7 @@ export async function generateQuizWithOpenAI(
       { role: 'user', content: repairPrompt },
     ],
     0.1,
+    params.questionStyle,
   );
 
   const repaired = validateGeneratedContent(repairedContent, params.questionStyle, questionCount);
@@ -206,6 +288,9 @@ function systemMessageForStyle(style: AiGenerateQuizRequest['questionStyle']): s
   if (style === 'mc') {
     return `${base} Alle spørsmål skal ha type "mc" — aldri "open".`;
   }
+  if (style === 'quizPackage') {
+    return `${base} Lag en Quizpakke med nøyaktig fem oppgaver i fast slot-rekkefølge: open, multipleChoice, ordering, puzzle, game. Ikke bruk andre spill enn de som er oppgitt.`;
+  }
   return `${base} Quizen skal blande type "open" og "mc" som angitt.`;
 }
 
@@ -213,6 +298,7 @@ async function callOpenAi(
   apiKey: string,
   messages: OpenAiMessage[],
   temperature: number,
+  style: AiGenerateQuizRequest['questionStyle'],
 ): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -226,7 +312,7 @@ async function callOpenAi(
       },
       body: JSON.stringify({
         model: MODEL,
-        response_format: aiQuizResponseFormat(),
+        response_format: aiQuizResponseFormat(style),
         temperature,
         messages,
       }),

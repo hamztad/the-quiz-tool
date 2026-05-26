@@ -62,6 +62,15 @@ export interface Team {
   name: string;
 }
 
+export interface TeamPresence {
+  teamId: string;
+  status: 'connected' | 'disconnected';
+  connectedAt?: number;
+  disconnectedAt?: number;
+  lastSeenAt: number;
+  reconnectUntil?: number;
+}
+
 export interface Answer {
   teamId: string;
   questionId: string;
@@ -108,6 +117,7 @@ export interface RoomSettings {
   showLeaderboard: boolean;
   teamReviewOpen: boolean;
   answerKeyOpen: boolean;
+  allowNewTeams: boolean;
 }
 
 export interface RoomState {
@@ -115,6 +125,7 @@ export interface RoomState {
   joinCode: string;
   phase: RoomPhase;
   teams: Team[];
+  teamPresence: Record<string, TeamPresence>;
   questions: Question[];
   questionStatus: Record<string, QuestionStatus>;
   /** True once quizmaster has opened the question at least once (teams may see text after). */

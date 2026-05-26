@@ -49,12 +49,13 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
   const [questionStyle, setQuestionStyle] = useState<AiQuizQuestionStyle>('mixed');
   const [includePixabayImages, setIncludePixabayImages] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingMode, setLoadingMode] = useState<'normal' | 'quizPackage' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const isCustomTheme = themePreset === AI_QUIZ_CUSTOM_THEME;
   const topic = isCustomTheme ? customTopic.trim() : themePreset;
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (mode: 'normal' | 'quizPackage' = 'normal') => {
     setError(null);
     if (!topic) {
       setError('Velg tema eller skriv et egendefinert tema.');
@@ -68,6 +69,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
     }
 
     setLoading(true);
+    setLoadingMode(mode);
     try {
       const varietySeed =
         typeof crypto !== 'undefined' && crypto.randomUUID
@@ -76,9 +78,9 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
 
       const result = await requestAiQuizGeneration(session, {
         topic,
-        questionCount,
+        questionCount: mode === 'quizPackage' ? 5 : questionCount,
         difficulty,
-        questionStyle,
+        questionStyle: mode === 'quizPackage' ? 'quizPackage' : questionStyle,
         includePixabayImages,
         varietySeed,
       });
@@ -87,6 +89,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
       setError(err instanceof Error ? err.message : 'Kunne ikke generere quiz.');
     } finally {
       setLoading(false);
+      setLoadingMode(null);
     }
   };
 
@@ -226,10 +229,26 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
         </label>
       </div>
 
+      <button
+        type="button"
+        onClick={() => handleGenerate('quizPackage')}
+        disabled={loading}
+        className="w-full rounded-2xl border-2 border-quiz-accent/45 bg-gradient-to-br from-quiz-accent/20 to-quiz-surface-elevated p-4 text-left shadow-sm transition-colors hover:border-quiz-accent hover:bg-quiz-accent/20 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        <span className="block text-base font-black text-quiz-text">Quizpakke</span>
+        <span className="mt-1 block text-sm text-quiz-muted">
+          Lag fem varierte oppgaver automatisk
+        </span>
+        <span className="mt-3 block text-xs text-quiz-muted">
+          Bruker temaet og vanskelighetsgraden over. Inneholder åpent spørsmål, flervalg,
+          rekkefølge, anagram/regnerace og ett annet spill.
+        </span>
+      </button>
+
       <Button
         type="button"
         className="w-full sm:w-auto"
-        onClick={handleGenerate}
+        onClick={() => handleGenerate('normal')}
         disabled={loading}
       >
         {loading ? (
@@ -238,10 +257,10 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
               className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
               aria-hidden
             />
-            Genererer quiz…
+            {loadingMode === 'quizPackage' ? 'Genererer quizpakke…' : 'Genererer quiz…'}
           </span>
         ) : (
-          'Generer quiz'
+          'Generer vanlig quiz'
         )}
       </Button>
 
@@ -259,7 +278,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-quiz-text">
-                AI lager {questionCount} spørsmål om {topic}
+                AI lager {loadingMode === 'quizPackage' ? 'en quizpakke med 5 oppgaver' : `${questionCount} spørsmål`} om {topic}
               </p>
               <p className="mt-1 text-xs text-quiz-muted">
                 {includePixabayImages

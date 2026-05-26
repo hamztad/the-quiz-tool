@@ -1,6 +1,16 @@
 import { DEFAULT_MAX_POINTS } from '../constants/events.js';
 import type { McOption, Question } from '../types/room.js';
 import { validateQuestionsForSave } from '../import/parseQuizText.js';
+import { createAnagramConfigForAnswer, validateAnagramAnswerText } from '../games/modules/anagram.js';
+import { createDefaultDropBallConfig } from '../games/modules/dropBall.js';
+import { createDefaultEmojiHuntConfig } from '../games/modules/emojiHunt.js';
+import {
+  createDefaultMathRaceConfig,
+  validateMathExpressionConfig,
+} from '../games/modules/mathExpression.js';
+import { createDefaultRainbowPuzzleConfig } from '../games/modules/rainbowPuzzle.js';
+import type { GameId, MathExpressionRaceConfig } from '../games/types.js';
+import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
 import {
   AI_GENERATE_QUESTION_MAX,
   AI_GENERATE_QUESTION_MIN,
@@ -12,6 +22,9 @@ const MAX_QUESTION_TEXT = 400;
 const MAX_ANSWER_TEXT = 120;
 const MAX_OPTION_TEXT = 120;
 const MAX_HINT_TEXT = 200;
+const MAX_ORDERING_ITEM_TEXT = 80;
+const MAX_DIRECTION_LABEL_TEXT = 80;
+const MAX_EXPRESSION_TEXT = 40;
 
 export type ParsedAiQuizQuestion = Omit<Question, 'id' | 'order'>;
 
@@ -55,9 +68,99 @@ function parseMcOptions(raw: unknown, questionIndex: number): McOption[] | null 
   return options;
 }
 
+function parseStringArray(raw: unknown, maxItems: number, maxLen: number): string[] | null {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > maxItems) return null;
+  const values: string[] = [];
+  for (const item of raw) {
+    const value = asNonEmptyString(item, 'arrayItem', maxLen);
+    if (!value) return null;
+    if (!values.includes(value)) values.push(value);
+  }
+  return values.length === raw.length ? values : null;
+}
+
+function parseOrderingQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQuestion['lines']): ParsedAiQuizQuestion | null {
+  const items = parseStringArray(raw.items, 5, MAX_ORDERING_ITEM_TEXT);
+  const correctOrder = parseStringArray(raw.correctOrder, 5, MAX_ORDERING_ITEM_TEXT);
+  if (!items || !correctOrder || items.length < 3 || correctOrder.length !== items.length) return null;
+  const normalizedItems = items.map((text, index) => ({ id: `ai-order-${index}`, text }));
+  const idByText = new Map(normalizedItems.map((item) => [item.text, item.id]));
+  const orderingCorrectOrder = correctOrder.map((text) => idByText.get(text)).filter((id): id is string => Boolean(id));
+  if (orderingCorrectOrder.length !== correctOrder.length) return null;
+
+  const directionLabel = asNonEmptyString(raw.directionLabel, 'directionLabel', MAX_DIRECTION_LABEL_TEXT);
+  const directionTop = asNonEmptyString(raw.directionLabelTop, 'directionLabelTop', MAX_DIRECTION_LABEL_TEXT);
+  const directionBottom = asNonEmptyString(raw.directionLabelBottom, 'directionLabelBottom', MAX_DIRECTION_LABEL_TEXT);
+  const splitDirection = directionLabel?.split(/→|->| til /iu).map((part) => part.trim()).filter(Boolean);
+
+  const question: ParsedAiQuizQuestion = {
+    type: 'ordering',
+    lines,
+    orderingDirectionTop: directionTop ?? splitDirection?.[0] ?? 'Øverst',
+    orderingDirectionBottom: directionBottom ?? splitDirection?.[1] ?? 'Nederst',
+    orderingItems: normalizedItems,
+    orderingCorrectOrder,
+    maxPoints: 2,
+  };
+
+  return validateOrderingQuestion(question).length === 0 ? question : null;
+}
+
+function parsePuzzleQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQuestion['lines']): ParsedAiQuizQuestion | null {
+  const puzzleType = raw.puzzleType;
+  if (puzzleType === 'anagram') {
+    const answerText = asNonEmptyString(raw.answerText, 'answerText', 80);
+    if (!answerText || !validateAnagramAnswerText(answerText).ok) return null;
+    return {
+      type: 'game',
+      lines,
+      gameType: 'anagram',
+      game: createAnagramConfigForAnswer(answerText),
+      maxPoints: 1,
+    };
+  }
+
+  if (puzzleType === 'mathRace') {
+    const expressions = parseStringArray(raw.expressions, 6, MAX_EXPRESSION_TEXT);
+    if (!expressions || expressions.length < 2) return null;
+    const game: MathExpressionRaceConfig = {
+      ...createDefaultMathRaceConfig(),
+      expressions,
+    };
+    if (!validateMathExpressionConfig(game).ok) return null;
+    return {
+      type: 'game',
+      lines,
+      gameType: 'mathExpression',
+      game,
+      maxPoints: 5,
+    };
+  }
+
+  return null;
+}
+
+function parseOtherGameQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQuestion['lines']): ParsedAiQuizQuestion | null {
+  const gameId = raw.gameId;
+  if (gameId !== 'rainbowPuzzle' && gameId !== 'emojiHunt' && gameId !== 'dropBall') return null;
+  const config =
+    gameId === 'rainbowPuzzle'
+      ? createDefaultRainbowPuzzleConfig()
+      : gameId === 'emojiHunt'
+        ? createDefaultEmojiHuntConfig()
+        : createDefaultDropBallConfig();
+  return {
+    type: 'game',
+    lines,
+    gameType: gameId as GameId,
+    game: config,
+    maxPoints: 5,
+  };
+}
+
 function parseQuestion(raw: unknown, index: number): ParsedAiQuizQuestion | null {
   if (!isRecord(raw)) return null;
-  const type = raw.type;
+  const type = raw.type === 'multipleChoice' ? 'mc' : raw.type;
   const text = asNonEmptyString(raw.text, 'text', MAX_QUESTION_TEXT);
   if (!text) return null;
   const bodyRaw = raw.body;
@@ -110,6 +213,18 @@ function parseQuestion(raw: unknown, index: number): ParsedAiQuizQuestion | null
     };
   }
 
+  if (type === 'ordering') {
+    return parseOrderingQuestion(raw, lines);
+  }
+
+  if (type === 'puzzle') {
+    return parsePuzzleQuestion(raw, lines);
+  }
+
+  if (type === 'game') {
+    return parseOtherGameQuestion(raw, lines);
+  }
+
   return null;
 }
 
@@ -132,6 +247,36 @@ export function validateAiQuestionStyle(
       return [`Forventet kun flervalg, men fikk ${openCount} åpne spørsmål.`];
     }
     return [];
+  }
+
+  if (style === 'quizPackage') {
+    if (questions.length !== 5) {
+      return [`Quizpakke må ha nøyaktig 5 oppgaver, men fikk ${questions.length}.`];
+    }
+    const slotErrors: string[] = [];
+    if (questions[0]?.type !== 'open') slotErrors.push('Oppgave 1 må være åpent spørsmål.');
+    if (questions[1]?.type !== 'mc') slotErrors.push('Oppgave 2 må være flervalg.');
+    if (questions[2]?.type !== 'ordering') slotErrors.push('Oppgave 3 må være rekkefølge.');
+    const slot4Game = questions[3]?.type === 'game' ? questions[3].game : undefined;
+    if (
+      !slot4Game ||
+      !(
+        slot4Game.gameId === 'anagram' ||
+        (slot4Game.gameId === 'mathExpression' && slot4Game.mode === 'race')
+      )
+    ) {
+      slotErrors.push('Oppgave 4 må være anagram eller regnerace.');
+    }
+    const slot5Game = questions[4]?.type === 'game' ? questions[4].game : undefined;
+    if (
+      !slot5Game ||
+      slot5Game.gameId === 'anagram' ||
+      slot5Game.gameId === 'mathExpression' ||
+      slot5Game.gameId === 'mathRace'
+    ) {
+      slotErrors.push('Oppgave 5 må være et annet eksisterende spill.');
+    }
+    return slotErrors;
   }
 
   const openCount = questions.filter((q) => q.type === 'open').length;

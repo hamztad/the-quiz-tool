@@ -1,6 +1,7 @@
 import type { PublicRoomState, Question, RoomState } from '@quiz-tool/shared';
 import { isQuestionRevealedToTeam, redactQuestionForTeam } from '@quiz-tool/shared';
 import { MAX_TEAMS, validateQuestionsForSave, validateTeamName } from '@quiz-tool/shared';
+import { createConnectedTeamPresence, markTeamConnected, markTeamDisconnected } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
 import { generateId, generateJoinCode, generateToken } from '../utils/id.js';
 import { computeLeaderboard } from './leaderboardService.js';
@@ -15,6 +16,7 @@ export function createRoom(title?: string): RoomRecord {
     joinCode,
     phase: 'lobby',
     teams: [],
+    teamPresence: {},
     questions: [],
     questionStatus: {},
     questionsActivated: {},
@@ -28,9 +30,10 @@ export function createRoom(title?: string): RoomRecord {
     gradingAssignments: [],
     peerGrades: [],
     protests: [],
-    settings: { showLeaderboard: false, teamReviewOpen: false, answerKeyOpen: false },
+    settings: { showLeaderboard: false, teamReviewOpen: false, answerKeyOpen: false, allowNewTeams: true },
     hostToken,
     teamTokens: {},
+    teamBrowserTokens: {},
     expiresAt: Date.now() + 24 * 60 * 60 * 1000,
   };
 
@@ -38,7 +41,11 @@ export function createRoom(title?: string): RoomRecord {
   return room;
 }
 
-export function joinTeam(room: RoomRecord, teamName: string): { room: RoomRecord; teamId: string; teamToken: string } {
+export function joinTeam(
+  room: RoomRecord,
+  teamName: string,
+  options: { browserToken?: string; now?: number } = {},
+): { room: RoomRecord; teamId: string; teamToken: string } {
   if (room.teams.length >= MAX_TEAMS) {
     throw new Error('Maks antall lag er nådd.');
   }
@@ -51,15 +58,46 @@ export function joinTeam(room: RoomRecord, teamName: string): { room: RoomRecord
 
   const teamId = generateId('team');
   const teamToken = generateToken();
+  const now = options.now ?? Date.now();
 
   const updated: RoomRecord = {
     ...room,
     teams: [...room.teams, { id: teamId, name: trimmed }],
+    teamPresence: { ...room.teamPresence, [teamId]: createConnectedTeamPresence(teamId, now) },
     answeredByTeam: { ...room.answeredByTeam, [teamId]: [] },
     teamTokens: { ...room.teamTokens, [teamId]: teamToken },
+    teamBrowserTokens: options.browserToken
+      ? { ...room.teamBrowserTokens, [teamId]: options.browserToken }
+      : room.teamBrowserTokens,
   };
 
   return { room: updated, teamId, teamToken };
+}
+
+export function findTeamIdByBrowserToken(room: RoomRecord, browserToken?: string): string | null {
+  if (!browserToken) return null;
+  const match = Object.entries(room.teamBrowserTokens).find(([, token]) => token === browserToken);
+  return match?.[0] ?? null;
+}
+
+export function markTeamSocketConnected(room: RoomRecord, teamId: string, now = Date.now()): RoomRecord {
+  return {
+    ...room,
+    teamPresence: {
+      ...room.teamPresence,
+      [teamId]: markTeamConnected(room.teamPresence[teamId], teamId, now),
+    },
+  };
+}
+
+export function markTeamSocketDisconnected(room: RoomRecord, teamId: string, now = Date.now()): RoomRecord {
+  return {
+    ...room,
+    teamPresence: {
+      ...room.teamPresence,
+      [teamId]: markTeamDisconnected(room.teamPresence[teamId], teamId, now),
+    },
+  };
 }
 
 function recomputeAnsweredByTeam(
@@ -171,6 +209,10 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
 
   const teamTokens = { ...room.teamTokens };
   delete teamTokens[teamId];
+  const teamBrowserTokens = { ...room.teamBrowserTokens };
+  delete teamBrowserTokens[teamId];
+  const teamPresence = { ...room.teamPresence };
+  delete teamPresence[teamId];
 
   const answers = room.answers.filter((a) => a.teamId !== teamId);
   const gameStarts = room.gameStarts.filter((start) => start.teamId !== teamId);
@@ -189,6 +231,8 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
     ...room,
     teams,
     teamTokens,
+    teamBrowserTokens,
+    teamPresence,
     answers,
     gameStarts,
     gameSubmissions,

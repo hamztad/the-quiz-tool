@@ -83,6 +83,7 @@ export function TeamPage() {
     noSession,
     operationalError,
     teamSession,
+    sessionRestored,
     retryReconnect,
   } = useRoomGate(roomId, 'team', socket, connected);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
@@ -94,6 +95,7 @@ export function TeamPage() {
   const teamId = teamSession?.teamId;
   const showOwnReview = searchParams.get('review') === '1';
   const showAnswerKey = searchParams.get('fasit') === '1';
+  const showRestoredMessage = sessionRestored || searchParams.get('restored') === '1';
   const reviewHref = roomId ? `/team/${roomId}?review=1` : '?review=1';
   const answerKeyHref = roomId ? `/team/${roomId}?fasit=1` : '?fasit=1';
 
@@ -370,6 +372,11 @@ export function TeamPage() {
             Kobler til igjen… Dine innsendte svar er lagret på serveren.
           </div>
         )}
+        {showRestoredMessage && (
+          <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
+            Du er koblet tilbake til laget ditt.
+          </div>
+        )}
         {operationalError && (
           <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p>{operationalError}</p>
@@ -392,6 +399,11 @@ export function TeamPage() {
           Kobler til igjen… Dine innsendte svar er lagret på serveren.
         </div>
       )}
+        {showRestoredMessage && (
+          <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
+            Du er koblet tilbake til laget ditt.
+          </div>
+        )}
       {operationalError && (
         <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0 max-w-full">
           <p className="min-w-0 flex-1 quiz-user-text">{operationalError}</p>

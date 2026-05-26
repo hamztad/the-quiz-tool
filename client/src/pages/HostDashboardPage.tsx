@@ -24,6 +24,7 @@ import { Button } from '../components/ui/Button';
 import { HostAnswerKeyPanel } from '../components/host/HostAnswerKeyPanel';
 import { HostTeamAnswersPanel } from '../components/host/HostTeamAnswersPanel';
 import { HostProtestsOverview } from '../components/host/HostProtestsOverview';
+import { HostTeamList } from '../components/host/HostTeamList';
 import { HostGameResults } from '../games/registry';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
@@ -301,7 +302,35 @@ export function HostDashboardPage() {
             >
               Se spørsmål og fasit
             </Button>
+            <Button
+              variant={room.settings.allowNewTeams ? 'secondary' : 'primary'}
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() =>
+                emit(CLIENT_EVENTS.TEAM_JOIN_TOGGLE, {
+                  allowNewTeams: !room.settings.allowNewTeams,
+                })
+              }
+            >
+              {room.settings.allowNewTeams ? 'Steng for nye lag' : 'Åpne for nye lag'}
+            </Button>
           </div>
+
+          {!room.settings.allowNewTeams && (
+            <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+              Nye lag er stengt. Eksisterende lag kan fortsatt koble til igjen.
+            </p>
+          )}
+
+          <HostTeamList
+            room={room}
+            onRemoveTeam={removeTeamFromQuiz}
+            onSelectTeam={(teamId) =>
+              setSelectedTeamId((current) => (current === teamId ? null : teamId))
+            }
+            selectedTeamId={selectedTeamId}
+            showAnswerStats={!isPostQuiz}
+          />
 
           <Leaderboard
             room={room}

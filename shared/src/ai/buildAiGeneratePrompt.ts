@@ -19,6 +19,36 @@ function buildMixedTypePlan(count: number): string {
 }
 
 function buildStyleBlock(style: AiQuizQuestionStyle, count: number): string {
+  if (style === 'quizPackage') {
+    return `QUIZPAKKE (strengt — brudd forkaster svaret):
+- Returner ALLTID nøyaktig 5 oppgaver i denne rekkefølgen:
+  1. type "open" med acceptedAnswers
+  2. type "multipleChoice" med nøyaktig 4 options og én correct: true
+  3. type "ordering" med 3-5 items, correctOrder og tydelig retning topp til bunn
+  4. type "puzzle" med puzzleType enten "anagram" ELLER "mathRace"
+  5. type "game" med gameId enten "rainbowPuzzle", "emojiHunt" eller "dropBall"
+- Ikke bruk unsupported gameId.
+- Ikke inkluder full spillconfig; systemet lager trygg konfigurasjon.
+
+JSON-eksempel (bruk disse feltene):
+{
+  "questions": [
+    { "type": "open", "text": "...", "body": null, "acceptedAnswers": ["..."] },
+    { "type": "multipleChoice", "text": "...", "body": null, "options": [
+      { "text": "...", "correct": true },
+      { "text": "...", "correct": false },
+      { "text": "...", "correct": false },
+      { "text": "...", "correct": false }
+    ] },
+    { "type": "ordering", "text": "...", "body": null, "directionLabel": "Størst øverst → Minst nederst", "directionLabelTop": "Størst", "directionLabelBottom": "Minst", "items": ["..."], "correctOrder": ["..."] },
+    { "type": "puzzle", "puzzleType": "anagram", "text": "Løs anagrammet", "body": null, "answerText": "...", "expressions": [] },
+    { "type": "game", "gameId": "emojiHunt", "text": "Emoji-jakt", "body": null }
+  ]
+}
+
+Hvis puzzleType er "mathRace", bruk "answerText": "" og "expressions": ["2 + 2", "3 * 4", ...] med 2-6 enkle regnestykker.`;
+  }
+
   if (style === 'open') {
     return `SPØRSMÅLSTYPE (strengt — brudd forkaster svaret):
 - ALLE ${count} spørsmål skal ha "type": "open"
@@ -72,7 +102,7 @@ Flervalg:
 }
 
 export function buildAiGeneratePrompt(params: AiGenerateQuizRequest): string {
-  const count = clampAiQuestionCount(params.questionCount);
+  const count = params.questionStyle === 'quizPackage' ? 5 : clampAiQuestionCount(params.questionCount);
   const topic = params.topic.trim();
   const varietyHints = buildAiQuizVarietyHints(topic, count, params.varietySeed);
   const varietyBlock = formatVarietyBlock(varietyHints);
@@ -91,7 +121,7 @@ Generelle krav:
 - Bruk "text" som tittel/spørsmål; bruk valgfri "body" kun for kort tilleggstekst
 - Unngå tvetydige formuleringer
 - Unngå opphavsrettsbeskyttede sangtekster eller lange sitater
-- maxPoints er alltid 1 (ikke inkluder maxPoints i JSON)
+- Ikke inkluder maxPoints i JSON
 
 Svar KUN med gyldig JSON (ingen markdown, ingen forklaring):
 {

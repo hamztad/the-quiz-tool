@@ -1,5 +1,6 @@
 const HOST_KEY = 'quiz_host';
 const TEAM_KEY = 'quiz_team';
+const BROWSER_TEAM_TOKEN_KEY = 'teamToken';
 
 export interface HostSession {
   roomId: string;
@@ -10,8 +11,28 @@ export interface TeamSession {
   roomId: string;
   teamId: string;
   teamToken: string;
+  browserToken?: string;
   teamName?: string;
   joinCode?: string;
+}
+
+function generateBrowserToken(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `browser-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function getOrCreateBrowserTeamToken(): string {
+  try {
+    const existing = localStorage.getItem(BROWSER_TEAM_TOKEN_KEY);
+    if (existing) return existing;
+    const token = generateBrowserToken();
+    localStorage.setItem(BROWSER_TEAM_TOKEN_KEY, token);
+    return token;
+  } catch {
+    return generateBrowserToken();
+  }
 }
 
 export function saveHostSession(session: HostSession) {

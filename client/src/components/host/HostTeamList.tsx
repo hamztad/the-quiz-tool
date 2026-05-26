@@ -1,4 +1,4 @@
-import type { PublicRoomState } from '@quiz-tool/shared';
+import { formatDisconnectedDuration, isReconnectGraceActive, type PublicRoomState } from '@quiz-tool/shared';
 import { Card } from '../ui/Card';
 
 interface HostTeamListProps {
@@ -31,6 +31,9 @@ export function HostTeamList({
       <ul className="space-y-2">
         {room.teams.map((team) => {
           const isSelected = selectedTeamId === team.id;
+          const presence = room.teamPresence[team.id];
+          const connected = presence?.status !== 'disconnected';
+          const reconnectActive = isReconnectGraceActive(presence);
 
           return (
             <li
@@ -48,11 +51,29 @@ export function HostTeamList({
                   className="min-w-0 flex-1 break-words [overflow-wrap:anywhere] font-medium text-left rounded-lg -m-1 p-1 hover:text-quiz-accent transition-colors"
                   aria-pressed={isSelected}
                 >
-                  {team.name}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span aria-hidden>{connected ? '🟢' : '⚪'}</span>
+                    <span className="min-w-0 flex-1">
+                      {team.name}
+                      {!connected && (
+                        <span className="ml-2 text-xs font-normal text-quiz-muted">
+                          ({formatDisconnectedDuration(presence?.disconnectedAt)}
+                          {reconnectActive ? ' · kan koble til igjen' : ''})
+                        </span>
+                      )}
+                    </span>
+                  </span>
                 </button>
               ) : (
                 <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere] font-medium">
+                  <span aria-hidden>{connected ? '🟢 ' : '⚪ '}</span>
                   {team.name}
+                  {!connected && (
+                    <span className="ml-2 text-xs font-normal text-quiz-muted">
+                      ({formatDisconnectedDuration(presence?.disconnectedAt)}
+                      {reconnectActive ? ' · kan koble til igjen' : ''})
+                    </span>
+                  )}
                 </span>
               )}
               {showAnswerStats && (

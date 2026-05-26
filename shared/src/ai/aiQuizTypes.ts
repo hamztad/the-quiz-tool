@@ -21,7 +21,7 @@ export const AI_QUIZ_CUSTOM_THEME = 'Egendefinert tema' as const;
 
 export type AiQuizDifficulty = 'easy' | 'medium' | 'hard';
 
-export type AiQuizQuestionStyle = 'open' | 'mc' | 'mixed';
+export type AiQuizQuestionStyle = 'open' | 'mc' | 'mixed' | 'quizPackage';
 
 export interface AiGenerateQuizRequest {
   roomId: string;
