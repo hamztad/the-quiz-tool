@@ -50,7 +50,7 @@ export function EmojiHuntGame({
   );
   const progressText = `${found.length} / ${targets.length || targetCount} mål`;
   const targetMs = Math.max(1_000, maxMsPerTarget);
-  const visibleOptionCount = Math.min(optionCount, 16);
+  const visibleOptionCount = Math.min(optionCount, 12);
 
   const setPhaseState = (next: EmojiHuntPhase) => {
     phaseRef.current = next;
@@ -198,9 +198,10 @@ export function EmojiHuntGame({
           ? 'text-yellow-100'
           : 'text-white';
   const displayedTargets = remainingTargets.length > 0 ? remainingTargets : targets;
+  const optionRows = Math.max(1, Math.ceil(options.length / 4));
 
   return (
-    <div className="mt-4 grid max-h-[calc(100svh-6rem)] min-h-[34rem] grid-rows-[auto_auto_auto_1fr_auto_auto] gap-2 overflow-hidden rounded-3xl border-2 border-sky-300/35 bg-[radial-gradient(circle_at_top,#4b1165,#220033)] p-3 text-center shadow-[0_0_32px_rgba(125,211,252,0.16)]">
+    <div className="mt-4 grid min-h-[30rem] grid-rows-[auto_auto_auto_minmax(12rem,1fr)_auto_auto] gap-2 rounded-3xl border-2 border-sky-300/35 bg-[radial-gradient(circle_at_top,#4b1165,#220033)] p-3 text-center shadow-[0_0_32px_rgba(125,211,252,0.16)]">
       <div className="leading-tight">
         <p className="text-2xl font-black text-white sm:text-3xl">Emoji-jakt</p>
         <p className="mt-1 text-xs font-semibold text-sky-100/90">
@@ -247,8 +248,11 @@ export function EmojiHuntGame({
         </div>
       </div>
 
-      <div className="min-h-0 overflow-hidden rounded-[1.75rem] border-2 border-white/20 bg-white/10 p-2 shadow-[inset_0_0_30px_rgba(255,255,255,0.06)]">
-        <div className="grid h-full min-h-0 grid-cols-4 place-items-center gap-1.5 sm:gap-2">
+      <div className="min-h-0 rounded-[1.75rem] border-2 border-white/20 bg-white/10 p-2 shadow-[inset_0_0_30px_rgba(255,255,255,0.06)]">
+        <div
+          className="grid h-full min-h-0 grid-cols-4 place-items-center gap-1.5 sm:gap-2"
+          style={{ gridTemplateRows: `repeat(${optionRows}, minmax(0, 1fr))` }}
+        >
           {options.map((option) => {
             const state = highlight[option.id];
             return (
@@ -257,7 +261,7 @@ export function EmojiHuntGame({
                 type="button"
                 disabled={disabled || phase !== 'playing'}
                 onClick={() => clickEmoji(option)}
-                className={`flex h-12 w-full max-w-14 items-center justify-center rounded-2xl border-2 bg-white/15 text-2xl shadow-lg transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:h-14 sm:max-w-16 sm:text-3xl ${
+                className={`flex aspect-square h-full max-h-14 min-h-0 w-full max-w-14 items-center justify-center rounded-2xl border-2 bg-white/15 text-[clamp(1.25rem,6svh,1.875rem)] leading-none shadow-lg transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:max-h-16 sm:max-w-16 ${
                   state === 'hit'
                     ? 'scale-110 border-green-300 bg-green-400/50'
                     : state === 'miss'
