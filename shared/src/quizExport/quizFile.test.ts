@@ -66,14 +66,14 @@ describe('parseQuizFile', () => {
     expect(parseQuizFile(invalid).ok).toBe(false);
   });
 
-  it('validates Drop Ball game config', () => {
+  it('validates Drop the Ball game config', () => {
     const exported = buildQuizFileExport([
       {
         id: 'q-drop-ball',
         order: 0,
         type: 'game',
         gameType: 'dropBall',
-        lines: [{ text: 'Drop Ball', style: 'title' }],
+        lines: [{ text: 'Drop the Ball', style: 'title' }],
         game: createDefaultDropBallConfig(),
         maxPoints: 5,
       },

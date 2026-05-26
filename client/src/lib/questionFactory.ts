@@ -81,7 +81,7 @@ export function createDropBallQuestion(order: number): Question {
     order,
     type: 'game',
     gameType: 'dropBall',
-    lines: [{ text: 'Drop Ball', style: 'title' }],
+    lines: [{ text: 'Drop the Ball', style: 'title' }],
     game: createDefaultDropBallConfig(),
     maxPoints: 5,
   };

@@ -475,7 +475,7 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
         <span aria-hidden>⏱️</span>
       </div>
       <p className="text-sm font-bold uppercase tracking-[0.2em] text-fuchsia-200">
-        Stoppklokka
+        Stopp klokka
       </p>
       <p className="mt-2 text-base font-semibold text-quiz-text">
         Stopp så nær målet som mulig

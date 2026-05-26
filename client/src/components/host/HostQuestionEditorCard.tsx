@@ -818,7 +818,7 @@ function GameQuestionEditor({
     return (
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
         <div>
-          <p className="text-xs font-semibold text-emerald-200">Spill: Drop Ball</p>
+          <p className="text-xs font-semibold text-emerald-200">Spill: Drop the Ball</p>
           <p className="mt-1 text-xs text-quiz-muted">
             Lagene fjerner hindre og samler mynter. Høyeste totalscore vinner.
           </p>
@@ -1046,7 +1046,7 @@ function GameQuestionEditor({
   return (
     <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
       <div>
-        <p className="text-xs font-semibold text-blue-200">Spill: Stoppklokka</p>
+        <p className="text-xs font-semibold text-blue-200">Spill: Stopp klokka</p>
         <p className="mt-1 text-xs text-quiz-muted">
           Lagene stopper klokka nærmest mulig måltiden. Nærmest vinner når spørsmålet låses.
         </p>

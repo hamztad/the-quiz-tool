@@ -6,6 +6,7 @@ import {
   type DropBallConfig,
   type DropBallRoundResult,
 } from '@quiz-tool/shared';
+import dropTheBallMusicUrl from '../../../../music/Drop The Ball.mp3';
 
 const CANVAS_WIDTH = 340;
 const CANVAS_HEIGHT = 560;
@@ -518,6 +519,7 @@ export function DropBallGame({
 }: DropBallGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const simRef = useRef<SimState | null>(null);
+  const musicRef = useRef<HTMLAudioElement | null>(null);
   const draggingLaunchRef = useRef(false);
   const finalSubmittedScoreRef = useRef<number | null>(null);
   const [phase, setPhase] = useState<DropBallPhase>('ready');
@@ -526,6 +528,8 @@ export function DropBallGame({
   const [completedRounds, setCompletedRounds] = useState<DropBallRoundResult[]>([]);
   const [snapshot, setSnapshot] = useState<DropBallSnapshot>(() => emptySnapshot());
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [musicError, setMusicError] = useState<string | null>(null);
   const completedScore = completedRounds.reduce((sum, round) => sum + round.score, 0);
   const displayedTotal = completedScore + (phase === 'falling' || phase === 'betweenBoards' ? snapshot.currentScore : 0);
   const isNewBest = bestScore === null || displayedTotal > bestScore;
@@ -545,6 +549,15 @@ export function DropBallGame({
   };
 
   useEffect(() => () => stopSimulation(), []);
+
+  useEffect(() => {
+    return () => {
+      if (musicRef.current) {
+        musicRef.current.pause();
+        musicRef.current.currentTime = 0;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -608,6 +621,32 @@ export function DropBallGame({
     setDetailsOpen(false);
     setPhase('falling');
     sim.animationFrame = window.requestAnimationFrame(() => animate(sim));
+  };
+
+  const getMusic = () => {
+    if (!musicRef.current) {
+      const audio = new Audio(dropTheBallMusicUrl);
+      audio.loop = true;
+      audio.volume = 0.38;
+      musicRef.current = audio;
+    }
+    return musicRef.current;
+  };
+
+  const toggleMusic = async () => {
+    const audio = getMusic();
+    setMusicError(null);
+    if (musicEnabled) {
+      audio.pause();
+      setMusicEnabled(false);
+      return;
+    }
+    try {
+      await audio.play();
+      setMusicEnabled(true);
+    } catch {
+      setMusicError('Kunne ikke starte musikk i denne nettleseren.');
+    }
   };
 
   const finishCurrentBoard = () => {
@@ -677,11 +716,24 @@ export function DropBallGame({
   return (
     <div className="mt-4 overflow-hidden rounded-3xl border-2 border-violet-300/40 bg-gradient-to-br from-violet-600/35 via-fuchsia-500/20 to-blue-500/20 p-4 text-center shadow-[0_0_32px_rgba(168,85,247,0.22)] sm:p-5">
       <p className="text-2xl font-black uppercase tracking-[0.12em] text-fuchsia-100 sm:text-3xl">
-        Drop Ball
+        Drop the Ball
       </p>
       <p className="mt-2 text-sm font-semibold text-quiz-text">
         Fjern hindre og samle mynter. Alle tre mynter gir hattrick-bonus.
       </p>
+      <button
+        type="button"
+        onClick={toggleMusic}
+        className="mt-4 rounded-full border border-cyan-200/40 bg-cyan-200/10 px-4 py-2 text-sm font-black text-cyan-50 shadow-[0_0_18px_rgba(125,211,252,0.18)] hover:border-cyan-100/70"
+        aria-pressed={musicEnabled}
+      >
+        {musicEnabled ? 'Musikk på - slå av' : 'Musikk av - slå på'}
+      </button>
+      {musicError && (
+        <p className="mt-2 text-xs font-semibold text-red-200" role="alert">
+          {musicError}
+        </p>
+      )}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-yellow-300/45 bg-yellow-300/15 px-4 py-3">
@@ -725,7 +777,7 @@ export function DropBallGame({
           onPointerMove={handleCanvasPointerMove}
           onPointerUp={stopLaunchDrag}
           onPointerCancel={stopLaunchDrag}
-          aria-label="Drop Ball-spillebrett"
+          aria-label="Drop the Ball-spillebrett"
         />
         {phase === 'betweenBoards' && (
           <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/20 bg-slate-950/55 px-3 py-2 shadow-[0_0_24px_rgba(15,23,42,0.35)] backdrop-blur">

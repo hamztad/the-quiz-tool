@@ -12,7 +12,7 @@ export const DEFAULT_TIMER_TARGET_MS = 10_000;
 export function createDefaultTimerChallengeConfig(): TimerChallengeConfig {
   return {
     gameId: 'timerChallenge',
-    title: 'Stoppklokka',
+    title: 'Stopp klokka',
     instructions: 'Stopp klokka så nær måltiden som mulig.',
     targetMs: DEFAULT_TIMER_TARGET_MS,
     rankingMode: 'lowest',

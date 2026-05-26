@@ -19,7 +19,7 @@ export const DROP_BALL_PERFECT_BOARD_BONUS = 25_000;
 export function createDefaultDropBallConfig(): DropBallConfig {
   return {
     gameId: 'dropBall',
-    title: 'Drop Ball',
+    title: 'Drop the Ball',
     instructions: 'Slipp ballen tre ganger. Fjern hindre, samle 1k/2k/3k-mynter og få hattrick-bonus for alle tre.',
     totalRounds: DROP_BALL_DEFAULT_ROUNDS,
     obstacleCount: DROP_BALL_OBSTACLE_COUNT,

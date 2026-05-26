@@ -28,7 +28,7 @@ export const builtInGames: BuiltInGameDefinition[] = [
   },
   {
     id: 'dropBall',
-    label: 'Drop Ball',
+    label: 'Drop the Ball',
     description: 'Slipp ballen, samle mynter og fjern hindre for høyest score.',
     createDefaultConfig: createDefaultDropBallConfig,
   },
@@ -46,7 +46,7 @@ export const builtInGames: BuiltInGameDefinition[] = [
   },
   {
     id: 'timerChallenge',
-    label: 'Stoppklokka',
+    label: 'Stopp klokka',
     description: 'Lagene stopper en klokke så nær en måltid som mulig.',
     createDefaultConfig: createDefaultTimerChallengeConfig,
   },

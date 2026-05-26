@@ -168,13 +168,13 @@ export function QuestionCard({
           </p>
           <p className="text-sm text-quiz-text">
             {question.game.gameId === 'timerChallenge'
-              ? `Stoppklokka: nærmest ${(question.game.targetMs / 1000).toFixed(0)} sekunder vinner.`
+              ? `Stopp klokka: nærmest ${(question.game.targetMs / 1000).toFixed(0)} sekunder vinner.`
               : question.game.gameId === 'rainbowPuzzle'
                 ? 'Rainbow Puzzle: høyeste fullførte poengsum vinner.'
                 : question.game.gameId === 'emojiHunt'
                   ? `Emoji-jakt: finn ${question.game.targetCount} emoji raskest mulig.`
                   : question.game.gameId === 'dropBall'
-                    ? `Drop Ball: ${question.game.totalRounds} brett med hindre, mynter og lufttidspoeng.`
+                    ? `Drop the Ball: ${question.game.totalRounds} brett med hindre, mynter og lufttidspoeng.`
                   : question.game.gameId === 'anagram'
                     ? `Anagram: ${question.game.scrambledText || 'ikke satt'} · fasit ${question.game.answerText || '—'}`
                     : question.game.gameId === 'mathExpression'

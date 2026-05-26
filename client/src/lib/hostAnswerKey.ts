@@ -14,7 +14,7 @@ export function getQuestionFasitText(question: Question): string | null {
   }
   if (question.type === 'game') {
     if (question.game?.gameId === 'timerChallenge') {
-      return `Stoppklokka: nærmest ${(question.game.targetMs / 1000).toFixed(0)} sekunder vinner.`;
+      return `Stopp klokka: nærmest ${(question.game.targetMs / 1000).toFixed(0)} sekunder vinner.`;
     }
     if (question.game?.gameId === 'rainbowPuzzle') {
       return 'Rainbow Puzzle: høyeste fullførte poengsum vinner.';
@@ -23,7 +23,7 @@ export function getQuestionFasitText(question: Question): string | null {
       return `Emoji-jakt: finn ${question.game.targetCount} emoji raskest mulig.`;
     }
     if (question.game?.gameId === 'dropBall') {
-      return `Drop Ball: ${question.game.totalRounds} brett, ${question.game.obstacleCount} hindre, mynter 1k/2k/3k og +${question.game.allCoinsBonus.toLocaleString('nb-NO')} for alle tre.`;
+      return `Drop the Ball: ${question.game.totalRounds} brett, ${question.game.obstacleCount} hindre, mynter 1k/2k/3k og +${question.game.allCoinsBonus.toLocaleString('nb-NO')} for alle tre.`;
     }
     if (question.game?.gameId === 'anagram') {
       return `Anagram: ${question.game.answerText || '—'}`;
