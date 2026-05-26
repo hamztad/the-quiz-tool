@@ -755,6 +755,17 @@ export function DropBallGame({
                   </p>
                 </div>
               </div>
+              <div className="rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-left">
+                <p className="text-xs font-black uppercase tracking-wide text-yellow-100">
+                  Bonuser
+                </p>
+                <div className="mt-2 grid gap-2 text-sm font-semibold text-yellow-50 sm:grid-cols-2">
+                  <p>Alle mynter: +{config.allCoinsBonus.toLocaleString('nb-NO')} poeng</p>
+                  <p>Alle hindre: +{config.allObstaclesBonus.toLocaleString('nb-NO')} poeng</p>
+                  <p>Perfekt brett: +{config.perfectBoardBonus.toLocaleString('nb-NO')} poeng</p>
+                  <p>Bonusball ved {config.bonusBallThreshold.toLocaleString('nb-NO')} poeng</p>
+                </div>
+              </div>
               {snapshot.latestMessage && (
                 <p className="rounded-2xl border border-cyan-300/35 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-50" role="status" aria-live="polite">
                   {snapshot.latestMessage}
