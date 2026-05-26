@@ -4,6 +4,7 @@ import {
   buildRainbowPuzzleResults,
   buildTimerChallengeResults,
   gameResultsToScoreEntries,
+  isAnagramAnswerCorrect,
   isAnagramSubmissionPayload,
   isEmojiHuntSubmissionPayload,
   isRainbowPuzzleSubmissionPayload,
@@ -144,6 +145,9 @@ export function submitGameResult(
   } else if (question.game.gameId === 'anagram') {
     if (!isAnagramSubmissionPayload(payload)) {
       throw new Error('Ugyldig spillinnsending.');
+    }
+    if (!isAnagramAnswerCorrect(payload.answer, question.game.answerText)) {
+      return room;
     }
     submissionPayload = {
       gameId: 'anagram',

@@ -286,6 +286,7 @@ function AnagramTeamView({ room, question, teamId }: TeamGameViewProps) {
   return (
     <AnagramGame
       title={question.lines[0]?.text ?? 'Løs anagrammet'}
+      hint={question.hint}
       scrambledText={config.scrambledText}
       latestAnswer={latestAnswer}
       onSubmit={submitAnswer}
