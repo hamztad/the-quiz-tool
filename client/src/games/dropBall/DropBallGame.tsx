@@ -330,6 +330,7 @@ function createSimulation(
     }),
     Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y + 20, CANVAS_WIDTH + 80, 40, {
       ...wallOptions,
+      restitution: 1.08,
       label: 'floor',
     }),
     Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y - 8, CANVAS_WIDTH, 8, {
@@ -473,16 +474,21 @@ export function DropBallGame({
 }: DropBallGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const simRef = useRef<SimState | null>(null);
+  const draggingLaunchRef = useRef(false);
+  const finalSubmittedScoreRef = useRef<number | null>(null);
   const [phase, setPhase] = useState<DropBallPhase>('ready');
   const [dropX, setDropX] = useState(CANVAS_WIDTH / 2);
   const [boardIndex, setBoardIndex] = useState(0);
   const [completedRounds, setCompletedRounds] = useState<DropBallRoundResult[]>([]);
   const [pendingBonus, setPendingBonus] = useState(false);
   const [snapshot, setSnapshot] = useState<DropBallSnapshot>(() => emptySnapshot());
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const completedScore = completedRounds.reduce((sum, round) => sum + round.score, 0);
   const displayedTotal = completedScore + (phase === 'falling' || phase === 'betweenBoards' ? snapshot.currentScore : 0);
   const isNewBest = bestScore === null || displayedTotal > bestScore;
   const currentBallKind: DropBallBallKind = pendingBonus ? 'bonus' : 'normal';
+  const hasNextBoard = boardIndex + 1 < config.totalRounds;
+  const currentBoardUnlocksBonus = snapshot.bottomTouched && snapshot.currentScore >= config.bonusBallThreshold;
 
   const stopSimulation = () => {
     const sim = simRef.current;
@@ -528,6 +534,22 @@ export function DropBallGame({
 
     if (nextSnapshot.bottomTouched) {
       setPhase((current) => current === 'falling' ? 'betweenBoards' : current);
+      if (sim.boardIndex + 1 >= config.totalRounds) {
+        const result = calculateDropBallBoardScore(
+          config,
+          sim.ballKind,
+          sim.finalAirTimeMs ?? nextSnapshot.airTimeMs,
+          sim.obstacleHits.size,
+          sim.coinValues,
+          sim.boardIndex,
+        );
+        const nextRounds = [...completedRounds, result];
+        const nextTotal = nextRounds.reduce((sum, round) => sum + round.score, 0);
+        if (finalSubmittedScoreRef.current === null || nextTotal > finalSubmittedScoreRef.current) {
+          finalSubmittedScoreRef.current = nextTotal;
+          onComplete(nextTotal, nextRounds);
+        }
+      }
     }
 
     sim.animationFrame = window.requestAnimationFrame(() => animate(sim));
@@ -539,6 +561,7 @@ export function DropBallGame({
     const sim = createSimulation(config, boardIndex, currentBallKind, nextDropX, setSnapshot);
     simRef.current = sim;
     setSnapshot(emptySnapshot());
+    setDetailsOpen(false);
     setPhase('falling');
     sim.animationFrame = window.requestAnimationFrame(() => animate(sim));
   };
@@ -560,6 +583,7 @@ export function DropBallGame({
     setCompletedRounds(nextRounds);
     setPendingBonus(result.unlockedBonus);
     setSnapshot(emptySnapshot());
+    setDetailsOpen(false);
 
     if (boardIndex + 1 >= config.totalRounds) {
       setPhase('finished');
@@ -578,13 +602,33 @@ export function DropBallGame({
     setCompletedRounds([]);
     setPendingBonus(false);
     setSnapshot(emptySnapshot());
+    setDetailsOpen(false);
+    finalSubmittedScoreRef.current = null;
   };
 
   const handleCanvasPointer = (event: PointerEvent<HTMLCanvasElement>) => {
     if (disabled || phase !== 'ready') return;
     const rect = event.currentTarget.getBoundingClientRect();
+    const localY = ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT;
+    if (localY > LAUNCH_HEIGHT + 16) return;
+    const nextX = clampDropX(((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH);
+    draggingLaunchRef.current = true;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDropX(nextX);
+  };
+
+  const handleCanvasPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (!draggingLaunchRef.current || disabled || phase !== 'ready') return;
+    const rect = event.currentTarget.getBoundingClientRect();
     const nextX = clampDropX(((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH);
     setDropX(nextX);
+  };
+
+  const stopLaunchDrag = (event: PointerEvent<HTMLCanvasElement>) => {
+    draggingLaunchRef.current = false;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   return (
@@ -628,31 +672,53 @@ export function DropBallGame({
         </button>
       )}
 
-      <div className="mx-auto mt-5 max-w-[23rem] overflow-hidden rounded-3xl border-2 border-cyan-300/35 bg-violet-950/80 shadow-[inset_0_0_36px_rgba(15,23,42,0.4)]">
+      <div className="relative mx-auto mt-5 max-w-[23rem] overflow-hidden rounded-3xl border-2 border-cyan-300/35 bg-violet-950/80 shadow-[inset_0_0_36px_rgba(15,23,42,0.4)]">
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
           className="block h-auto w-full touch-pan-y"
           onPointerDown={handleCanvasPointer}
+          onPointerMove={handleCanvasPointerMove}
+          onPointerUp={stopLaunchDrag}
+          onPointerCancel={stopLaunchDrag}
           aria-label="Drop Ball-spillebrett"
         />
+        {phase === 'betweenBoards' && (
+          <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/20 bg-slate-950/55 px-3 py-2 shadow-[0_0_24px_rgba(15,23,42,0.35)] backdrop-blur">
+            {hasNextBoard && (
+              <button
+                type="button"
+                onClick={finishCurrentBoard}
+                disabled={disabled}
+                className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-emerald-100/60 bg-emerald-400 text-2xl font-black text-emerald-950 shadow-[0_0_18px_rgba(52,211,153,0.45)] disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Neste brett"
+              >
+                →
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={resetAttempt}
+              disabled={disabled}
+              className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-sky-100/70 bg-sky-200 text-2xl font-black text-sky-950 shadow-[0_0_18px_rgba(125,211,252,0.42)] disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Start på nytt"
+            >
+              ↻
+            </button>
+            {currentBoardUnlocksBonus && hasNextBoard && (
+              <span className="rounded-full border border-yellow-100/60 bg-yellow-300 px-3 py-2 text-xs font-black uppercase tracking-wide text-yellow-950 shadow-[0_0_18px_rgba(250,204,21,0.42)]">
+                Bonusball
+              </span>
+            )}
+            {!hasNextBoard && (
+              <span className="rounded-full border border-emerald-100/50 bg-emerald-400/90 px-3 py-2 text-xs font-black uppercase tracking-wide text-emerald-950">
+                Lagres automatisk
+              </span>
+            )}
+          </div>
+        )}
       </div>
-
-      <label className="mx-auto mt-4 block max-w-[23rem] text-left">
-        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-quiz-muted">
-          Droppunkt
-        </span>
-        <input
-          type="range"
-          min={26}
-          max={CANVAS_WIDTH - 26}
-          value={dropX}
-          disabled={disabled || phase !== 'ready'}
-          onChange={(event) => setDropX(clampDropX(Number(event.target.value)))}
-          className="w-full"
-        />
-      </label>
 
       {pendingBonus && phase === 'ready' && (
         <p className="mt-3 rounded-2xl border border-yellow-300/45 bg-yellow-300/15 px-4 py-3 text-sm font-black text-yellow-50">
@@ -661,30 +727,42 @@ export function DropBallGame({
       )}
 
       {(phase === 'falling' || phase === 'betweenBoards') && (
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-2xl border border-blue-300/30 bg-blue-300/10 px-3 py-2">
-            <p className="text-xs font-bold text-blue-100">Lufttid</p>
-            <p className="text-xl font-black tabular-nums text-blue-50">{snapshot.airTimeMs} ms</p>
-          </div>
-          <div className="rounded-2xl border border-fuchsia-300/30 bg-fuchsia-300/10 px-3 py-2">
-            <p className="text-xs font-bold text-fuchsia-100">Hindre</p>
-            <p className="text-xl font-black tabular-nums text-fuchsia-50">
-              {snapshot.obstacleHits}/{config.obstacleCount}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-3 py-2">
-            <p className="text-xs font-bold text-yellow-100">Mynter</p>
-            <p className="text-xl font-black tabular-nums text-yellow-50">
-              {snapshot.coinValues.length}/{config.coinValues.length}
-            </p>
-          </div>
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((current) => !current)}
+            className="rounded-full border border-quiz-border bg-quiz-surface-elevated px-4 py-2 text-sm font-bold text-quiz-text hover:border-quiz-accent/60"
+          >
+            {detailsOpen ? 'Skjul detaljer' : 'Vis detaljer'}
+          </button>
+          {detailsOpen && (
+            <div className="mt-3 space-y-3">
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-2xl border border-blue-300/30 bg-blue-300/10 px-3 py-2">
+                  <p className="text-xs font-bold text-blue-100">Lufttid</p>
+                  <p className="text-xl font-black tabular-nums text-blue-50">{snapshot.airTimeMs} ms</p>
+                </div>
+                <div className="rounded-2xl border border-fuchsia-300/30 bg-fuchsia-300/10 px-3 py-2">
+                  <p className="text-xs font-bold text-fuchsia-100">Hindre</p>
+                  <p className="text-xl font-black tabular-nums text-fuchsia-50">
+                    {snapshot.obstacleHits}/{config.obstacleCount}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-3 py-2">
+                  <p className="text-xs font-bold text-yellow-100">Mynter</p>
+                  <p className="text-xl font-black tabular-nums text-yellow-50">
+                    {snapshot.coinValues.length}/{config.coinValues.length}
+                  </p>
+                </div>
+              </div>
+              {snapshot.latestMessage && (
+                <p className="rounded-2xl border border-cyan-300/35 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-50" role="status" aria-live="polite">
+                  {snapshot.latestMessage}
+                </p>
+              )}
+            </div>
+          )}
         </div>
-      )}
-
-      {snapshot.latestMessage && phase !== 'ready' && (
-        <p className="mt-3 rounded-2xl border border-cyan-300/35 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-50" role="status" aria-live="polite">
-          {snapshot.latestMessage}
-        </p>
       )}
 
       {phase === 'finished' && (
@@ -695,27 +773,6 @@ export function DropBallGame({
           </p>
         </div>
       )}
-
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        {phase === 'betweenBoards' && (
-          <button
-            type="button"
-            onClick={finishCurrentBoard}
-            disabled={disabled}
-            className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-emerald-200/30 bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(16,185,129,0.26)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            {boardIndex + 1 >= config.totalRounds ? 'Send inn forsøk' : 'Neste brett'}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={resetAttempt}
-          disabled={disabled}
-          className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-quiz-border bg-quiz-surface-elevated px-5 py-3 text-base font-bold text-quiz-text transition-colors hover:border-quiz-accent/60 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-        >
-          Start på nytt
-        </button>
-      </div>
     </div>
   );
 }
