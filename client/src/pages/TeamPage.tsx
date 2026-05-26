@@ -83,6 +83,7 @@ export function TeamPage() {
   } = useRoomGate(roomId, 'team', socket, connected);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
+  const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
   const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -101,12 +102,13 @@ export function TeamPage() {
   };
 
   useEffect(() => {
-    if (!room || !teamId) return;
+    if (!room || !teamId || !activeQuestionId) return;
     const myAnswer = room.answers.find(
       (a) => a.teamId === teamId && a.questionId === activeQuestionId,
     );
     if (myAnswer && myAnswer.value !== '[hidden]') {
       setAnswerText(myAnswer.value);
+      setAnswerDrafts((current) => ({ ...current, [activeQuestionId]: myAnswer.value }));
     }
   }, [activeQuestionId, room, teamId]);
 
@@ -220,12 +222,17 @@ export function TeamPage() {
     (room.answeredByTeam[teamId ?? ''] ?? []).includes(questionId);
 
   const submitAnswer = (question: Question) => {
-    const trimmed = answerText.trim();
+    const trimmed = (answerDrafts[question.id] ?? answerText).trim();
     if (!trimmed) return;
 
     const existing = getMyAnswer(question.id);
     const event = existing ? CLIENT_EVENTS.ANSWER_UPDATE : CLIENT_EVENTS.ANSWER_SUBMIT;
     socket.emit(event, { questionId: question.id, value: trimmed });
+    setAnswerDrafts((current) => {
+      const next = { ...current };
+      delete next[question.id];
+      return next;
+    });
     setActiveQuestionId(null);
     flashHighlight(question.id);
   };
@@ -239,7 +246,21 @@ export function TeamPage() {
     setHighlightedQuestionId(null);
     setActiveQuestionId(q.id);
     const ans = getMyAnswer(q.id);
-    setAnswerText(ans?.value && ans.value !== '[hidden]' ? ans.value : '');
+    setAnswerText(answerDrafts[q.id] ?? (ans?.value && ans.value !== '[hidden]' ? ans.value : ''));
+  };
+
+  const updateActiveAnswer = (value: string) => {
+    if (activeQuestionId) {
+      setAnswerDrafts((current) => ({ ...current, [activeQuestionId]: value }));
+    }
+    setAnswerText(value);
+  };
+
+  const closeActiveQuestion = () => {
+    if (activeQuestionId) {
+      flashHighlight(activeQuestionId);
+    }
+    setActiveQuestionId(null);
   };
 
   const activeQuestion = room.questions.find((q) => q.id === activeQuestionId);
@@ -371,6 +392,25 @@ export function TeamPage() {
       <div className="quiz-page-content space-y-4">
           {activeQuestionOpen ? (
             <Card className="border-2 border-quiz-active p-3 sm:p-4 min-w-0">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 text-left">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-quiz-muted">
+                    Åpen oppgave
+                  </p>
+                  <p className="text-sm font-semibold text-quiz-text break-words">
+                    Du kan gå tilbake til oppgavelisten og åpne denne igjen så lenge quizmaster holder den åpen.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  onClick={closeActiveQuestion}
+                >
+                  Til oppgaver
+                </Button>
+              </div>
               {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
                 activeQuestion.game?.gameId !== 'emojiHunt' &&
                 activeQuestion.game?.gameId !== 'dropBall' &&
@@ -387,7 +427,7 @@ export function TeamPage() {
                 <TextArea
                   className="mt-4"
                   value={answerText}
-                  onChange={(e) => setAnswerText(e.target.value)}
+                  onChange={(e) => updateActiveAnswer(e.target.value)}
                   placeholder="Ditt svar…"
                 />
               ) : (
@@ -396,7 +436,7 @@ export function TeamPage() {
                     <button
                       key={opt.id}
                       type="button"
-                      onClick={() => setAnswerText(opt.id)}
+                      onClick={() => updateActiveAnswer(opt.id)}
                       className={`box-border w-full min-w-0 max-w-full rounded-xl border px-4 py-3 text-left min-h-[44px] transition-colors quiz-user-text ${
                         answerText === opt.id
                           ? 'border-quiz-accent bg-quiz-accent/20'
