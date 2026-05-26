@@ -12,6 +12,7 @@ interface QuizBackupPanelProps {
   quizTitle?: string;
   hasUnsavedWork: boolean;
   onImportQuestions: (questions: Question[]) => void;
+  onExported?: () => void;
   /** Open file picker once on mount (e.g. after setup «Importer quizfil»). */
   autoOpenImport?: boolean;
   /** Prominent import-first layout for «Importer quizfil» entry. */
@@ -25,6 +26,7 @@ export function QuizBackupPanel({
   quizTitle,
   hasUnsavedWork,
   onImportQuestions,
+  onExported,
   autoOpenImport = false,
   variant = 'default',
   exportOnly = false,
@@ -49,7 +51,8 @@ export function QuizBackupPanel({
 
   const handleExport = () => {
     downloadQuizFile(questions, { title: quizTitle });
-    showFeedback('Quizfil lastet ned.');
+    onExported?.();
+    showFeedback('Quizfil lastet ned. Denne filen kan importeres senere.');
   };
 
   const handleCopyText = async () => {
@@ -90,13 +93,13 @@ export function QuizBackupPanel({
     const wouldReplaceUnsaved = hasUnsavedWork && questions.length > 0;
     if (wouldReplaceUnsaved) {
       const ok = window.confirm(
-        `Du har ulagrede endringer (${questions.length} spørsmål). Importering erstatter det som står i editoren. Fortsette?`,
+        `Du har endringer i aktiv quiz (${questions.length} spørsmål). Importering erstatter det som står i editoren. Fortsette?`,
       );
       if (!ok) return;
     }
 
     onImportQuestions(result.data.questions);
-    showFeedback(`${result.data.questions.length} spørsmål importert. Husk å lagre til server.`);
+    showFeedback(`${result.data.questions.length} spørsmål importert. Bruk endringene for å oppdatere aktiv quiz.`);
   };
 
   const fileInput = (
@@ -114,7 +117,7 @@ export function QuizBackupPanel({
       <div className="rounded-2xl border-2 border-quiz-accent/40 bg-quiz-accent/10 p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
         <p className="text-base font-bold text-quiz-text mb-1">Importer quizfil</p>
         <p className="text-sm text-quiz-muted mb-4 break-words">
-          Velg en JSON-fil fra The Quiz Tool. Etter import kan du redigere og lagre.
+          Velg en JSON-fil fra The Quiz Tool. Etter import kan du redigere og bruke endringene i aktiv quiz.
         </p>
         <Button
           type="button"
@@ -161,11 +164,11 @@ export function QuizBackupPanel({
   return (
     <div className="rounded-2xl border border-quiz-border/80 bg-quiz-surface/40 p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
       <div className="mb-3">
-        <p className="text-sm font-semibold text-quiz-text">Sikkerhetskopi</p>
+        <p className="text-sm font-semibold text-quiz-text">Permanent quizfil</p>
         <p className="text-xs text-quiz-muted mt-1 break-words">
           {exportOnly
-            ? 'Last ned eller kopier quizen lokalt.'
-            : 'Last ned, importer eller kopier quizen lokalt. Endringer lagres ikke på server før du trykker «Lagre alle spørsmål».'}
+            ? 'Last ned eller kopier quizen lokalt. Quizfilen kan importeres senere.'
+            : 'Last ned en quizfil for permanent lagring lokalt. Import kan erstatte aktiv quiz i editoren.'}
         </p>
       </div>
 

@@ -24,6 +24,12 @@ import {
 } from '../lib/questionFactory';
 import { initialEditModeForEntry, parseBuildEntry, setHostPresenting } from '../lib/hostFlow';
 import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
+import {
+  markHostDraftExported,
+  quizContentHash,
+  readHostDraftSession,
+  writeHostDraftSession,
+} from '../lib/hostDraftSession';
 
 const HIGHLIGHT_MS = 4500;
 const REPLACE_CONFIRM_WORD = 'ERSTAT';
@@ -54,6 +60,8 @@ export function HostEditPage() {
   const [importText, setImportText] = useState('');
   const [dirty, setDirty] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
+  const [exportedHash, setExportedHash] = useState<string>('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
@@ -61,6 +69,7 @@ export function HostEditPage() {
   const editorListRef = useRef<HTMLDivElement>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevEditModeRef = useRef<QuizEditMode>(editMode);
+  const restoredLocalDraftRef = useRef(false);
 
   const syncImportTextFromDraft = useCallback((questions: Question[]) => {
     setImportText(questionsToQuizText(questions));
@@ -68,11 +77,26 @@ export function HostEditPage() {
 
   useEffect(() => {
     if (room?.questions && !dirty) {
+      if (!restoredLocalDraftRef.current && roomId) {
+        restoredLocalDraftRef.current = true;
+        const stored = readHostDraftSession(roomId);
+        const storedHash = stored ? quizContentHash(stored.questions) : '';
+        const roomHash = quizContentHash(room.questions);
+        setExportedHash(stored?.exportedHash ?? '');
+        if (stored && stored.questions.length > 0 && storedHash !== roomHash) {
+          setDraftQuestions(stored.questions);
+          syncImportTextFromDraft(stored.questions);
+          setExpandedIds(new Set());
+          setDirty(true);
+          setRecoveryMessage('Quiz gjenopprettet fra nettleseren. Last ned quizfil for permanent lagring.');
+          return;
+        }
+      }
       setDraftQuestions(room.questions);
       syncImportTextFromDraft(room.questions);
       setExpandedIds(new Set());
     }
-  }, [room?.questions, dirty, syncImportTextFromDraft]);
+  }, [room?.questions, roomId, dirty, syncImportTextFromDraft]);
 
   /** Editor and saved state drive tekst — keep import field aligned with draft. */
   useEffect(() => {
@@ -87,6 +111,11 @@ export function HostEditPage() {
     }
     prevEditModeRef.current = editMode;
   }, [editMode, draftQuestions, syncImportTextFromDraft]);
+
+  useEffect(() => {
+    if (!roomId || draftQuestions.length === 0) return;
+    writeHostDraftSession(roomId, draftQuestions, exportedHash || undefined);
+  }, [roomId, draftQuestions, exportedHash]);
 
   useEffect(() => {
     if (buildEntry === 'tekst') setEditMode('tekst');
@@ -133,14 +162,14 @@ export function HostEditPage() {
       const normalized = normalizeQuestionsForSave(questions);
       const incomplete = normalized.filter(isQuestionIncomplete);
       if (incomplete.length > 0) {
-        setSaveMessage('Fullfør alle spørsmål (tittel og svar) før du lagrer.');
+        setSaveMessage('Fullfør alle spørsmål (tittel og svar) før du oppdaterer aktiv quiz.');
         return false;
       }
       socket.emit(CLIENT_EVENTS.QUIZ_QUESTIONS_SET, { questions: normalized });
       setDraftQuestions(normalized);
       syncImportTextFromDraft(normalized);
       setDirty(false);
-      setSaveMessage('Spørsmål lagret!');
+      setSaveMessage('Aktiv quiz oppdatert for denne økta.');
       setTimeout(() => setSaveMessage(null), 4000);
       return true;
     },
@@ -151,6 +180,7 @@ export function HostEditPage() {
     setDraftQuestions(questions);
     setDirty(true);
     setSaveMessage(null);
+    setRecoveryMessage(null);
   };
 
   const addQuestion = (type: 'open' | 'mc') => {
@@ -249,13 +279,15 @@ export function HostEditPage() {
     if (stamped.length > 0) {
       flashHighlight(stamped[0].id, startIndex);
     }
-    setSaveMessage(`${stamped.length} AI-spørsmål lagt til i editoren — husk å lagre.`);
+    setSaveMessage(`${stamped.length} AI-spørsmål lagt til i editoren — bruk endringene for å oppdatere aktiv quiz.`);
     navigate(`/host/${roomId}/edit?mode=editor`, { replace: true });
   };
 
   const incompleteCount = draftQuestions.filter(isQuestionIncomplete).length;
   const savedCount = room?.questions.length ?? 0;
   const isSynced = !dirty && draftQuestions.length === savedCount;
+  const draftHash = useMemo(() => quizContentHash(draftQuestions), [draftQuestions]);
+  const hasUnexportedQuiz = draftQuestions.length > 0 && exportedHash !== draftHash;
   const hasExistingQuiz = savedCount > 0 || draftQuestions.length > 0;
   const autoOpenImport = buildEntry === 'import';
   const editorEntryRef = useRef<HTMLDivElement>(null);
@@ -276,11 +308,11 @@ export function HostEditPage() {
   const goToPresent = () => {
     if (!roomId) return;
     if (dirty) {
-      setSaveMessage('Lagre alle spørsmål før du presenterer.');
+      setSaveMessage('Bruk endringene før du presenterer.');
       return;
     }
     if (savedCount === 0 || incompleteCount > 0) {
-      setSaveMessage('Lagre minst ett fullført spørsmål før du presenterer.');
+      setSaveMessage('Oppdater aktiv quiz med minst ett fullført spørsmål før du presenterer.');
       return;
     }
     setHostPresenting(roomId, true);
@@ -289,8 +321,15 @@ export function HostEditPage() {
 
   const { requestLeave, dialog: unsavedDialog } = useUnsavedQuizGuard({
     dirty,
+    hasUnexportedQuiz,
     questions: draftQuestions,
     quizTitle: room?.joinCode,
+    onExported: () => {
+      if (!roomId) return;
+      markHostDraftExported(roomId, draftQuestions);
+      setExportedHash(quizContentHash(draftQuestions));
+      setSaveMessage('Quizfil lastet ned. Du kan importere filen senere.');
+    },
   });
 
   if (!roomId) return null;
@@ -320,7 +359,7 @@ export function HostEditPage() {
           ? 'Generer spørsmål med AI'
           : 'Legg til spørsmål i editoren'
     : hasExistingQuiz
-      ? `${draftQuestions.length} spørsmål · lagres til server når du er klar`
+      ? `${draftQuestions.length} spørsmål · aktiv økt oppdateres når du bruker endringene`
       : 'Velg editor, tekst eller import — ingen invitasjon ennå';
 
   const syncStatusBanner = (
@@ -333,15 +372,20 @@ export function HostEditPage() {
     >
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold break-words">
-          {isSynced ? 'Quizen er lagret' : 'Du har ulagrede endringer'}
+          {isSynced ? 'Aktiv quiz er oppdatert' : 'Du har endringer som ikke er brukt'}
         </p>
         <p className="text-xs text-quiz-muted mt-0.5 break-words">
-          {draftQuestions.length} spørsmål · Editor og Tekst redigerer samme quiz
+          {draftQuestions.length} spørsmål · Dette er arbeidsquizen i denne økta
         </p>
+        {hasUnexportedQuiz && (
+          <p className="text-xs text-yellow-100/90 mt-1 break-words">
+            Ikke lastet ned som quizfil ennå. Quizfil er permanent lagring for senere import.
+          </p>
+        )}
       </div>
       {room.phase !== 'lobby' && (
         <p className="text-xs text-yellow-200/90 shrink-0 sm:max-w-[12rem] break-words">
-          Live-quiz: lagring beholder eksisterende svar
+          Live-quiz: oppdatering beholder eksisterende svar
         </p>
       )}
     </div>
@@ -353,6 +397,11 @@ export function HostEditPage() {
       quizTitle={room.joinCode}
       hasUnsavedWork={dirty}
       onImportQuestions={importFromQuizFile}
+      onExported={() => {
+        if (!roomId) return;
+        markHostDraftExported(roomId, draftQuestions);
+        setExportedHash(quizContentHash(draftQuestions));
+      }}
       autoOpenImport={autoOpenImport}
       variant={buildEntry === 'import' && focusEntry ? 'importPrimary' : 'default'}
     />
@@ -535,6 +584,12 @@ export function HostEditPage() {
         </p>
       )}
 
+      {recoveryMessage && (
+        <p className="mb-4 rounded-xl border border-blue-400/40 bg-blue-400/10 px-4 py-3 text-sm font-medium text-blue-100 break-words">
+          {recoveryMessage}
+        </p>
+      )}
+
       {focusEntry ? (
         <>
           {buildEntry === 'import' && (
@@ -565,13 +620,13 @@ export function HostEditPage() {
             <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col gap-3 md:max-w-none sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm min-w-0 flex-1 break-words">
               {dirty ? (
-                <span className="text-yellow-300 font-medium">Husk å lagre</span>
+                <span className="text-yellow-300 font-medium">Endringer er ikke brukt ennå</span>
               ) : (
-                <span className="text-green-400">Alt er lagret</span>
+                <span className="text-green-400">Aktiv quiz er oppdatert</span>
               )}
               {saveMessage && (
                 <span
-                  className={`block mt-0.5 ${saveMessage.includes('lagret') ? 'text-green-400' : 'text-red-300'}`}
+                  className={`block mt-0.5 ${saveMessage.includes('oppdatert') || saveMessage.includes('lastet ned') ? 'text-green-400' : 'text-red-300'}`}
                 >
                   {saveMessage}
                 </span>
@@ -584,7 +639,7 @@ export function HostEditPage() {
                 onClick={() => persistQuestions(draftQuestions)}
                 disabled={!dirty}
               >
-                Lagre alle spørsmål
+                Bruk endringer
               </Button>
               {canPresent && (
                 <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={goToPresent}>

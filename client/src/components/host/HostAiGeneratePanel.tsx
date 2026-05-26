@@ -99,7 +99,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
         <h2 className="text-lg font-semibold text-quiz-text">Generer med AI</h2>
         <p className="mt-1 text-sm text-quiz-muted break-words">
           Hver generering får nye vinkler og unngår typiske gjengangere. Rediger gjerne i editoren
-          før du lagrer og presenterer.
+          før du bruker endringene og presenterer.
         </p>
       </div>
 

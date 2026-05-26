@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CLIENT_EVENTS } from '@quiz-tool/shared';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { HostTeamList } from '../components/host/HostTeamList';
@@ -9,8 +9,10 @@ import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { buildParticipantJoinUrl } from '../lib/joinUrls';
 import { isHostPresenting, setHostPresenting } from '../lib/hostFlow';
+import { quizContentHash, readHostDraftSession, markHostDraftExported } from '../lib/hostDraftSession';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
+import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
 
 export function HostLobbyPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -18,12 +20,32 @@ export function HostLobbyPage() {
   const [searchParams] = useSearchParams();
   const inviteFromLive = searchParams.get('invite') === '1';
   const { socket, connected } = useSocket();
+  const [exportedHash, setExportedHash] = useState('');
   const { room, unavailable, loading, noSession, operationalError } = useRoomGate(
     roomId,
     'host',
     socket,
     connected,
   );
+  const activeQuestions = room?.questions ?? [];
+  const activeQuestionsHash = quizContentHash(activeQuestions);
+  const hasUnexportedQuiz = activeQuestions.length > 0 && exportedHash !== activeQuestionsHash;
+  const { requestLeave, dialog: unexportedDialog } = useUnsavedQuizGuard({
+    dirty: false,
+    hasUnexportedQuiz,
+    questions: activeQuestions,
+    quizTitle: room?.joinCode,
+    onExported: () => {
+      if (!roomId) return;
+      markHostDraftExported(roomId, activeQuestions);
+      setExportedHash(quizContentHash(activeQuestions));
+    },
+  });
+
+  useEffect(() => {
+    if (!roomId || activeQuestions.length === 0) return;
+    setExportedHash(readHostDraftSession(roomId)?.exportedHash ?? '');
+  }, [roomId, activeQuestionsHash, activeQuestions.length]);
 
   useEffect(() => {
     if (!roomId || !room) return;
@@ -139,12 +161,17 @@ export function HostLobbyPage() {
             {inviteOnly ? 'Tilbake til kjøring' : 'Tilbake og rediger quiz'}
           </Button>
           <p className="text-center text-xs text-quiz-muted">
-            <Link to="/host" className="hover:text-quiz-accent underline-offset-2 hover:underline">
+            <button
+              type="button"
+              onClick={() => requestLeave(() => navigate('/host'))}
+              className="hover:text-quiz-accent underline-offset-2 hover:underline"
+            >
               Ny quizmaster-økt
-            </Link>
+            </button>
           </p>
         </div>
       </div>
+      {unexportedDialog}
     </PageShell>
   );
 }

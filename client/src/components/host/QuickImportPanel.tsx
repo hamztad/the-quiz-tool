@@ -144,7 +144,7 @@ export function QuickImportPanel({
           <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
             <p className="text-xs text-quiz-muted break-words">
               Dette kan overskrive {existingCount} spørsmål i listen. Manuelt arbeid som ikke er
-              lagret kan gå tapt.
+              brukt i aktiv quiz kan gå tapt.
             </p>
             <Button type="button" variant="secondary" size="sm" onClick={applyReplaceAll}>
               Erstatt hele listen

@@ -27,6 +27,12 @@ import { HostProtestsOverview } from '../components/host/HostProtestsOverview';
 import { HostGameResults } from '../games/registry';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
+import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
+import {
+  markHostDraftExported,
+  quizContentHash,
+  readHostDraftSession,
+} from '../lib/hostDraftSession';
 
 function phaseLabel(phase: PublicRoomState['phase']): string {
   switch (phase) {
@@ -59,6 +65,27 @@ export function HostDashboardPage() {
   );
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [exportedHash, setExportedHash] = useState('');
+  const activeQuestions = room?.questions ?? [];
+  const activeQuestionsHash = quizContentHash(activeQuestions);
+  const hasUnexportedQuiz = activeQuestions.length > 0 && exportedHash !== activeQuestionsHash;
+
+  const { requestLeave, dialog: unexportedDialog } = useUnsavedQuizGuard({
+    dirty: false,
+    hasUnexportedQuiz,
+    questions: activeQuestions,
+    quizTitle: room?.joinCode,
+    onExported: () => {
+      if (!roomId) return;
+      markHostDraftExported(roomId, activeQuestions);
+      setExportedHash(quizContentHash(activeQuestions));
+    },
+  });
+
+  useEffect(() => {
+    if (!roomId || activeQuestions.length === 0) return;
+    setExportedHash(readHostDraftSession(roomId)?.exportedHash ?? '');
+  }, [roomId, activeQuestionsHash, activeQuestions.length]);
 
   useEffect(() => {
     if (!roomId || !room) return;
@@ -130,16 +157,18 @@ export function HostDashboardPage() {
   };
 
   const dismissSession = () => {
-    if (
-      !window.confirm(
-        'Lukke quizmaster-økten helt? Rommet forsvinner og deltakere kan ikke koble til igjen.',
-      )
-    ) {
-      return;
-    }
-    emit(CLIENT_EVENTS.ROOM_CLOSE);
-    clearHostSession();
-    navigate('/host');
+    requestLeave(() => {
+      if (
+        !window.confirm(
+          'Lukke quizmaster-økten helt? Rommet forsvinner og deltakere kan ikke koble til igjen.',
+        )
+      ) {
+        return;
+      }
+      emit(CLIENT_EVENTS.ROOM_CLOSE);
+      clearHostSession();
+      navigate('/host');
+    });
   };
 
   const removeTeamFromQuiz = (teamId: string, teamName: string) => {
@@ -310,6 +339,11 @@ export function HostDashboardPage() {
               quizTitle={room.joinCode}
               hasUnsavedWork={false}
               exportOnly
+              onExported={() => {
+                if (!roomId) return;
+                markHostDraftExported(roomId, room.questions);
+                setExportedHash(quizContentHash(room.questions));
+              }}
               onImportQuestions={() => {}}
             />
           )}
@@ -431,6 +465,7 @@ export function HostDashboardPage() {
               Lukk økt
             </Button>
           </div>
+          {unexportedDialog}
         </div>
     </PageShell>
   );

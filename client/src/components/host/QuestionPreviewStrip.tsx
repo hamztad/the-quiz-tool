@@ -5,7 +5,7 @@ interface QuestionPreviewStripProps {
   questions: Omit<Question, 'id' | 'order'>[];
 }
 
-/** Visually distinct from the editor — preview only, not saved */
+/** Visually distinct from the editor — preview only, not applied */
 export function QuestionPreviewStrip({ questions }: QuestionPreviewStripProps) {
   return (
     <div className="rounded-xl border-2 border-dashed border-quiz-muted/30 bg-quiz-bg/80 p-4 space-y-3 min-w-0 max-w-full overflow-hidden">
@@ -13,7 +13,7 @@ export function QuestionPreviewStrip({ questions }: QuestionPreviewStripProps) {
         <span className="text-[10px] font-bold uppercase tracking-widest text-quiz-muted bg-quiz-surface-elevated px-2 py-1 rounded shrink-0">
           Kun forhåndsvisning
         </span>
-        <span className="text-xs text-quiz-muted break-words">— lagres ikke før du trykker «Erstatt alle»</span>
+        <span className="text-xs text-quiz-muted break-words">— brukes ikke før du trykker «Erstatt alle»</span>
       </div>
       <div className="space-y-2 max-h-56 overflow-y-auto overflow-x-hidden opacity-90 min-w-0">
         {questions.map((q, i) => (

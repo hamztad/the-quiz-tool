@@ -4,27 +4,36 @@ import { UnsavedQuizLeaveDialog } from '../components/host/UnsavedQuizLeaveDialo
 
 interface UseUnsavedQuizGuardOptions {
   dirty: boolean;
+  hasUnexportedQuiz: boolean;
   questions: Question[];
   quizTitle?: string;
+  onExported?: () => void;
 }
 
 /**
  * Warn before leaving with unsaved quiz work.
  * Uses beforeunload + explicit navigation prompts only (no useBlocker — requires data router).
  */
-export function useUnsavedQuizGuard({ dirty, questions, quizTitle }: UseUnsavedQuizGuardOptions) {
+export function useUnsavedQuizGuard({
+  dirty,
+  hasUnexportedQuiz,
+  questions,
+  quizTitle,
+  onExported,
+}: UseUnsavedQuizGuardOptions) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingNavigate, setPendingNavigate] = useState<(() => void) | null>(null);
+  const shouldWarn = dirty || hasUnexportedQuiz;
 
   useEffect(() => {
-    if (!dirty) return;
+    if (!shouldWarn) return;
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = '';
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [dirty]);
+  }, [shouldWarn]);
 
   const confirmLeave = useCallback(() => {
     setDialogOpen(false);
@@ -39,14 +48,14 @@ export function useUnsavedQuizGuard({ dirty, questions, quizTitle }: UseUnsavedQ
 
   const requestLeave = useCallback(
     (navigateFn: () => void) => {
-      if (!dirty) {
+      if (!shouldWarn) {
         navigateFn();
         return;
       }
       setPendingNavigate(() => navigateFn);
       setDialogOpen(true);
     },
-    [dirty],
+    [shouldWarn],
   );
 
   const dialog = (
@@ -54,6 +63,7 @@ export function useUnsavedQuizGuard({ dirty, questions, quizTitle }: UseUnsavedQ
       open={dialogOpen}
       questions={questions}
       quizTitle={quizTitle}
+      onExported={onExported}
       onStay={cancelLeave}
       onLeave={confirmLeave}
     />
