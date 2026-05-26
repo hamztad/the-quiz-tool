@@ -108,6 +108,8 @@ describe('parseAiQuizJson', () => {
             text: 'Løs anagrammet',
             body: null,
             answerText: 'NORDLYS',
+            anagramKind: 'commonWord',
+            anagramEvidence: 'Nordlys er et etablert norsk ord for aurora borealis.',
             expressions: [],
           },
           {
@@ -131,7 +133,9 @@ describe('parseAiQuizJson', () => {
     ]);
     expect(result.questions[2]?.maxPoints).toBe(2);
     expect(result.questions[3]?.game?.gameId).toBe('anagram');
+    expect(result.questions[3]?.lines[0]?.text).toBe('Løs anagrammet');
     expect(result.questions[4]?.game?.gameId).toBe('emojiHunt');
+    expect(result.questions[4]?.lines[0]?.text).toBe('Emoji-jakt');
   });
 
   it('rejects quiz packages with missing required slots', () => {
@@ -174,6 +178,8 @@ describe('parseAiQuizJson', () => {
             text: 'Regnerace',
             body: null,
             answerText: '',
+            anagramKind: 'commonWord',
+            anagramEvidence: '',
             expressions: ['2 + 2', '3 * 4', '10 - 7'],
           },
           {
@@ -190,5 +196,87 @@ describe('parseAiQuizJson', () => {
     expect(result.errors).toEqual([]);
     expect(result.questions[3]?.game?.gameId).toBe('mathExpression');
     expect(result.questions[3]?.game?.mode).toBe('race');
+    expect(result.questions[3]?.lines[0]?.text).toBe('Regnerace');
+  });
+
+  it('rejects quiz package anagrams without evidence that the answer is established', () => {
+    const result = parseAiQuizJson(
+      JSON.stringify({
+        questions: [
+          validOpen,
+          validMc,
+          {
+            type: 'ordering',
+            text: 'Sorter fra størst til minst',
+            body: null,
+            directionLabel: 'Størst øverst → Minst nederst',
+            directionLabelTop: 'Størst',
+            directionLabelBottom: 'Minst',
+            items: ['Elefant', 'Hund', 'Mus'],
+            correctOrder: ['Elefant', 'Hund', 'Mus'],
+          },
+          {
+            type: 'puzzle',
+            puzzleType: 'anagram',
+            text: 'Anagram',
+            body: null,
+            answerText: 'brainte',
+            expressions: [],
+          },
+          {
+            type: 'game',
+            gameId: 'dropBall',
+            text: 'Drop Ball',
+            body: null,
+          },
+        ],
+      }),
+      'quizPackage',
+    );
+
+    expect(result.questions).toHaveLength(0);
+    expect(result.errors).toContain('Spørsmål 4 har ugyldig format.');
+  });
+
+  it('uses canonical game names even if AI returns wrong labels', () => {
+    const result = parseAiQuizJson(
+      JSON.stringify({
+        questions: [
+          validOpen,
+          validMc,
+          {
+            type: 'ordering',
+            text: 'Sorter fra nord til sør',
+            body: null,
+            directionLabel: 'Nord øverst → Sør nederst',
+            directionLabelTop: 'Nord',
+            directionLabelBottom: 'Sør',
+            items: ['Norge', 'Tyskland', 'Italia'],
+            correctOrder: ['Norge', 'Tyskland', 'Italia'],
+          },
+          {
+            type: 'puzzle',
+            puzzleType: 'mathRace',
+            text: 'Math race',
+            body: null,
+            answerText: '',
+            anagramKind: 'commonWord',
+            anagramEvidence: '',
+            expressions: ['2 + 2', '3 * 4'],
+          },
+          {
+            type: 'game',
+            gameId: 'dropBall',
+            text: 'Drop Ball',
+            body: null,
+          },
+        ],
+      }),
+      'quizPackage',
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.questions[3]?.lines[0]?.text).toBe('Regnerace');
+    expect(result.questions[4]?.lines[0]?.text).toBe('Drop the Ball');
   });
 });

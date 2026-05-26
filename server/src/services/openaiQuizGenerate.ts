@@ -114,13 +114,27 @@ function aiQuizResponseFormat(style: AiGenerateQuizRequest['questionStyle']) {
   const puzzleQuestion = {
     type: 'object',
     additionalProperties: false,
-    required: ['type', 'puzzleType', 'text', 'body', 'answerText', 'expressions'],
+    required: [
+      'type',
+      'puzzleType',
+      'text',
+      'body',
+      'answerText',
+      'anagramKind',
+      'anagramEvidence',
+      'expressions',
+    ],
     properties: {
       type: { type: 'string', enum: ['puzzle'] },
       puzzleType: { type: 'string', enum: ['anagram', 'mathRace'] },
       text: textField,
       body: bodyField,
       answerText: { type: 'string', maxLength: 80 },
+      anagramKind: {
+        type: 'string',
+        enum: ['commonWord', 'properNoun', 'establishedPhrase'],
+      },
+      anagramEvidence: { type: 'string', maxLength: 180 },
       expressions: {
         type: 'array',
         minItems: 0,
@@ -199,7 +213,10 @@ function buildRepairPrompt(params: AiGenerateQuizRequest, invalidJson: string, e
   4 puzzle med puzzleType anagram eller mathRace
   5 game med gameId rainbowPuzzle, emojiHunt eller dropBall
 - Ordering må ha 3-5 items og correctOrder med de samme tekstene
-- Ikke inkluder unsupported game types`
+- Ikke inkluder unsupported game types
+- Spillnavn må være nøyaktige: Rainbow Puzzle, Emoji-jakt, Drop the Ball, Regnerace, Løs anagrammet
+- Anagram må være et ekte etablert ord/navn/uttrykk, og krever anagramKind + anagramEvidence
+- Hvis du ikke er helt sikker på anagrammet, bruk mathRace i slot 4`
       : `
 - type må følge ønsket spørsmålstype: ${params.questionStyle}
 - Open: { "type": "open", "text": "...", "body": null, "acceptedAnswers": ["..."] }
@@ -289,7 +306,7 @@ function systemMessageForStyle(style: AiGenerateQuizRequest['questionStyle']): s
     return `${base} Alle spørsmål skal ha type "mc" — aldri "open".`;
   }
   if (style === 'quizPackage') {
-    return `${base} Lag en Quizpakke med nøyaktig fem oppgaver i fast slot-rekkefølge: open, multipleChoice, ordering, puzzle, game. Ikke bruk andre spill enn de som er oppgitt.`;
+    return `${base} Lag en Quizpakke med nøyaktig fem oppgaver i fast slot-rekkefølge: open, multipleChoice, ordering, puzzle, game. Ikke bruk andre spill enn de som er oppgitt. Spillnavn må være kanoniske: Rainbow Puzzle, Emoji-jakt, Drop the Ball, Regnerace, Løs anagrammet. Anagram må være et ekte etablert ord/navn/uttrykk, aldri et oppfunnet ord; velg mathRace hvis du er usikker.`;
   }
   return `${base} Quizen skal blande type "open" og "mc" som angitt.`;
 }

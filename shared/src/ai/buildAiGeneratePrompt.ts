@@ -29,6 +29,10 @@ function buildStyleBlock(style: AiQuizQuestionStyle, count: number): string {
   5. type "game" med gameId enten "rainbowPuzzle", "emojiHunt" eller "dropBall"
 - Ikke bruk unsupported gameId.
 - Ikke inkluder full spillconfig; systemet lager trygg konfigurasjon.
+- Spillnavn må være nøyaktige: "Rainbow Puzzle", "Emoji-jakt", "Drop the Ball", "Regnerace", "Løs anagrammet".
+- Velg helst "mathRace" i slot 4 hvis du ikke har et helt sikkert anagram.
+- Hvis puzzleType er "anagram", må answerText være et ekte, etablert norsk ord, egennavn, sted, tittel eller etablert uttrykk — aldri et konstruert/non-word, aldri blanding av engelsk/norsk.
+- Anagram krever også "anagramKind" og "anagramEvidence". Hvis du er usikker på om ordet faktisk finnes, bruk "mathRace" i stedet.
 
 JSON-eksempel (bruk disse feltene):
 {
@@ -41,12 +45,12 @@ JSON-eksempel (bruk disse feltene):
       { "text": "...", "correct": false }
     ] },
     { "type": "ordering", "text": "...", "body": null, "directionLabel": "Størst øverst → Minst nederst", "directionLabelTop": "Størst", "directionLabelBottom": "Minst", "items": ["..."], "correctOrder": ["..."] },
-    { "type": "puzzle", "puzzleType": "anagram", "text": "Løs anagrammet", "body": null, "answerText": "...", "expressions": [] },
+    { "type": "puzzle", "puzzleType": "anagram", "text": "Løs anagrammet", "body": null, "answerText": "...", "anagramKind": "commonWord", "anagramEvidence": "Kort forklaring på hvorfor dette er et etablert ord/navn/uttrykk", "expressions": [] },
     { "type": "game", "gameId": "emojiHunt", "text": "Emoji-jakt", "body": null }
   ]
 }
 
-Hvis puzzleType er "mathRace", bruk "answerText": "" og "expressions": ["2 + 2", "3 * 4", ...] med 2-6 enkle regnestykker.`;
+Hvis puzzleType er "mathRace", bruk "answerText": "", "anagramKind": "commonWord", "anagramEvidence": "" og "expressions": ["2 + 2", "3 * 4", ...] med 2-6 enkle regnestykker.`;
   }
 
   if (style === 'open') {

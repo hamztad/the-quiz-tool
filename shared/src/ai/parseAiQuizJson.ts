@@ -25,6 +25,7 @@ const MAX_HINT_TEXT = 200;
 const MAX_ORDERING_ITEM_TEXT = 80;
 const MAX_DIRECTION_LABEL_TEXT = 80;
 const MAX_EXPRESSION_TEXT = 40;
+const MAX_ANAGRAM_EVIDENCE_TEXT = 180;
 
 export type ParsedAiQuizQuestion = Omit<Question, 'id' | 'order'>;
 
@@ -79,6 +80,20 @@ function parseStringArray(raw: unknown, maxItems: number, maxLen: number): strin
   return values.length === raw.length ? values : null;
 }
 
+function withCanonicalTitle(lines: ParsedAiQuizQuestion['lines'], title: string): ParsedAiQuizQuestion['lines'] {
+  return [{ text: title, style: 'title' as const }, ...lines.slice(1)];
+}
+
+function parseAnagramEvidence(raw: Record<string, unknown>): { ok: true } | { ok: false } {
+  const kind = raw.anagramKind;
+  if (kind !== 'commonWord' && kind !== 'properNoun' && kind !== 'establishedPhrase') {
+    return { ok: false };
+  }
+  const evidence = asNonEmptyString(raw.anagramEvidence, 'anagramEvidence', MAX_ANAGRAM_EVIDENCE_TEXT);
+  if (!evidence) return { ok: false };
+  return { ok: true };
+}
+
 function parseOrderingQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQuestion['lines']): ParsedAiQuizQuestion | null {
   const items = parseStringArray(raw.items, 5, MAX_ORDERING_ITEM_TEXT);
   const correctOrder = parseStringArray(raw.correctOrder, 5, MAX_ORDERING_ITEM_TEXT);
@@ -110,10 +125,11 @@ function parsePuzzleQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQu
   const puzzleType = raw.puzzleType;
   if (puzzleType === 'anagram') {
     const answerText = asNonEmptyString(raw.answerText, 'answerText', 80);
+    if (!parseAnagramEvidence(raw).ok) return null;
     if (!answerText || !validateAnagramAnswerText(answerText).ok) return null;
     return {
       type: 'game',
-      lines,
+      lines: withCanonicalTitle(lines, 'Løs anagrammet'),
       gameType: 'anagram',
       game: createAnagramConfigForAnswer(answerText),
       maxPoints: 1,
@@ -130,7 +146,7 @@ function parsePuzzleQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQu
     if (!validateMathExpressionConfig(game).ok) return null;
     return {
       type: 'game',
-      lines,
+      lines: withCanonicalTitle(lines, 'Regnerace'),
       gameType: 'mathExpression',
       game,
       maxPoints: 5,
@@ -149,9 +165,15 @@ function parseOtherGameQuestion(raw: Record<string, unknown>, lines: ParsedAiQui
       : gameId === 'emojiHunt'
         ? createDefaultEmojiHuntConfig()
         : createDefaultDropBallConfig();
+  const canonicalTitle =
+    gameId === 'rainbowPuzzle'
+      ? 'Rainbow Puzzle'
+      : gameId === 'emojiHunt'
+        ? 'Emoji-jakt'
+        : 'Drop the Ball';
   return {
     type: 'game',
-    lines,
+    lines: withCanonicalTitle(lines, canonicalTitle),
     gameType: gameId as GameId,
     game: config,
     maxPoints: 5,
