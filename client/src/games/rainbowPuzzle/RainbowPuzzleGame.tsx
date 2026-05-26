@@ -99,7 +99,7 @@ export function RainbowPuzzleGame({ disabled = false, bestScore, onComplete }: R
 
   return (
     <div className="mt-4 overflow-hidden rounded-3xl border-2 border-fuchsia-400/40 bg-gradient-to-br from-purple-700/35 via-fuchsia-500/20 to-cyan-400/15 p-4 text-center shadow-[0_0_32px_rgba(217,70,239,0.18)] sm:p-5">
-      <p className="text-sm font-black uppercase tracking-[0.22em] text-fuchsia-200">
+      <p className="text-2xl font-black uppercase tracking-[0.12em] text-fuchsia-100 sm:text-3xl">
         Rainbow Puzzle
       </p>
       <p className="mt-2 text-sm font-semibold text-quiz-text">
