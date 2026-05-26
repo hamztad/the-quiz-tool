@@ -279,6 +279,12 @@ export function toPublicState(
     room.phase === 'post_quiz';
 
   const hideTeamOnlySecrets = (question: (typeof room.questions)[number]) => {
+    if (question.type === 'ordering') {
+      return {
+        ...question,
+        orderingCorrectOrder: undefined,
+      };
+    }
     if (question.game?.gameId !== 'anagram') return question;
     return {
       ...question,

@@ -7,7 +7,7 @@ import type {
   GameTeamStart,
 } from '../games/types.js';
 
-export type QuestionType = 'open' | 'mc' | 'game';
+export type QuestionType = 'open' | 'mc' | 'ordering' | 'game';
 
 export interface QuestionLine {
   text: string;
@@ -32,6 +32,11 @@ export interface McOption {
   isCorrect: boolean;
 }
 
+export interface OrderingItem {
+  id: string;
+  text: string;
+}
+
 export interface Question {
   id: string;
   order: number;
@@ -40,6 +45,10 @@ export interface Question {
   hint?: string;
   acceptedAnswers?: string[];
   options?: McOption[];
+  orderingItems?: OrderingItem[];
+  orderingCorrectOrder?: string[];
+  orderingDirectionTop?: string;
+  orderingDirectionBottom?: string;
   gameType?: GameId;
   game?: GameQuestionConfig;
   media?: MediaAttachment[];

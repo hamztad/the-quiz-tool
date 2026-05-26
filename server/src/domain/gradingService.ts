@@ -1,4 +1,5 @@
 import type { Protest, Question, RoomState, ScoreEntry } from '@quiz-tool/shared';
+import { scoreOrderingAnswer } from '@quiz-tool/shared';
 import { generateId } from '../utils/id.js';
 
 export {
@@ -27,6 +28,21 @@ export function scoreMcAnswer(
   const selected = question.options.find((o) => o.id === value);
   const points = selected?.isCorrect ? question.maxPoints : 0;
   return { teamId, questionId, points, source: 'auto' };
+}
+
+export function scoreAutoAnswer(
+  teamId: string,
+  questionId: string,
+  value: string,
+  question: Question,
+): ScoreEntry | null {
+  if (question.type === 'mc') {
+    return scoreMcAnswer(teamId, questionId, value, question);
+  }
+  if (question.type === 'ordering') {
+    return scoreOrderingAnswer(teamId, questionId, value, question);
+  }
+  return null;
 }
 
 export function upsertScore(scores: ScoreEntry[], entry: ScoreEntry): ScoreEntry[] {

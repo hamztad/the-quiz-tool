@@ -17,6 +17,7 @@ import { useSocket } from '../hooks/useSocket';
 import {
   createMcQuestion,
   createOpenQuestion,
+  createOrderingQuestion,
   createGameQuestion,
   isQuestionIncomplete,
   normalizeQuestionsForSave,
@@ -183,11 +184,13 @@ export function HostEditPage() {
     setRecoveryMessage(null);
   };
 
-  const addQuestion = (type: 'open' | 'mc') => {
+  const addQuestion = (type: 'open' | 'mc' | 'ordering') => {
     const nextQuestion =
       type === 'open'
         ? createOpenQuestion(draftQuestions.length)
-        : createMcQuestion(draftQuestions.length);
+        : type === 'mc'
+          ? createMcQuestion(draftQuestions.length)
+          : createOrderingQuestion(draftQuestions.length);
     const nextList = [...draftQuestions, nextQuestion];
     updateDraft(nextList);
     setEditMode('editor');
@@ -421,6 +424,9 @@ export function HostEditPage() {
               <Button type="button" variant="secondary" onClick={() => addQuestion('mc')}>
                 + Flervalg (MC)
               </Button>
+              <Button type="button" variant="secondary" onClick={() => addQuestion('ordering')}>
+                + Rekkefølge
+              </Button>
             </div>
             <div className="mt-3 rounded-xl border border-quiz-border/70 bg-quiz-bg/50 p-3">
               <Button
@@ -497,6 +503,7 @@ export function HostEditPage() {
               <EmptyQuestionsState
                 onAddOpen={() => addQuestion('open')}
                 onAddMc={() => addQuestion('mc')}
+                onAddOrdering={() => addQuestion('ordering')}
                 onOpenTekst={() => setEditMode('tekst')}
               />
             ) : (

@@ -13,6 +13,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { TextArea } from '../ui/Input';
 import { Badge } from '../ui/Badge';
+import { OrderingComparison } from '../ordering/OrderingComparison';
 import { useSocket } from '../../hooks/useSocket';
 import { getQuestionFasitText } from '../../lib/hostAnswerKey';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
@@ -222,12 +223,14 @@ export function TeamResultsReviewView({
                   <span className="text-xs font-semibold uppercase tracking-wider text-quiz-muted">
                     Spørsmål {index + 1}
                   </span>
-                  <Badge variant={question.type === 'mc' || question.type === 'game' ? 'open' : 'submitted'}>
+                  <Badge variant={question.type === 'mc' || question.type === 'ordering' || question.type === 'game' ? 'open' : 'submitted'}>
                     {question.type === 'mc'
                       ? 'Flervalg'
-                      : question.type === 'game'
-                        ? 'Spill'
-                        : 'Åpent'}
+                      : question.type === 'ordering'
+                        ? 'Rekkefølge'
+                        : question.type === 'game'
+                          ? 'Spill'
+                          : 'Åpent'}
                   </Badge>
                   <Badge variant={status.variant}>{status.label}</Badge>
                 </div>
@@ -259,6 +262,11 @@ export function TeamResultsReviewView({
                   <p className="px-3 py-3 text-sm font-medium text-quiz-text quiz-user-text break-words [overflow-wrap:anywhere]">
                     {fasit ?? '—'}
                   </p>
+                  {question.type === 'ordering' && (
+                    <div className="border-t border-green-500/20 p-3">
+                      <OrderingComparison question={question} submittedValue={answer?.value} />
+                    </div>
+                  )}
                   {question.type === 'mc' && (
                     <div className="border-t border-green-500/20 px-3 py-2 text-xs text-quiz-muted">
                       Riktig alternativ: {mcCorrectOption?.text ?? '—'}

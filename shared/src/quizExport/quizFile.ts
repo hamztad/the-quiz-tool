@@ -2,6 +2,7 @@ import type { GameQuestionConfig } from '../games/types.js';
 import { validateAnagramAnswerText } from '../games/modules/anagram.js';
 import { isValidDropBallConfig } from '../games/modules/dropBall.js';
 import { validateMathExpressionConfig } from '../games/modules/mathExpression.js';
+import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
 import type { Question, QuestionType } from '../types/room.js';
 
 export const QUIZ_FILE_FORMAT = 'the-quiz-tool-quiz' as const;
@@ -28,7 +29,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isQuestionType(value: unknown): value is QuestionType {
-  return value === 'open' || value === 'mc' || value === 'game';
+  return value === 'open' || value === 'mc' || value === 'ordering' || value === 'game';
 }
 
 function isQuestionLine(value: unknown): boolean {
@@ -46,6 +47,11 @@ function isMcOption(value: unknown): boolean {
     typeof value.text === 'string' &&
     typeof value.isCorrect === 'boolean'
   );
+}
+
+function isOrderingItem(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return typeof value.id === 'string' && typeof value.text === 'string';
 }
 
 function isMediaAttachment(value: unknown): boolean {
@@ -149,6 +155,7 @@ function isQuestion(value: unknown): value is Question {
   }
 
   if (value.type === 'open') {
+    if (value.orderingItems !== undefined || value.orderingCorrectOrder !== undefined) return false;
     if (value.options !== undefined) return false;
     if (
       value.acceptedAnswers !== undefined &&
@@ -161,7 +168,14 @@ function isQuestion(value: unknown): value is Question {
   }
 
   if (value.type === 'game') {
-    if (value.options !== undefined || value.acceptedAnswers !== undefined) return false;
+    if (
+      value.options !== undefined ||
+      value.acceptedAnswers !== undefined ||
+      value.orderingItems !== undefined ||
+      value.orderingCorrectOrder !== undefined
+    ) {
+      return false;
+    }
     if (
       value.gameType !== undefined &&
       (!isRecord(value.game) || value.gameType !== value.game.gameId)
@@ -171,6 +185,24 @@ function isQuestion(value: unknown): value is Question {
     return isGameQuestionConfig(value.game);
   }
 
+  if (value.type === 'ordering') {
+    if (value.options !== undefined || value.acceptedAnswers !== undefined) return false;
+    if (!Array.isArray(value.orderingItems) || !value.orderingItems.every(isOrderingItem)) return false;
+    if (
+      !Array.isArray(value.orderingCorrectOrder) ||
+      !value.orderingCorrectOrder.every((id) => typeof id === 'string')
+    ) {
+      return false;
+    }
+    if (value.orderingDirectionTop !== undefined && typeof value.orderingDirectionTop !== 'string') return false;
+    if (value.orderingDirectionBottom !== undefined && typeof value.orderingDirectionBottom !== 'string') return false;
+    return validateOrderingQuestion({
+      orderingItems: value.orderingItems,
+      orderingCorrectOrder: value.orderingCorrectOrder,
+    } as Pick<Question, 'orderingItems' | 'orderingCorrectOrder'>).length === 0;
+  }
+
+  if (value.orderingItems !== undefined || value.orderingCorrectOrder !== undefined) return false;
   if (
     !Array.isArray(value.options) ||
     value.options.length === 0 ||

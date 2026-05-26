@@ -3,10 +3,11 @@ import { Button } from '../ui/Button';
 interface EmptyQuestionsStateProps {
   onAddOpen: () => void;
   onAddMc: () => void;
+  onAddOrdering: () => void;
   onOpenTekst: () => void;
 }
 
-export function EmptyQuestionsState({ onAddOpen, onAddMc, onOpenTekst }: EmptyQuestionsStateProps) {
+export function EmptyQuestionsState({ onAddOpen, onAddMc, onAddOrdering, onOpenTekst }: EmptyQuestionsStateProps) {
   return (
     <div className="rounded-2xl border border-dashed border-quiz-border bg-quiz-surface/60 px-6 py-10 text-center">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-quiz-surface-elevated text-2xl">
@@ -20,6 +21,9 @@ export function EmptyQuestionsState({ onAddOpen, onAddMc, onOpenTekst }: EmptyQu
         <Button onClick={onAddOpen}>+ Åpent spørsmål</Button>
         <Button variant="secondary" onClick={onAddMc}>
           + Flervalg
+        </Button>
+        <Button variant="secondary" onClick={onAddOrdering}>
+          + Rekkefølge
         </Button>
         <Button variant="ghost" onClick={onOpenTekst}>
           Gå til Tekst

@@ -3,6 +3,7 @@ import { CLIENT_EVENTS, type GameSubmission, type PublicRoomState, type Question
 import { QuestionBody } from '../question/QuestionBody';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { OrderingComparison } from '../ordering/OrderingComparison';
 import { useSocket } from '../../hooks/useSocket';
 import { getQuestionFasitText } from '../../lib/hostAnswerKey';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
@@ -126,8 +127,14 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                     <span className="text-xs font-semibold uppercase tracking-wider text-quiz-muted">
                       Spørsmål {index + 1}
                     </span>
-                    <Badge variant={question.type === 'mc' || question.type === 'game' ? 'open' : 'submitted'}>
-                      {question.type === 'mc' ? 'MC' : question.type === 'game' ? 'Spill' : 'Åpent'}
+                    <Badge variant={question.type === 'mc' || question.type === 'ordering' || question.type === 'game' ? 'open' : 'submitted'}>
+                      {question.type === 'mc'
+                        ? 'MC'
+                        : question.type === 'ordering'
+                          ? 'Rekkefølge'
+                          : question.type === 'game'
+                            ? 'Spill'
+                            : 'Åpent'}
                     </Badge>
                     {score.points !== null && (
                       <span className="text-xs text-quiz-muted">
@@ -165,6 +172,11 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                       <p className="px-3 pb-3 text-xs text-quiz-muted break-words">
                         Godkjente svar: {acceptedAnswers.join(' · ')}
                       </p>
+                    )}
+                    {question.type === 'ordering' && (
+                      <div className="border-t border-green-500/20 p-3">
+                        <OrderingComparison question={question} submittedValue={answer?.value} />
+                      </div>
                     )}
                   </section>
 

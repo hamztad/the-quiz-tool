@@ -39,6 +39,27 @@ export function createMcQuestion(order: number): Question {
   };
 }
 
+export function createOrderingQuestion(order: number): Question {
+  const itemA = generateId('ord');
+  const itemB = generateId('ord');
+  const itemC = generateId('ord');
+  return {
+    id: generateId('q'),
+    order,
+    type: 'ordering',
+    lines: [{ text: '', style: 'title' }],
+    orderingDirectionTop: 'Øverst',
+    orderingDirectionBottom: 'Nederst',
+    orderingItems: [
+      { id: itemA, text: '' },
+      { id: itemB, text: '' },
+      { id: itemC, text: '' },
+    ],
+    orderingCorrectOrder: [itemA, itemB, itemC],
+    maxPoints: 2,
+  };
+}
+
 export function createTimerChallengeQuestion(order: number): Question {
   return {
     id: generateId('q'),
@@ -161,6 +182,21 @@ export function isQuestionIncomplete(question: Question): boolean {
     return !question.game;
   }
 
+  if (question.type === 'ordering') {
+    const items = question.orderingItems ?? [];
+    const correctOrder = question.orderingCorrectOrder ?? [];
+    const nonEmptyItems = items.filter((item) => item.text.trim());
+    const uniqueTexts = new Set(nonEmptyItems.map((item) => item.text.trim().toLocaleLowerCase('nb')));
+    return (
+      items.length < 3 ||
+      items.length > 5 ||
+      nonEmptyItems.length !== items.length ||
+      uniqueTexts.size !== items.length ||
+      correctOrder.length !== items.length ||
+      !correctOrder.every((id) => items.some((item) => item.id === id))
+    );
+  }
+
   const options = question.options ?? [];
   if (options.length < 2) return true;
   if (!options.some((o) => o.isCorrect)) return true;
@@ -186,6 +222,18 @@ export function normalizeQuestionsForSave(questions: Question[]): Question[] {
       q.type === 'mc'
         ? q.options?.map((o) => ({ ...o, text: o.text.trim() || 'Alternativ' }))
         : undefined,
+    orderingItems:
+      q.type === 'ordering'
+        ? q.orderingItems?.map((item, itemIndex) => ({
+            ...item,
+            text: item.text.trim() || `Element ${itemIndex + 1}`,
+          }))
+        : undefined,
+    orderingCorrectOrder: q.type === 'ordering' ? q.orderingCorrectOrder : undefined,
+    orderingDirectionTop:
+      q.type === 'ordering' ? q.orderingDirectionTop?.trim() || undefined : undefined,
+    orderingDirectionBottom:
+      q.type === 'ordering' ? q.orderingDirectionBottom?.trim() || undefined : undefined,
     gameType: q.type === 'game' ? (q.gameType ?? q.game?.gameId) : undefined,
     game: q.type === 'game' ? q.game : undefined,
   }));

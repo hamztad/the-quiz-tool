@@ -8,7 +8,8 @@ export function questionsToQuizText(questions: Question[]): string {
   for (const q of sorted) {
     const lines: string[] = [];
     const title = q.lines[0]?.text ?? '';
-    const prefix = q.type === 'open' ? 'Q' : q.type === 'mc' ? 'MC' : 'GAME';
+    const prefix =
+      q.type === 'open' ? 'Q' : q.type === 'mc' ? 'MC' : q.type === 'ordering' ? 'ORDER' : 'GAME';
     lines.push(`${prefix} ${title}`);
 
     for (let i = 1; i < q.lines.length; i++) {
@@ -29,6 +30,18 @@ export function questionsToQuizText(questions: Question[]): string {
         const text = opt.text.trim();
         if (!text) continue;
         lines.push(opt.isCorrect ? `*${text}` : text);
+      }
+    } else if (q.type === 'ordering') {
+      const byId = new Map((q.orderingItems ?? []).map((item) => [item.id, item]));
+      if (q.orderingDirectionTop || q.orderingDirectionBottom) {
+        lines.push(
+          `Retning: ${q.orderingDirectionTop ?? 'Øverst'} → ${q.orderingDirectionBottom ?? 'Nederst'}`,
+        );
+      }
+      lines.push('[rekkefølge] Rediger fasit i editoren.');
+      for (const itemId of q.orderingCorrectOrder ?? []) {
+        const text = byId.get(itemId)?.text.trim();
+        if (text) lines.push(`- ${text}`);
       }
     } else {
       lines.push(`[${q.game?.gameId ?? 'game'}] Rediger spillspørsmål i editoren.`);

@@ -2,6 +2,7 @@ import type { McOption, Question, QuestionLine } from '../types/room.js';
 import { DEFAULT_MAX_POINTS } from '../constants/events.js';
 import { validateAnagramAnswerText } from '../games/modules/anagram.js';
 import { validateMathExpressionConfig } from '../games/modules/mathExpression.js';
+import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
 
 export interface ParseResult {
   questions: Omit<Question, 'id' | 'order'>[];
@@ -138,7 +139,10 @@ export function parseQuizText(raw: string): ParseResult {
 }
 
 export function validateQuestionsForSave(
-  questions: Pick<Question, 'type' | 'acceptedAnswers' | 'options' | 'lines' | 'game'>[],
+  questions: Pick<
+    Question,
+    'type' | 'acceptedAnswers' | 'options' | 'lines' | 'game' | 'orderingItems' | 'orderingCorrectOrder'
+  >[],
 ): string[] {
   const errors: string[] = [];
   if (questions.length === 0) {
@@ -158,6 +162,13 @@ export function validateQuestionsForSave(
       }
       if ((q.options?.length ?? 0) < 2) {
         errors.push(`Spørsmål ${i + 1}: MC må ha minst 2 alternativer.`);
+      }
+    }
+    if (q.type === 'ordering') {
+      const orderingErrors = validateOrderingQuestion(q);
+      errors.push(...orderingErrors.map((error) => `Spørsmål ${i + 1}: ${error}`));
+      if (q.options !== undefined || q.acceptedAnswers !== undefined || q.game !== undefined) {
+        errors.push(`Spørsmål ${i + 1}: rekkefølge kan ikke ha vanlig fasit, MC-alternativer eller spilloppsett.`);
       }
     }
     if (q.type === 'game') {

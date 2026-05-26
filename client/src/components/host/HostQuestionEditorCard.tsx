@@ -8,6 +8,7 @@ import type {
   MathExpressionConfig,
   MathExpressionRaceConfig,
   MathExpressionSingleConfig,
+  OrderingItem,
   Question,
   TimerChallengeConfig,
 } from '@quiz-tool/shared';
@@ -31,6 +32,7 @@ import type { HostQuestionDisplayStatus } from '../../lib/questionDisplayStatus'
 import { generateId } from '../../lib/id';
 import { searchPixabayImages, type PixabayImageResult } from '../../lib/pixabayApi';
 import { getHostSession } from '../../lib/tokens';
+import { SortableOrderingList } from '../ordering/SortableOrderingList';
 
 interface HostQuestionEditorCardProps {
   question: Question;
@@ -116,7 +118,9 @@ export function HostQuestionEditorCard({
       ? 'Åpent svar'
       : question.type === 'mc'
         ? 'Flervalg'
-        : 'Spill';
+        : question.type === 'ordering'
+          ? 'Rekkefølge'
+          : 'Spill';
 
   return (
     <article
@@ -205,6 +209,8 @@ export function HostQuestionEditorCard({
             <OpenAnswersEditor question={question} onChange={onChange} />
           ) : question.type === 'mc' ? (
             <McOptionsEditor question={question} onChange={onChange} />
+          ) : question.type === 'ordering' ? (
+            <OrderingQuestionEditor question={question} onChange={onChange} />
           ) : (
             <GameQuestionEditor question={question} onChange={onChange} />
           )}
@@ -1366,6 +1372,136 @@ function McOptionsEditor({
       <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={addOption}>
         + Alternativ
       </Button>
+    </div>
+  );
+}
+
+function OrderingQuestionEditor({
+  question,
+  onChange,
+}: {
+  question: Question;
+  onChange: (q: Question) => void;
+}) {
+  const items = question.orderingItems ?? [];
+  const order = question.orderingCorrectOrder ?? items.map((item) => item.id);
+  const canAdd = items.length < 5;
+  const canRemove = items.length > 3;
+  const trimmedTexts = items.map((item) => item.text.trim().toLocaleLowerCase('nb')).filter(Boolean);
+  const hasDuplicateTexts = new Set(trimmedTexts).size !== trimmedTexts.length;
+
+  const setItemsAndOrder = (nextItems: OrderingItem[], nextOrder = order) => {
+    const itemIds = new Set(nextItems.map((item) => item.id));
+    const cleanedOrder = nextOrder.filter((id) => itemIds.has(id));
+    const missingIds = nextItems.map((item) => item.id).filter((id) => !cleanedOrder.includes(id));
+    onChange({
+      ...question,
+      orderingItems: nextItems,
+      orderingCorrectOrder: [...cleanedOrder, ...missingIds],
+    });
+  };
+
+  const updateItemText = (id: string, text: string) => {
+    setItemsAndOrder(items.map((item) => (item.id === id ? { ...item, text } : item)));
+  };
+
+  const addItem = () => {
+    if (!canAdd) return;
+    const nextItem = { id: generateId('ord'), text: '' };
+    setItemsAndOrder([...items, nextItem], [...order, nextItem.id]);
+  };
+
+  const removeItem = (id: string) => {
+    if (!canRemove) return;
+    setItemsAndOrder(
+      items.filter((item) => item.id !== id),
+      order.filter((itemId) => itemId !== id),
+    );
+  };
+
+  return (
+    <div className="rounded-lg border border-quiz-border bg-quiz-bg p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
+      <div>
+        <p className="text-xs font-semibold text-quiz-text">Rekkefølge — fasit er topp til bunn</p>
+        <p className="mt-1 text-xs text-quiz-muted">
+          Dra elementene i riktig vertikal rekkefølge. Lagene får elementene tilfeldig stokket når
+          de svarer.
+        </p>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="block min-w-0">
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Toppetikett</span>
+          <Input
+            value={question.orderingDirectionTop ?? ''}
+            onChange={(event) =>
+              onChange({ ...question, orderingDirectionTop: event.target.value || undefined })
+            }
+            placeholder="F.eks. Nord, Høyest, A, Først"
+            className="bg-quiz-surface py-2"
+          />
+        </label>
+        <label className="block min-w-0">
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Bunnetikett</span>
+          <Input
+            value={question.orderingDirectionBottom ?? ''}
+            onChange={(event) =>
+              onChange({ ...question, orderingDirectionBottom: event.target.value || undefined })
+            }
+            placeholder="F.eks. Sør, Lavest, Å, Sist"
+            className="bg-quiz-surface py-2"
+          />
+        </label>
+      </div>
+
+      <SortableOrderingList
+        items={items}
+        order={order}
+        onOrderChange={(nextOrder) => onChange({ ...question, orderingCorrectOrder: nextOrder })}
+        topLabel={question.orderingDirectionTop || 'Øverst'}
+        bottomLabel={question.orderingDirectionBottom || 'Nederst'}
+        dragHandleLabel="Dra fasit-element"
+        getItemContent={(item, index) => (
+          <div className="flex min-h-[52px] items-start gap-2">
+            <EditorTextArea
+              value={item.text}
+              onChange={(event) => updateItemText(item.id, event.target.value)}
+              placeholder={`Element ${index + 1}…`}
+              minRows={1}
+              className="min-w-0 flex-1 bg-quiz-surface py-2 text-sm"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-[44px] min-w-[44px] shrink-0 px-0"
+              onClick={() => removeItem(item.id)}
+              disabled={!canRemove}
+              aria-label="Fjern element"
+            >
+              ×
+            </Button>
+          </div>
+        )}
+      />
+
+      {hasDuplicateTexts && (
+        <p className="text-xs font-medium text-yellow-200">Elementene må være unike.</p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="w-full sm:w-auto"
+          onClick={addItem}
+          disabled={!canAdd}
+        >
+          + Element
+        </Button>
+        <span className="text-xs text-quiz-muted">{items.length}/5 elementer</span>
+      </div>
     </div>
   );
 }

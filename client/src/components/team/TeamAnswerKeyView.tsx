@@ -37,12 +37,14 @@ export function TeamAnswerKeyView({ room, teamName, onBack }: TeamAnswerKeyViewP
                 <span className="text-xs font-semibold uppercase tracking-wider text-quiz-muted">
                   Spørsmål {index + 1}
                 </span>
-                <Badge variant={question.type === 'mc' || question.type === 'game' ? 'open' : 'submitted'}>
+                <Badge variant={question.type === 'mc' || question.type === 'ordering' || question.type === 'game' ? 'open' : 'submitted'}>
                   {question.type === 'mc'
                     ? 'Flervalg'
-                    : question.type === 'game'
-                      ? 'Spill'
-                      : 'Åpent'}
+                    : question.type === 'ordering'
+                      ? 'Rekkefølge'
+                      : question.type === 'game'
+                        ? 'Spill'
+                        : 'Åpent'}
                 </Badge>
               </div>
 
@@ -59,7 +61,7 @@ export function TeamAnswerKeyView({ room, teamName, onBack }: TeamAnswerKeyViewP
                     Fasit
                   </h3>
                 </div>
-                <p className="px-3 py-3 text-sm font-medium text-quiz-text quiz-user-text break-words [overflow-wrap:anywhere]">
+                <p className="px-3 py-3 text-sm font-medium text-quiz-text quiz-user-text whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                   {fasit ?? '—'}
                 </p>
                 {question.type === 'mc' && (

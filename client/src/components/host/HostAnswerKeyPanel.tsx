@@ -66,7 +66,7 @@ export function HostAnswerKeyPanel({ room, onClose }: HostAnswerKeyPanelProps) {
                     <span className="text-xs font-semibold uppercase tracking-wider text-quiz-muted">
                       Spørsmål {index + 1}
                     </span>
-                    <Badge variant={question.type === 'mc' ? 'open' : 'submitted'}>
+                    <Badge variant={question.type === 'mc' || question.type === 'ordering' ? 'open' : 'submitted'}>
                       {questionTypeLabel(question.type)}
                     </Badge>
                     <span className="text-xs text-quiz-muted">{question.maxPoints}p</span>
@@ -101,7 +101,7 @@ export function HostAnswerKeyPanel({ room, onClose }: HostAnswerKeyPanelProps) {
                         Fasit
                       </h3>
                     </div>
-                    <p className="px-3 py-3 text-base font-medium text-quiz-text quiz-user-text break-words [overflow-wrap:anywhere]">
+                    <p className="px-3 py-3 text-base font-medium text-quiz-text quiz-user-text whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                       {fasit ?? '—'}
                     </p>
                   </section>

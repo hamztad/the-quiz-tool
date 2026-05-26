@@ -1,8 +1,10 @@
 import type { PublicRoomState, Question } from '@quiz-tool/shared';
+import { formatOrderingOrder } from '@quiz-tool/shared';
 import { getHostQuestionDisplayStatus, hostStatusLabels } from './questionDisplayStatus';
 
 export function questionTypeLabel(type: Question['type']): string {
   if (type === 'mc') return 'Flervalg';
+  if (type === 'ordering') return 'Rekkefølge';
   if (type === 'game') return 'Spill';
   return 'Åpent';
 }
@@ -35,6 +37,9 @@ export function getQuestionFasitText(question: Question): string | null {
       return `Regnerace: ${question.game.expressions.join(' · ')}`;
     }
     return 'Spillresultat beregnes automatisk.';
+  }
+  if (question.type === 'ordering') {
+    return formatOrderingOrder(question, question.orderingCorrectOrder) || null;
   }
   const accepted = (question.acceptedAnswers ?? []).filter((a) => a.trim());
   if (accepted.length === 0) return null;

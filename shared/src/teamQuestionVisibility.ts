@@ -20,6 +20,10 @@ export function redactQuestionForTeam(question: Question, revealed: boolean): Qu
     lines: [],
     hint: undefined,
     acceptedAnswers: undefined,
+    orderingItems: undefined,
+    orderingCorrectOrder: undefined,
+    orderingDirectionTop: undefined,
+    orderingDirectionBottom: undefined,
     options:
       question.type === 'mc'
         ? question.options?.map((o) => ({ ...o, text: '' }))

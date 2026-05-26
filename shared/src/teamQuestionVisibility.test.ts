@@ -75,4 +75,23 @@ describe('redactQuestionForTeam', () => {
     expect(redacted.lines).toHaveLength(0);
     expect(redacted.game).toBeUndefined();
   });
+
+  it('strips ordering content when not revealed', () => {
+    const redacted = redactQuestionForTeam(
+      {
+        id: 'ordering-1',
+        order: 0,
+        type: 'ordering',
+        lines: [{ text: 'Sorter', style: 'title' }],
+        orderingItems: [{ id: 'a', text: 'A' }],
+        orderingCorrectOrder: ['a'],
+        maxPoints: 2,
+      },
+      false,
+    );
+
+    expect(redacted.lines).toEqual([]);
+    expect(redacted.orderingItems).toBeUndefined();
+    expect(redacted.orderingCorrectOrder).toBeUndefined();
+  });
 });

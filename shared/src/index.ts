@@ -13,6 +13,7 @@ export * from './games/index.js';
 export * from './leaderboard/leaderboardSelectors.js';
 export * from './protests/protestRules.js';
 export * from './review/teamReviewSelectors.js';
+export * from './ordering/orderingQuestion.js';
 export * from './ai/aiQuizTypes.js';
 export * from './ai/parseAiQuizJson.js';
 export * from './ai/buildAiGeneratePrompt.js';

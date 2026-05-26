@@ -1,6 +1,6 @@
 import type { Answer, Question } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
-import { scoreMcAnswer, upsertScore } from './gradingService.js';
+import { scoreAutoAnswer, upsertScore } from './gradingService.js';
 
 function markAnswered(room: RoomRecord, teamId: string, questionId: string): Record<string, string[]> {
   const current = room.answeredByTeam[teamId] ?? [];
@@ -66,10 +66,10 @@ function applyAnswer(
   );
 
   let scores = room.scores;
-  if (question.type === 'mc') {
-    const mcScore = scoreMcAnswer(teamId, questionId, value.trim(), question);
-    if (mcScore) {
-      scores = upsertScore(scores, mcScore);
+  if (question.type === 'mc' || question.type === 'ordering') {
+    const autoScore = scoreAutoAnswer(teamId, questionId, value.trim(), question);
+    if (autoScore) {
+      scores = upsertScore(scores, autoScore);
     }
   }
 

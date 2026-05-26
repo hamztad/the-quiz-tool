@@ -3,6 +3,9 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   CLIENT_EVENTS,
   isQuestionRevealedToTeam,
+  parseOrderingAnswer,
+  serializeOrderingAnswer,
+  shuffleOrderingItems,
   type Question,
 } from '@quiz-tool/shared';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
@@ -20,6 +23,7 @@ import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import { formatTeamAnswerDisplay } from '../lib/teamAnswerDisplay';
 import { TeamGameView } from '../games/registry';
+import { SortableOrderingList } from '../components/ordering/SortableOrderingList';
 
 const HIGHLIGHT_MS = 5000;
 
@@ -246,7 +250,15 @@ export function TeamPage() {
     setHighlightedQuestionId(null);
     setActiveQuestionId(q.id);
     const ans = getMyAnswer(q.id);
-    setAnswerText(answerDrafts[q.id] ?? (ans?.value && ans.value !== '[hidden]' ? ans.value : ''));
+    const storedValue = answerDrafts[q.id] ?? (ans?.value && ans.value !== '[hidden]' ? ans.value : '');
+    if (q.type === 'ordering' && !storedValue) {
+      const shuffled = shuffleOrderingItems(q.orderingItems ?? []);
+      const value = serializeOrderingAnswer(shuffled);
+      setAnswerText(value);
+      setAnswerDrafts((current) => ({ ...current, [q.id]: value }));
+      return;
+    }
+    setAnswerText(storedValue);
   };
 
   const updateActiveAnswer = (value: string) => {
@@ -266,6 +278,8 @@ export function TeamPage() {
   const activeQuestion = room.questions.find((q) => q.id === activeQuestionId);
   const activeQuestionOpen =
     activeQuestion && (room.questionStatus[activeQuestion.id] ?? 'locked') === 'open';
+  const activeOrderingOrder =
+    activeQuestion?.type === 'ordering' ? (parseOrderingAnswer(answerText) ?? []) : [];
 
   const canReviewOwn = room.settings.teamReviewOpen === true;
   const canSeeAnswerKey = room.settings.answerKeyOpen === true;
@@ -430,6 +444,24 @@ export function TeamPage() {
                   onChange={(e) => updateActiveAnswer(e.target.value)}
                   placeholder="Ditt svar…"
                 />
+              ) : activeQuestion.type === 'ordering' ? (
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-2xl border border-quiz-accent/35 bg-quiz-accent/10 px-4 py-3">
+                    <p className="text-sm font-bold text-quiz-text">Dra kortene i riktig rekkefølge</p>
+                    <p className="mt-1 text-xs text-quiz-muted">
+                      {activeQuestion.orderingDirectionTop || 'Øverst'} →{' '}
+                      {activeQuestion.orderingDirectionBottom || 'Nederst'}
+                    </p>
+                  </div>
+                  <SortableOrderingList
+                    items={activeQuestion.orderingItems ?? []}
+                    order={activeOrderingOrder}
+                    onOrderChange={(nextOrder) => updateActiveAnswer(serializeOrderingAnswer(nextOrder))}
+                    topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
+                    bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
+                    dragHandleLabel="Dra svar"
+                  />
+                </div>
               ) : (
                 <div className="mt-4 space-y-2 min-w-0 max-w-full">
                   {activeQuestion.options?.map((opt) => (

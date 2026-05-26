@@ -24,6 +24,13 @@ export function QuestionBody({ question, showHint = true }: QuestionBodyProps) {
       {showHint && question.hint && (
         <p className={`text-sm text-quiz-muted italic ${lineClass}`}>Hint: {question.hint}</p>
       )}
+      {question.type === 'ordering' &&
+        (question.orderingDirectionTop || question.orderingDirectionBottom) && (
+          <div className="mt-2 rounded-2xl border border-quiz-accent/35 bg-quiz-accent/10 px-3 py-2 text-sm font-bold text-quiz-text">
+            {question.orderingDirectionTop || 'Øverst'} →{' '}
+            {question.orderingDirectionBottom || 'Nederst'}
+          </div>
+        )}
       {question.media?.map((m, i) =>
         m.type === 'image' ? (
           <figure key={i} className="mt-3">

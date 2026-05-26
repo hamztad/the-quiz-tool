@@ -1,4 +1,4 @@
-import type { Question } from '@quiz-tool/shared';
+import { formatOrderingOrder, parseOrderingAnswer, type Question } from '@quiz-tool/shared';
 
 /** Format a team's stored answer for display in overview or detail view. */
 export function formatTeamAnswerDisplay(
@@ -9,6 +9,10 @@ export function formatTeamAnswerDisplay(
   if (question.type === 'mc') {
     const option = question.options?.find((o) => o.id === value);
     return option?.text?.trim() || value;
+  }
+  if (question.type === 'ordering') {
+    const order = parseOrderingAnswer(value);
+    return order ? formatOrderingOrder(question, order) : null;
   }
   return value.trim() || null;
 }

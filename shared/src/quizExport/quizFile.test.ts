@@ -103,6 +103,31 @@ describe('parseQuizFile', () => {
     invalid.questions[0].game.resultKind = 'ranked';
     expect(parseQuizFile(invalid).ok).toBe(false);
   });
+
+  it('validates ordering questions', () => {
+    const exported = buildQuizFileExport([
+      {
+        id: 'q-ordering',
+        order: 0,
+        type: 'ordering',
+        lines: [{ text: 'Sorter fra nord til sør', style: 'title' }],
+        orderingDirectionTop: 'Nord',
+        orderingDirectionBottom: 'Sør',
+        orderingItems: [
+          { id: 'a', text: 'Norge' },
+          { id: 'b', text: 'Tyskland' },
+          { id: 'c', text: 'Italia' },
+        ],
+        orderingCorrectOrder: ['a', 'b', 'c'],
+        maxPoints: 2,
+      },
+    ]);
+
+    expect(parseQuizFile(exported).ok).toBe(true);
+    const invalid = JSON.parse(JSON.stringify(exported));
+    invalid.questions[0].orderingItems[2].text = 'Norge';
+    expect(parseQuizFile(invalid).ok).toBe(false);
+  });
 });
 
 describe('questionsToQuizText', () => {
@@ -126,5 +151,29 @@ describe('questionsToQuizText', () => {
     expect(text).toContain('MC Størst planet?');
     expect(text).toContain('*Jupiter');
     expect(text).toContain('Mars');
+  });
+
+  it('serializes ordering questions with direction and correct order', () => {
+    const text = questionsToQuizText([
+      {
+        id: 'q-ordering',
+        order: 0,
+        type: 'ordering',
+        lines: [{ text: 'Sorter fra nord til sør', style: 'title' }],
+        orderingDirectionTop: 'Nord',
+        orderingDirectionBottom: 'Sør',
+        orderingItems: [
+          { id: 'a', text: 'Norge' },
+          { id: 'b', text: 'Tyskland' },
+          { id: 'c', text: 'Italia' },
+        ],
+        orderingCorrectOrder: ['a', 'b', 'c'],
+        maxPoints: 2,
+      },
+    ]);
+
+    expect(text).toContain('ORDER Sorter fra nord til sør');
+    expect(text).toContain('Retning: Nord → Sør');
+    expect(text).toContain('- Norge');
   });
 });

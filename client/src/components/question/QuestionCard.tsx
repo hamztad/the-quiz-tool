@@ -1,4 +1,4 @@
-import type { Question, QuestionStatus } from '@quiz-tool/shared';
+import { formatOrderingOrder, type Question, type QuestionStatus } from '@quiz-tool/shared';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { HostQuestionStatusBadge } from '../host/HostQuestionStatusBadge';
@@ -54,7 +54,13 @@ export function QuestionCard({
   const hostLabel = hostDisplayStatus ? hostStatusLabels[hostDisplayStatus] : null;
   const showResponseBadge = hostLabel !== badgeLabel;
   const questionTypeLabel =
-    question.type === 'mc' ? 'Flervalg' : question.type === 'game' ? 'Spill' : 'Åpent svar';
+    question.type === 'mc'
+      ? 'Flervalg'
+      : question.type === 'ordering'
+        ? 'Rekkefølge'
+        : question.type === 'game'
+          ? 'Spill'
+          : 'Åpent svar';
   const acceptedAnswers = (question.acceptedAnswers ?? []).filter((answer) => answer.trim());
 
   const lockedUnanswered = status === 'locked' && !answered;
@@ -82,13 +88,15 @@ export function QuestionCard({
           {showResponseBadge && <Badge variant={badgeVariant}>{badgeLabel}</Badge>}
           {showHostQuestionDetails ? (
             <>
-              <Badge variant={question.type === 'mc' || question.type === 'game' ? 'active' : 'neutral'}>
+              <Badge variant={question.type === 'mc' || question.type === 'ordering' || question.type === 'game' ? 'active' : 'neutral'}>
                 {questionTypeLabel}
               </Badge>
               <Badge variant="neutral">Maks {question.maxPoints}p</Badge>
             </>
           ) : (
-            question.type === 'mc' && <Badge variant="neutral">MC</Badge>
+            (question.type === 'mc' || question.type === 'ordering') && (
+              <Badge variant="neutral">{question.type === 'mc' ? 'MC' : 'Rekkefølge'}</Badge>
+            )
           )}
         </div>
       </div>
@@ -158,6 +166,21 @@ export function QuestionCard({
             </ul>
           ) : (
             <p className="text-sm text-quiz-muted">Ingen fasit lagt inn.</p>
+          )}
+        </div>
+      )}
+      {showHostQuestionDetails && question.type === 'ordering' && teamRevealed && (
+        <div className="mt-3 min-w-0 max-w-full rounded-xl border border-green-500/25 bg-green-500/5 p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-green-300 sm:text-xs">
+            Riktig rekkefølge
+          </p>
+          <p className="text-sm text-quiz-text quiz-user-text whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+            {formatOrderingOrder(question, question.orderingCorrectOrder) || 'Ingen fasit lagt inn.'}
+          </p>
+          {(question.orderingDirectionTop || question.orderingDirectionBottom) && (
+            <p className="mt-2 text-xs font-medium text-quiz-muted">
+              {question.orderingDirectionTop || 'Øverst'} → {question.orderingDirectionBottom || 'Nederst'}
+            </p>
           )}
         </div>
       )}
