@@ -34,7 +34,7 @@ describe('dropBall', () => {
       score: 68_500,
       unlockedBonus: true,
     });
-    expect(calculateDropBallMaxScore(config)).toBe(259_500);
+    expect(calculateDropBallMaxScore(config)).toBe(519_000);
   });
 
   it('sanitizes client board breakdowns', () => {

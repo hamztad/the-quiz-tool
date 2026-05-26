@@ -144,7 +144,9 @@ export function calculateDropBallMaxBoardScore(config: DropBallConfig): number {
 }
 
 export function calculateDropBallMaxScore(config: DropBallConfig): number {
-  return calculateDropBallMaxBoardScore(config) * config.totalRounds;
+  // A quiz attempt can contain the normal boards plus at most one extra bonus board
+  // per normal board. This keeps server-side score clamping bounded.
+  return calculateDropBallMaxBoardScore(config) * config.totalRounds * 2;
 }
 
 export function clampDropBallScore(score: number, config: DropBallConfig): number {
@@ -157,7 +159,7 @@ export function sanitizeDropBallRounds(
   config: DropBallConfig,
 ): DropBallRoundResult[] {
   if (!Array.isArray(rounds)) return [];
-  return rounds.slice(0, config.totalRounds).map((round, index) =>
+  return rounds.slice(0, config.totalRounds * 2).map((round, index) =>
     calculateDropBallBoardScore(
       config,
       round.ballKind === 'bonus' ? 'bonus' : 'normal',

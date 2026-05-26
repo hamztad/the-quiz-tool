@@ -287,7 +287,7 @@ function drawGameBoard(
   drawRoundedRect(context, CANVAS_WIDTH / 2 - 62, FLOOR_Y - 22, 124, 26, 13);
   context.fillStyle = '#e0f2fe';
   context.font = '800 13px system-ui, sans-serif';
-  context.fillText(`Brett ${boardIndex + 1} av ${config.totalRounds}`, CANVAS_WIDTH / 2, FLOOR_Y - 5);
+  context.fillText(pendingBonus ? 'Bonusbrett' : `Brett ${boardIndex + 1} av ${config.totalRounds}`, CANVAS_WIDTH / 2, FLOOR_Y - 5);
 
   if (pendingBonus) {
     context.textAlign = 'right';
@@ -479,16 +479,26 @@ export function DropBallGame({
   const [phase, setPhase] = useState<DropBallPhase>('ready');
   const [dropX, setDropX] = useState(CANVAS_WIDTH / 2);
   const [boardIndex, setBoardIndex] = useState(0);
+  const [normalBoardsPlayed, setNormalBoardsPlayed] = useState(0);
   const [completedRounds, setCompletedRounds] = useState<DropBallRoundResult[]>([]);
-  const [pendingBonus, setPendingBonus] = useState(false);
+  const [bonusRoundsAvailable, setBonusRoundsAvailable] = useState(0);
   const [snapshot, setSnapshot] = useState<DropBallSnapshot>(() => emptySnapshot());
   const [detailsOpen, setDetailsOpen] = useState(false);
   const completedScore = completedRounds.reduce((sum, round) => sum + round.score, 0);
   const displayedTotal = completedScore + (phase === 'falling' || phase === 'betweenBoards' ? snapshot.currentScore : 0);
   const isNewBest = bestScore === null || displayedTotal > bestScore;
-  const currentBallKind: DropBallBallKind = pendingBonus ? 'bonus' : 'normal';
-  const hasNextBoard = boardIndex + 1 < config.totalRounds;
-  const currentBoardUnlocksBonus = snapshot.bottomTouched && snapshot.currentScore >= config.bonusBallThreshold;
+  const currentBallKind: DropBallBallKind = bonusRoundsAvailable > 0 ? 'bonus' : 'normal';
+  const currentLayoutIndex = currentBallKind === 'bonus' ? boardIndex : normalBoardsPlayed;
+  const completedBonusRounds = completedRounds.filter((round) => round.ballKind === 'bonus').length;
+  const canAwardBonusRound = completedBonusRounds + bonusRoundsAvailable < config.totalRounds;
+  const currentBoardUnlocksBonus =
+    snapshot.bottomTouched && snapshot.currentScore >= config.bonusBallThreshold && canAwardBonusRound;
+  const bonusRoundsAfterCurrent =
+    Math.max(0, bonusRoundsAvailable - (currentBallKind === 'bonus' && snapshot.bottomTouched ? 1 : 0)) +
+    (currentBoardUnlocksBonus ? 1 : 0);
+  const normalBoardsAfterCurrent =
+    normalBoardsPlayed + (currentBallKind === 'normal' && snapshot.bottomTouched ? 1 : 0);
+  const hasNextBoard = bonusRoundsAfterCurrent > 0 || normalBoardsAfterCurrent < config.totalRounds;
 
   const stopSimulation = () => {
     const sim = simRef.current;
@@ -506,8 +516,8 @@ export function DropBallGame({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || simRef.current) return;
-    drawGameBoard(canvas, config, dropX, boardIndex, pendingBonus, null);
-  }, [boardIndex, config, dropX, pendingBonus]);
+    drawGameBoard(canvas, config, dropX, currentLayoutIndex, currentBallKind === 'bonus', null);
+  }, [config, currentBallKind, currentLayoutIndex, dropX]);
 
   const animate = (sim: SimState) => {
     const now = performance.now();
@@ -534,15 +544,24 @@ export function DropBallGame({
 
     if (nextSnapshot.bottomTouched) {
       setPhase((current) => current === 'falling' ? 'betweenBoards' : current);
-      if (sim.boardIndex + 1 >= config.totalRounds) {
-        const result = calculateDropBallBoardScore(
-          config,
-          sim.ballKind,
-          sim.finalAirTimeMs ?? nextSnapshot.airTimeMs,
-          sim.obstacleHits.size,
-          sim.coinValues,
-          sim.boardIndex,
-        );
+      const result = calculateDropBallBoardScore(
+        config,
+        sim.ballKind,
+        sim.finalAirTimeMs ?? nextSnapshot.airTimeMs,
+        sim.obstacleHits.size,
+        sim.coinValues,
+        sim.boardIndex,
+      );
+      const bonusRoundsAlreadyEarned =
+        completedRounds.filter((round) => round.ballKind === 'bonus').length + bonusRoundsAvailable;
+      const awardsBonusRound = result.unlockedBonus && bonusRoundsAlreadyEarned < config.totalRounds;
+      const nextBonusRoundsAvailable =
+        Math.max(0, bonusRoundsAvailable - (sim.ballKind === 'bonus' ? 1 : 0)) +
+        (awardsBonusRound ? 1 : 0);
+      const nextNormalBoardsPlayed = normalBoardsPlayed + (sim.ballKind === 'normal' ? 1 : 0);
+      const hasFurtherBoard =
+        nextBonusRoundsAvailable > 0 || nextNormalBoardsPlayed < config.totalRounds;
+      if (!hasFurtherBoard) {
         const nextRounds = [...completedRounds, result];
         const nextTotal = nextRounds.reduce((sum, round) => sum + round.score, 0);
         if (finalSubmittedScoreRef.current === null || nextTotal > finalSubmittedScoreRef.current) {
@@ -558,7 +577,7 @@ export function DropBallGame({
   const startDropAt = (nextDropX: number) => {
     if (disabled || phase !== 'ready') return;
     stopSimulation();
-    const sim = createSimulation(config, boardIndex, currentBallKind, nextDropX, setSnapshot);
+    const sim = createSimulation(config, currentLayoutIndex, currentBallKind, nextDropX, setSnapshot);
     simRef.current = sim;
     setSnapshot(emptySnapshot());
     setDetailsOpen(false);
@@ -575,21 +594,30 @@ export function DropBallGame({
       sim.finalAirTimeMs ?? snapshot.airTimeMs,
       sim.obstacleHits.size,
       sim.coinValues,
-      boardIndex,
+      sim.boardIndex,
     );
     const nextRounds = [...completedRounds, result];
     const nextTotal = nextRounds.reduce((sum, round) => sum + round.score, 0);
+    const bonusRoundsAlreadyEarned = completedBonusRounds + bonusRoundsAvailable;
+    const awardsBonusRound = result.unlockedBonus && bonusRoundsAlreadyEarned < config.totalRounds;
+    const nextBonusRoundsAvailable =
+      Math.max(0, bonusRoundsAvailable - (sim.ballKind === 'bonus' ? 1 : 0)) +
+      (awardsBonusRound ? 1 : 0);
+    const nextNormalBoardsPlayed = normalBoardsPlayed + (sim.ballKind === 'normal' ? 1 : 0);
+    const hasFurtherBoard =
+      nextBonusRoundsAvailable > 0 || nextNormalBoardsPlayed < config.totalRounds;
     stopSimulation();
     setCompletedRounds(nextRounds);
-    setPendingBonus(result.unlockedBonus);
+    setBonusRoundsAvailable(nextBonusRoundsAvailable);
+    setNormalBoardsPlayed(nextNormalBoardsPlayed);
     setSnapshot(emptySnapshot());
     setDetailsOpen(false);
+    setBoardIndex((current) => current + 1);
 
-    if (boardIndex + 1 >= config.totalRounds) {
+    if (!hasFurtherBoard) {
       setPhase('finished');
       onComplete(nextTotal, nextRounds);
     } else {
-      setBoardIndex((current) => current + 1);
       setPhase('ready');
     }
   };
@@ -599,8 +627,9 @@ export function DropBallGame({
     setPhase('ready');
     setDropX(CANVAS_WIDTH / 2);
     setBoardIndex(0);
+    setNormalBoardsPlayed(0);
     setCompletedRounds([]);
-    setPendingBonus(false);
+    setBonusRoundsAvailable(0);
     setSnapshot(emptySnapshot());
     setDetailsOpen(false);
     finalSubmittedScoreRef.current = null;
@@ -637,7 +666,7 @@ export function DropBallGame({
         Drop Ball
       </p>
       <p className="mt-2 text-sm font-semibold text-quiz-text">
-        Fjern hindre, samle mynter og få bonusball ved minst {formatDropBallScore(config.bonusBallThreshold)} på ett brett.
+        Fjern hindre, samle mynter og få en ekstra bonusrunde ved minst {formatDropBallScore(config.bonusBallThreshold)} på ett brett.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -650,7 +679,9 @@ export function DropBallGame({
         <div className="rounded-2xl border border-fuchsia-300/35 bg-fuchsia-300/10 px-4 py-3">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-fuchsia-100">Brett</p>
           <p className="mt-1 text-2xl font-black tabular-nums text-fuchsia-50">
-            {Math.min(boardIndex + 1, config.totalRounds)}/{config.totalRounds}
+            {currentBallKind === 'bonus'
+              ? 'Bonus'
+              : `${Math.min(normalBoardsPlayed + 1, config.totalRounds)}/${config.totalRounds}`}
           </p>
         </div>
         <div className="rounded-2xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-3">
@@ -720,9 +751,9 @@ export function DropBallGame({
         )}
       </div>
 
-      {pendingBonus && phase === 'ready' && (
+      {currentBallKind === 'bonus' && phase === 'ready' && (
         <p className="mt-3 rounded-2xl border border-yellow-300/45 bg-yellow-300/15 px-4 py-3 text-sm font-black text-yellow-50">
-          Bonusball aktiv på dette brettet.
+          Bonusball aktiv: dette er en ekstra runde.
         </p>
       )}
 
@@ -763,7 +794,7 @@ export function DropBallGame({
                   <p>Alle mynter: +{config.allCoinsBonus.toLocaleString('nb-NO')} poeng</p>
                   <p>Alle hindre: +{config.allObstaclesBonus.toLocaleString('nb-NO')} poeng</p>
                   <p>Perfekt brett: +{config.perfectBoardBonus.toLocaleString('nb-NO')} poeng</p>
-                  <p>Bonusball ved {config.bonusBallThreshold.toLocaleString('nb-NO')} poeng</p>
+                  <p>Ekstra bonusrunde ved {config.bonusBallThreshold.toLocaleString('nb-NO')} poeng</p>
                 </div>
               </div>
               {snapshot.latestMessage && (
