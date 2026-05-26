@@ -274,6 +274,17 @@ export function toPublicState(
   const visibleProtests = room.protests.filter((p) => p.teamId === teamId);
   const visibleGradingAssignments = assignment ? [assignment] : [];
 
+  const hideTeamOnlySecrets = (question: (typeof room.questions)[number]) => {
+    if (question.game?.gameId !== 'anagram') return question;
+    return {
+      ...question,
+      game: {
+        ...question.game,
+        answerText: '',
+      },
+    };
+  };
+
   const questions = room.questions.map((q) => {
     if (answerKeyOpen) return q;
     const showReviewFasit = teamReviewOpen && ownAnsweredQuestionIds.has(q.id);
@@ -283,14 +294,14 @@ export function toPublicState(
     if (showReviewFasit || showGradingFasit || redacted.lines.length === 0) {
       return redacted;
     }
-    return {
+    return hideTeamOnlySecrets({
       ...redacted,
       acceptedAnswers: undefined,
       options:
         redacted.type === 'mc'
           ? redacted.options?.map((o) => ({ ...o, isCorrect: false }))
           : undefined,
-    };
+    });
   });
 
   return {
