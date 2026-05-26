@@ -43,12 +43,13 @@ export function EmojiHuntGame({
   const roundLockedRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const transitionTimeoutRef = useRef<number | null>(null);
 
   const remainingTargets = useMemo(
     () => targets.filter((emoji) => !found.includes(emoji)),
     [targets, found],
   );
-  const progressText = `${found.length} / ${targets.length || targetCount} funnet`;
+  const progressText = `${found.length} / ${targets.length || targetCount} mål`;
   const targetMs = Math.max(1_000, maxMsPerTarget);
 
   const setPhaseState = (next: EmojiHuntPhase) => {
@@ -59,8 +60,23 @@ export function EmojiHuntGame({
   const clearTimers = () => {
     if (timerRef.current !== null) window.clearInterval(timerRef.current);
     if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
+    if (transitionTimeoutRef.current !== null) window.clearTimeout(transitionTimeoutRef.current);
     timerRef.current = null;
     timeoutRef.current = null;
+    transitionTimeoutRef.current = null;
+  };
+
+  const clearTargetTimeout = () => {
+    if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  };
+
+  const scheduleNextTarget = (delayMs: number) => {
+    if (transitionTimeoutRef.current !== null) window.clearTimeout(transitionTimeoutRef.current);
+    transitionTimeoutRef.current = window.setTimeout(() => {
+      transitionTimeoutRef.current = null;
+      moveToNextTarget();
+    }, delayMs);
   };
 
   const refreshOptions = (remaining: string[]) => {
@@ -68,7 +84,9 @@ export function EmojiHuntGame({
   };
 
   const startRoundClock = () => {
+    clearTargetTimeout();
     roundStartedAtRef.current = performance.now();
+    timeoutRef.current = window.setTimeout(timeoutCurrentTarget, targetMs);
   };
 
   const finishAttempt = () => {
@@ -103,13 +121,14 @@ export function EmojiHuntGame({
       return;
     }
     roundLockedRef.current = true;
+    clearTargetTimeout();
     targetDurationsRef.current = [...targetDurationsRef.current, targetMs];
     const nextFound = [...foundRef.current, missed];
     foundRef.current = nextFound;
     setFound(nextFound);
-    setMessage('10 sekunder brukt, neste emoji!');
+    setMessage(`${(targetMs / 1000).toFixed(0)} sekunder brukt, neste emoji!`);
     setMessageKind('warn');
-    window.setTimeout(moveToNextTarget, 180);
+    scheduleNextTarget(180);
   };
 
   const startAttempt = () => {
@@ -135,7 +154,6 @@ export function EmojiHuntGame({
       const total = calculateEmojiHuntTotalMs(targetDurationsRef.current, targetMs) + Math.round(current);
       setDisplayMs(total);
     }, 60);
-    timeoutRef.current = window.setInterval(timeoutCurrentTarget, 80);
   };
 
   const clickEmoji = (option: EmojiHuntOption) => {
@@ -157,6 +175,7 @@ export function EmojiHuntGame({
 
     const roundMs = Math.min(performance.now() - roundStartedAtRef.current, targetMs);
     roundLockedRef.current = true;
+    clearTargetTimeout();
     targetDurationsRef.current = [...targetDurationsRef.current, roundMs];
     const nextFound = [...foundRef.current, option.emoji];
     foundRef.current = nextFound;
@@ -165,7 +184,7 @@ export function EmojiHuntGame({
     setMessage('Riktig!');
     setMessageKind('good');
 
-    window.setTimeout(moveToNextTarget, 220);
+    scheduleNextTarget(220);
   };
 
   useEffect(() => () => clearTimers(), []);
