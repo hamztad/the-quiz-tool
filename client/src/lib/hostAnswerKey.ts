@@ -22,6 +22,9 @@ export function getQuestionFasitText(question: Question): string | null {
     if (question.game?.gameId === 'emojiHunt') {
       return `Emoji-jakt: finn ${question.game.targetCount} emoji raskest mulig.`;
     }
+    if (question.game?.gameId === 'dropBall') {
+      return `Drop Ball: ${question.game.totalRounds} drops. Slots: ${question.game.slotScores.join(' · ')}.`;
+    }
     if (question.game?.gameId === 'anagram') {
       return `Anagram: ${question.game.answerText || '—'}`;
     }

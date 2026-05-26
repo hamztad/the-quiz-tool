@@ -373,6 +373,7 @@ export function TeamPage() {
             <Card className="border-2 border-quiz-active p-3 sm:p-4 min-w-0">
               {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
                 activeQuestion.game?.gameId !== 'emojiHunt' &&
+                activeQuestion.game?.gameId !== 'dropBall' &&
                 activeQuestion.game?.gameId !== 'anagram' && (
                 <QuestionBody question={activeQuestion} />
               )}

@@ -1,5 +1,7 @@
 import {
   buildAnagramResults,
+  buildDropBallResults,
+  clampDropBallScore,
   buildEmojiHuntResults,
   buildMathExpressionResults,
   buildRainbowPuzzleResults,
@@ -7,6 +9,7 @@ import {
   gameResultsToScoreEntries,
   isAnagramAnswerCorrect,
   isAnagramSubmissionPayload,
+  isDropBallSubmissionPayload,
   isEmojiHuntSubmissionPayload,
   isMathExpressionSubmissionPayload,
   isRainbowPuzzleSubmissionPayload,
@@ -140,6 +143,15 @@ export function submitGameResult(
       gameId: 'rainbowPuzzle',
       score: Math.max(0, Math.floor(payload.score)),
     };
+  } else if (question.game.gameId === 'dropBall') {
+    if (!isDropBallSubmissionPayload(payload)) {
+      throw new Error('Ugyldig spillinnsending.');
+    }
+    submissionPayload = {
+      gameId: 'dropBall',
+      score: clampDropBallScore(payload.score, question.game),
+      rounds: payload.rounds,
+    };
   } else if (question.game.gameId === 'emojiHunt') {
     if (!isEmojiHuntSubmissionPayload(payload)) {
       throw new Error('Ugyldig spillinnsending.');
@@ -259,6 +271,13 @@ export function calculateGameQuestionResults(
     );
   } else if (question.game.gameId === 'rainbowPuzzle') {
     results = buildRainbowPuzzleResults(
+      questionId,
+      question.maxPoints,
+      question.game,
+      submissions,
+    );
+  } else if (question.game.gameId === 'dropBall') {
+    results = buildDropBallResults(
       questionId,
       question.maxPoints,
       question.game,

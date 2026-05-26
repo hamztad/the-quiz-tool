@@ -87,6 +87,9 @@ function formatOwnGameSubmission(question: Question, submission: GameSubmission 
       ? submission.payload.answer.trim() || null
       : `${(submission.payload.totalMs / 1000).toFixed(2)} sekunder`;
   }
+  if (question.game?.gameId === 'dropBall' && submission.payload.gameId === 'dropBall') {
+    return `${submission.payload.score} poeng`;
+  }
   return null;
 }
 

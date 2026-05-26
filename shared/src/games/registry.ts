@@ -1,5 +1,6 @@
 import type { GameId, GameQuestionConfig } from './types.js';
 import { createDefaultAnagramConfig } from './modules/anagram.js';
+import { createDefaultDropBallConfig } from './modules/dropBall.js';
 import { createDefaultEmojiHuntConfig } from './modules/emojiHunt.js';
 import { createDefaultMathExpressionConfig } from './modules/mathExpression.js';
 import { createDefaultRainbowPuzzleConfig } from './modules/rainbowPuzzle.js';
@@ -24,6 +25,12 @@ export const builtInGames: BuiltInGameDefinition[] = [
     label: 'Regnestykke',
     description: 'Enkelt regnestykke eller regnerace med auto-scoring.',
     createDefaultConfig: createDefaultMathExpressionConfig,
+  },
+  {
+    id: 'dropBall',
+    label: 'Drop Ball',
+    description: 'Slipp ballen i score-slots og jakt bonusball-jackpot.',
+    createDefaultConfig: createDefaultDropBallConfig,
   },
   {
     id: 'rainbowPuzzle',

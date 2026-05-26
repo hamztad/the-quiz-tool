@@ -30,6 +30,7 @@ function formatGameSubmissionForHost(question: Question, submission: GameSubmiss
   }
   if (submission.payload.gameId === 'rainbowPuzzle') return `${submission.payload.score} poeng`;
   if (submission.payload.gameId === 'emojiHunt') return `${(submission.payload.totalMs / 1000).toFixed(2)} sekunder`;
+  if (submission.payload.gameId === 'dropBall') return `${submission.payload.score} poeng`;
   if (submission.payload.gameId === 'timerChallenge') return `${(submission.payload.elapsedMs / 1000).toFixed(2)} sekunder`;
   if (submission.payload.gameId === 'mathExpression') {
     return submission.payload.mode === 'single'

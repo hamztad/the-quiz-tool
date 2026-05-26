@@ -1,4 +1,11 @@
-export type GameId = 'timerChallenge' | 'rainbowPuzzle' | 'emojiHunt' | 'anagram' | 'mathExpression' | 'mathRace';
+export type GameId =
+  | 'timerChallenge'
+  | 'rainbowPuzzle'
+  | 'emojiHunt'
+  | 'anagram'
+  | 'mathExpression'
+  | 'mathRace'
+  | 'dropBall';
 
 export type RankingMode = 'highest' | 'lowest';
 
@@ -94,13 +101,29 @@ export interface EmojiHuntConfig extends GameQuestionConfigBase {
   resultKind: 'ranked';
 }
 
+export type DropBallTotalRounds = 1 | 2 | 3;
+export type DropBallBallKind = 'normal' | 'bonus';
+
+export interface DropBallConfig extends GameQuestionConfigBase {
+  gameId: 'dropBall';
+  totalRounds: DropBallTotalRounds;
+  slotScores: number[];
+  bonusSlotIndex: number;
+  bonusMultiplier: number;
+  jackpotBonus: number;
+  rankingMode: 'highest';
+  resultKind: 'ranked';
+  pointMode: 'rankedBands';
+}
+
 export type GameQuestionConfig =
   | TimerChallengeConfig
   | RainbowPuzzleConfig
   | EmojiHuntConfig
   | AnagramGameConfig
   | MathExpressionConfig
-  | MathRaceGameConfig;
+  | MathRaceGameConfig
+  | DropBallConfig;
 
 export interface GameRound {
   questionId: string;
@@ -170,13 +193,31 @@ export interface EmojiHuntSubmissionPayload {
   totalMs: number;
 }
 
+export interface DropBallRoundResult {
+  roundIndex: number;
+  slotIndex: number;
+  ballKind: DropBallBallKind;
+  baseScore: number;
+  multiplier: number;
+  jackpotBonus: number;
+  score: number;
+  unlockedBonus: boolean;
+}
+
+export interface DropBallSubmissionPayload {
+  gameId: 'dropBall';
+  score: number;
+  rounds?: DropBallRoundResult[];
+}
+
 export type GameSubmissionPayload =
   | TimerChallengeSubmissionPayload
   | RainbowPuzzleSubmissionPayload
   | EmojiHuntSubmissionPayload
   | AnagramSubmissionPayload
   | MathExpressionSubmissionPayload
-  | MathRaceSubmissionPayload;
+  | MathRaceSubmissionPayload
+  | DropBallSubmissionPayload;
 
 export interface GameSubmission {
   questionId: string;

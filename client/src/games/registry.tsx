@@ -1,5 +1,6 @@
 import {
   CLIENT_EVENTS,
+  formatDropBallScore,
   formatEmojiHuntMs,
   formatTimerMs,
   rankGameEntries,
@@ -8,6 +9,7 @@ import {
 } from '@quiz-tool/shared';
 import type {
   AnagramSubmissionPayload,
+  DropBallSubmissionPayload,
   GameSubmission,
   EmojiHuntSubmissionPayload,
   MathExpressionSubmissionPayload,
@@ -17,6 +19,7 @@ import type {
 import { useEffect, useRef } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import { AnagramGame } from './anagram/AnagramGame';
+import { DropBallGame } from './dropBall/DropBallGame';
 import { EmojiHuntGame } from './emojiHunt/EmojiHuntGame';
 import { MathExpressionGame } from './mathExpression/MathExpressionGame';
 import { RainbowPuzzleGame } from './rainbowPuzzle/RainbowPuzzleGame';
@@ -48,6 +51,9 @@ export function TeamGameView({ room, question, teamId }: TeamGameViewProps) {
   if (question.game?.gameId === 'emojiHunt') {
     return <EmojiHuntTeamView room={room} question={question} teamId={teamId} />;
   }
+  if (question.game?.gameId === 'dropBall') {
+    return <DropBallTeamView room={room} question={question} teamId={teamId} />;
+  }
   if (question.game?.gameId === 'anagram') {
     return <AnagramTeamView room={room} question={question} teamId={teamId} />;
   }
@@ -77,6 +83,10 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
   const provisionalEmoji =
     question.game?.gameId === 'emojiHunt' && results.length === 0
       ? bestEmojiHuntSubmissions(submissions)
+      : [];
+  const provisionalDropBall =
+    question.game?.gameId === 'dropBall' && results.length === 0
+      ? bestDropBallSubmissions(submissions)
       : [];
 
   return (
@@ -148,6 +158,25 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
           })}
         </ol>
       )}
+      {provisionalDropBall.length > 0 && (
+        <ol className="mt-3 space-y-2">
+          {provisionalDropBall.map((entry) => {
+            const team = room.teams.find((item) => item.id === entry.teamId);
+            return (
+              <li
+                key={`${question.id}-${entry.teamId}`}
+                className="flex min-w-0 items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm"
+              >
+                <span className="shrink-0 font-bold tabular-nums">#{entry.rank}</span>
+                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Lag'}</span>
+                <span className="shrink-0 font-semibold text-emerald-100">
+                  {formatDropBallScore(entry.score)}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
     </div>
   );
 }
@@ -162,6 +191,12 @@ function isAnagramSubmission(
   submission: GameSubmission,
 ): submission is GameSubmission & { payload: AnagramSubmissionPayload } {
   return submission.payload.gameId === 'anagram';
+}
+
+function isDropBallSubmission(
+  submission: GameSubmission,
+): submission is GameSubmission & { payload: DropBallSubmissionPayload } {
+  return submission.payload.gameId === 'dropBall';
 }
 
 function isMathExpressionSubmission(
@@ -204,6 +239,21 @@ function bestEmojiHuntSubmissions(submissions: GameSubmission[]): { teamId: stri
     Array.from(bestByTeam.entries()).map(([teamId, totalMs]) => ({ teamId, rankValue: totalMs })),
     'lowest',
   ).map((entry) => ({ teamId: entry.teamId, totalMs: entry.rankValue, rank: entry.rank }));
+}
+
+function bestDropBallSubmissions(submissions: GameSubmission[]): { teamId: string; score: number; rank: number }[] {
+  const bestByTeam = new Map<string, number>();
+  for (const submission of submissions) {
+    if (!isDropBallSubmission(submission)) continue;
+    const current = bestByTeam.get(submission.teamId);
+    if (current === undefined || submission.payload.score > current) {
+      bestByTeam.set(submission.teamId, submission.payload.score);
+    }
+  }
+  return rankGameEntries(
+    Array.from(bestByTeam.entries()).map(([teamId, score]) => ({ teamId, rankValue: score })),
+    'highest',
+  ).map((entry) => ({ teamId: entry.teamId, score: entry.rankValue, rank: entry.rank }));
 }
 
 function timerFeedback(diffMs: number): string {
@@ -272,6 +322,33 @@ function EmojiHuntTeamView({ room, question, teamId }: TeamGameViewProps) {
       latestMs={latestMs}
       bestMs={bestMs}
       onComplete={submitTime}
+    />
+  );
+}
+
+function DropBallTeamView({ room, question, teamId }: TeamGameViewProps) {
+  const { socket } = useSocket();
+  const submissions = room.gameSubmissions
+    .filter((item) => item.questionId === question.id && item.teamId === teamId)
+    .filter(isDropBallSubmission);
+  const bestScore =
+    submissions.length > 0
+      ? Math.max(...submissions.map((item) => item.payload.score))
+      : null;
+  const config = question.game?.gameId === 'dropBall' ? question.game : null;
+
+  if (!config) return null;
+
+  return (
+    <DropBallGame
+      config={config}
+      bestScore={bestScore}
+      onComplete={(score, rounds) =>
+        socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
+          questionId: question.id,
+          payload: { gameId: 'dropBall', score, rounds },
+        })
+      }
     />
   );
 }

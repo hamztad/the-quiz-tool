@@ -1,5 +1,6 @@
 import type { GameQuestionConfig } from '../games/types.js';
 import { validateAnagramAnswerText } from '../games/modules/anagram.js';
+import { isValidDropBallConfig } from '../games/modules/dropBall.js';
 import { validateMathExpressionConfig } from '../games/modules/mathExpression.js';
 import type { Question, QuestionType } from '../types/room.js';
 
@@ -103,6 +104,11 @@ function isGameQuestionConfig(value: unknown): value is GameQuestionConfig {
       (value.pointMode === 'winnerTakesAll' ||
         value.pointMode === 'rankedBands' ||
         value.pointMode === 'directScoreToPoints')
+    );
+  }
+  if (value.gameId === 'dropBall') {
+    return isValidDropBallConfig(
+      value as unknown as GameQuestionConfig & { gameId: 'dropBall' },
     );
   }
   if (value.gameId === 'anagram') {

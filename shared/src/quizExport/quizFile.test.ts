@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createAnagramConfigForAnswer } from '../games/modules/anagram.js';
+import { createDefaultDropBallConfig } from '../games/modules/dropBall.js';
 import { createDefaultEmojiHuntConfig } from '../games/modules/emojiHunt.js';
 import type { Question } from '../types/room.js';
 import { buildQuizFileExport, parseQuizFile, QUIZ_FILE_FORMAT } from './quizFile.js';
@@ -62,6 +63,25 @@ describe('parseQuizFile', () => {
     expect(parseQuizFile(exported).ok).toBe(true);
     const invalid = JSON.parse(JSON.stringify(exported));
     invalid.questions[0].game.targetCount = 6;
+    expect(parseQuizFile(invalid).ok).toBe(false);
+  });
+
+  it('validates Drop Ball game config', () => {
+    const exported = buildQuizFileExport([
+      {
+        id: 'q-drop-ball',
+        order: 0,
+        type: 'game',
+        gameType: 'dropBall',
+        lines: [{ text: 'Drop Ball', style: 'title' }],
+        game: createDefaultDropBallConfig(),
+        maxPoints: 5,
+      },
+    ]);
+
+    expect(parseQuizFile(exported).ok).toBe(true);
+    const invalid = JSON.parse(JSON.stringify(exported));
+    invalid.questions[0].game.slotScores = [100, 200];
     expect(parseQuizFile(invalid).ok).toBe(false);
   });
 

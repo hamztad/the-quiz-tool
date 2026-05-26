@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type {
   AnagramGameConfig,
+  DropBallConfig,
   EmojiHuntConfig,
   GamePointBand,
   MediaAttachment,
@@ -768,6 +769,91 @@ function GameQuestionEditor({
               className="bg-quiz-bg py-2 min-h-[44px]"
             />
           </label>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {[1, 2, 3].map((rank) => (
+            <label key={rank} className="block min-w-0">
+              <span className="mb-1 block text-xs font-medium text-quiz-muted">
+                {rank}. plass
+              </span>
+              <Input
+                type="number"
+                min={0}
+                value={bands.find((band) => band.rank === rank)?.points ?? 0}
+                onChange={(event) => setBand(rank, Number(event.target.value))}
+                className="bg-quiz-bg py-2 min-h-[44px]"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (question.game?.gameId === 'dropBall') {
+    const config = question.game;
+    const bands = config.pointBands ?? [
+      { rank: 1, points: 5 },
+      { rank: 2, points: 3 },
+      { rank: 3, points: 1 },
+    ];
+    const updateGame = (next: DropBallConfig) => {
+      onChange({
+        ...question,
+        gameType: 'dropBall',
+        game: next,
+        maxPoints: 5,
+      });
+    };
+    const setBand = (rank: number, points: number) => {
+      updateGame({
+        ...config,
+        pointBands: [1, 2, 3].map((item) => ({
+          rank: item,
+          points: item === rank ? Math.max(0, Math.round(points)) : (bands.find((b) => b.rank === item)?.points ?? 0),
+        })),
+      });
+    };
+
+    return (
+      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
+        <div>
+          <p className="text-xs font-semibold text-emerald-200">Spill: Drop Ball</p>
+          <p className="mt-1 text-xs text-quiz-muted">
+            Lagene slipper ballen i score-slots. Høyeste totalscore vinner.
+          </p>
+        </div>
+        <label className="block min-w-0">
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">
+            Antall drops
+          </span>
+          <select
+            value={config.totalRounds}
+            onChange={(event) =>
+              updateGame({
+                ...config,
+                totalRounds: Number(event.target.value) as DropBallConfig['totalRounds'],
+              })
+            }
+            className="box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-inset focus:ring-quiz-accent min-h-[44px]"
+          >
+            {[1, 2, 3].map((rounds) => (
+              <option key={rounds} value={rounds}>
+                {rounds} {rounds === 1 ? 'drop' : 'drops'}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="rounded-xl border border-quiz-border/70 bg-quiz-bg/50 px-3 py-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-quiz-muted">
+            Score-slots
+          </p>
+          <p className="mt-1 text-sm font-semibold text-quiz-text">
+            {config.slotScores.join(' · ')}
+          </p>
+          <p className="mt-1 text-xs text-quiz-muted">
+            Midten låser opp bonusball. Bonusball gir x{config.bonusMultiplier} og +{config.jackpotBonus} jackpot i midten.
+          </p>
         </div>
         <div className="grid gap-2 sm:grid-cols-3">
           {[1, 2, 3].map((rank) => (

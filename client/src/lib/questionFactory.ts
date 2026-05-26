@@ -1,5 +1,6 @@
 import {
   createDefaultAnagramConfig,
+  createDefaultDropBallConfig,
   createDefaultEmojiHuntConfig,
   createDefaultMathExpressionConfig,
   createDefaultRainbowPuzzleConfig,
@@ -74,6 +75,18 @@ export function createEmojiHuntQuestion(order: number): Question {
   };
 }
 
+export function createDropBallQuestion(order: number): Question {
+  return {
+    id: generateId('q'),
+    order,
+    type: 'game',
+    gameType: 'dropBall',
+    lines: [{ text: 'Drop Ball', style: 'title' }],
+    game: createDefaultDropBallConfig(),
+    maxPoints: 5,
+  };
+}
+
 export function createAnagramQuestion(order: number): Question {
   return {
     id: generateId('q'),
@@ -101,6 +114,7 @@ export function createMathExpressionQuestion(order: number): Question {
 export function createGameQuestion(order: number, gameId: GameId): Question {
   if (gameId === 'anagram') return createAnagramQuestion(order);
   if (gameId === 'mathExpression') return createMathExpressionQuestion(order);
+  if (gameId === 'dropBall') return createDropBallQuestion(order);
   if (gameId === 'rainbowPuzzle') return createRainbowPuzzleQuestion(order);
   if (gameId === 'emojiHunt') return createEmojiHuntQuestion(order);
   return createTimerChallengeQuestion(order);
