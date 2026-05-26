@@ -107,10 +107,13 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
   const submittedElapsed =
     latestSubmission?.payload.gameId === 'timerChallenge' ? latestSubmission.payload.elapsedMs : null;
   const diffMs = submittedElapsed === null ? null : Math.abs(submittedElapsed - targetMs);
-  const bestDiffMs =
-    submissions.length > 0
-      ? Math.min(...submissions.map((item) => Math.abs(item.payload.elapsedMs - targetMs)))
-      : null;
+  const bestSubmission = submissions.reduce<(typeof submissions)[number] | null>((best, item) => {
+    if (!best) return item;
+    const bestDiff = Math.abs(best.payload.elapsedMs - targetMs);
+    const itemDiff = Math.abs(item.payload.elapsedMs - targetMs);
+    return itemDiff < bestDiff ? item : best;
+  }, null);
+  const bestDiffMs = bestSubmission ? Math.abs(bestSubmission.payload.elapsedMs - targetMs) : null;
 
   useEffect(() => {
     if (start) {
@@ -132,38 +135,58 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
   };
 
   return (
-    <div className="mt-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-center sm:p-5">
-      <p className="text-sm text-quiz-muted">Stopp så nær målet som mulig</p>
-      <p className="mt-1 text-2xl font-black text-quiz-text">Mål: {formatTimerMs(targetMs)}</p>
-      <div className="my-6 rounded-2xl border border-quiz-border/70 bg-quiz-bg/50 px-4 py-6">
+    <div className="mt-4 overflow-hidden rounded-3xl border-2 border-fuchsia-400/40 bg-gradient-to-br from-blue-500/20 via-fuchsia-500/15 to-yellow-400/10 p-4 text-center shadow-[0_0_32px_rgba(59,130,246,0.18)] sm:p-5">
+      <div className="mx-auto mb-3 flex h-24 w-24 items-center justify-center rounded-full border-2 border-yellow-300/40 bg-yellow-300/15 text-7xl shadow-[0_0_32px_rgba(250,204,21,0.18)]">
+        <span aria-hidden>⏱️</span>
+      </div>
+      <p className="text-sm font-bold uppercase tracking-[0.2em] text-fuchsia-200">
+        Stoppklokka
+      </p>
+      <p className="mt-2 text-base font-semibold text-quiz-text">
+        Stopp så nær målet som mulig
+      </p>
+      <p className="mt-2 inline-flex rounded-full border border-yellow-300/35 bg-yellow-300/10 px-4 py-2 text-2xl font-black text-yellow-100">
+        Mål: {formatTimerMs(targetMs)}
+      </p>
+
+      {bestSubmission && bestDiffMs !== null && (
+        <div className="mt-5 rounded-2xl border-2 border-green-400/60 bg-green-400/15 px-4 py-4 shadow-[0_0_24px_rgba(34,197,94,0.16)]">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-green-200">
+            Bestetid så langt
+          </p>
+          <p className="mt-1 text-4xl font-black tabular-nums text-green-50">
+            {formatTimerMs(bestSubmission.payload.elapsedMs)}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-green-100">
+            {bestDiffMs} ms fra målet
+          </p>
+        </div>
+      )}
+
+      <div className="my-6 rounded-3xl border border-blue-300/35 bg-quiz-bg/70 px-4 py-6 shadow-inner">
         {!start && latestSubmission && submittedElapsed !== null && diffMs !== null ? (
           <div role="status" aria-live="polite">
-            <p className="text-sm font-semibold uppercase tracking-wide text-green-300">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-fuchsia-200">
               Siste forsøk
             </p>
-            <p className="mt-2 text-3xl font-black tabular-nums text-quiz-text">
+            <p className="mt-2 text-4xl font-black tabular-nums text-quiz-text">
               {formatTimerMs(submittedElapsed)}
             </p>
-            <p className="mt-2 text-sm text-quiz-muted">
+            <p className="mt-3 rounded-xl border border-fuchsia-400/25 bg-fuchsia-400/10 px-3 py-2 text-sm font-medium text-fuchsia-100">
               Dere bommet med {diffMs} ms. {timerFeedback(diffMs)}
             </p>
-            {bestDiffMs !== null && (
-              <p className="mt-2 text-xs font-medium text-green-200">
-                Beste forsøk så langt: {bestDiffMs} ms fra målet.
-              </p>
-            )}
           </div>
         ) : start ? (
           <div role="status" aria-live="polite">
-            <p className="text-2xl font-bold text-quiz-text">Tidtakeren går...</p>
-            <p className="mt-2 text-sm text-quiz-muted">
+            <p className="text-3xl font-black text-quiz-text">Tidtakeren går...</p>
+            <p className="mt-3 rounded-xl border border-blue-300/30 bg-blue-300/10 px-3 py-2 text-sm font-semibold text-blue-100">
               Tiden er skjult. Trykk stopp når dere tror målet er nådd.
             </p>
           </div>
         ) : (
           <div>
-            <p className="text-2xl font-bold text-quiz-text">Klar?</p>
-            <p className="mt-2 text-sm text-quiz-muted">
+            <p className="text-3xl font-black text-quiz-text">Klar?</p>
+            <p className="mt-3 rounded-xl border border-yellow-300/25 bg-yellow-300/10 px-3 py-2 text-sm font-semibold text-yellow-100">
               Trykk Start når dere er klare. Stoppknappen vises etterpå.
             </p>
           </div>
@@ -173,23 +196,23 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
         <button
           ref={stopButtonRef}
           type="button"
-          className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-quiz-accent px-6 py-3 text-base font-medium text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
+          className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-red-300/30 bg-gradient-to-r from-red-500 to-fuchsia-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(236,72,153,0.28)] transition-transform hover:scale-[1.01] hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-fuchsia-200"
           onClick={stopTimer}
           disabled={!round}
         >
-          Stopp
+          Stopp!
         </button>
       ) : (
         <div className="space-y-3">
           {latestSubmission && (
-            <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-100">
-              Forsøket er lagret. Dere kan prøve igjen helt til quizmaster låser spørsmålet.
+            <p className="rounded-2xl border border-green-400/40 bg-green-400/10 px-4 py-3 text-sm font-bold text-green-100">
+              Forsøket er lagret. Prøv igjen for å slå bestetiden før quizmaster låser.
             </p>
           )}
           <button
             ref={startButtonRef}
             type="button"
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-quiz-accent px-6 py-3 text-base font-medium text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
+            className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-blue-200/30 bg-gradient-to-r from-blue-500 via-fuchsia-500 to-purple-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(59,130,246,0.3)] transition-transform hover:scale-[1.01] hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-200"
             onClick={startTimer}
             disabled={!round}
           >
