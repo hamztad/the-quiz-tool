@@ -372,7 +372,8 @@ export function TeamPage() {
           {activeQuestionOpen ? (
             <Card className="border-2 border-quiz-active p-3 sm:p-4 min-w-0">
               {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
-                activeQuestion.game?.gameId !== 'emojiHunt' && (
+                activeQuestion.game?.gameId !== 'emojiHunt' &&
+                activeQuestion.game?.gameId !== 'anagram' && (
                 <QuestionBody question={activeQuestion} />
               )}
               {activeQuestion.type === 'game' ? (
@@ -464,7 +465,9 @@ export function TeamPage() {
                                     : 'border-quiz-border/70 bg-quiz-surface-elevated/50'
                                 }`}
                               >
-                                <span className="shrink-0 font-bold">#{result.rank}</span>
+                                {result.gameId !== 'anagram' && (
+                                  <span className="shrink-0 font-bold">#{result.rank}</span>
+                                )}
                                 <span className="min-w-0 flex-1 break-words">
                                   {team?.name ?? 'Lag'}
                                 </span>

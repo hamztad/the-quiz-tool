@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   CLIENT_EVENTS,
   ownAnswerQuestionIds,
+  type GameSubmission,
   type Protest,
   type PublicRoomState,
   type Question,
@@ -76,6 +77,14 @@ function getReviewTeamId(room: PublicRoomState, fallbackTeamId: string): string 
   return room.viewerTeamId ?? fallbackTeamId;
 }
 
+function formatOwnGameSubmission(question: Question, submission: GameSubmission | undefined): string | null {
+  if (!submission) return null;
+  if (question.game?.gameId === 'anagram' && submission.payload.gameId === 'anagram') {
+    return submission.payload.answer.trim() || null;
+  }
+  return null;
+}
+
 export function TeamResultsReviewView({
   room,
   teamId,
@@ -90,7 +99,19 @@ export function TeamResultsReviewView({
   const reviewTeamId = getReviewTeamId(room, teamId);
   const ownAnswers = room.answers.filter((a) => a.teamId === reviewTeamId);
   const ownAnswerByQuestionId = new Map(ownAnswers.map((a) => [a.questionId, a]));
+  const ownGameSubmissions = room.gameSubmissions.filter((submission) => submission.teamId === reviewTeamId);
+  const latestGameSubmissionByQuestionId = new Map<string, GameSubmission>();
+  for (const submission of ownGameSubmissions) {
+    const current = latestGameSubmissionByQuestionId.get(submission.questionId);
+    if (!current || submission.serverReceivedAt > current.serverReceivedAt) {
+      latestGameSubmissionByQuestionId.set(submission.questionId, submission);
+    }
+  }
   const ownQuestionIds = new Set(ownAnswerQuestionIds(room.answers, reviewTeamId));
+  ownGameSubmissions.forEach((submission) => ownQuestionIds.add(submission.questionId));
+  room.scores
+    .filter((score) => score.teamId === reviewTeamId)
+    .forEach((score) => ownQuestionIds.add(score.questionId));
   const answeredQuestions = room.questions.filter((q) => ownQuestionIds.has(q.id));
   const gradedCount = answeredQuestions.filter(
     (question) => getTeamQuestionScore(room, reviewTeamId, question.id).points !== null,
@@ -152,7 +173,10 @@ export function TeamResultsReviewView({
         <div className="quiz-page-content space-y-5 pb-6">
           {answeredQuestions.map((question, index) => {
             const answer = ownAnswerByQuestionId.get(question.id);
-            const answerText = formatTeamAnswerDisplay(question, answer?.value);
+            const gameSubmission = latestGameSubmissionByQuestionId.get(question.id);
+            const answerText =
+              formatOwnGameSubmission(question, gameSubmission) ??
+              formatTeamAnswerDisplay(question, answer?.value);
             const fasit = getQuestionFasitText(question);
             const selectedOption =
               question.type === 'mc'

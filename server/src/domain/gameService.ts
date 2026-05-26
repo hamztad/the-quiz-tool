@@ -1,8 +1,10 @@
 import {
+  buildAnagramResults,
   buildEmojiHuntResults,
   buildRainbowPuzzleResults,
   buildTimerChallengeResults,
   gameResultsToScoreEntries,
+  isAnagramSubmissionPayload,
   isEmojiHuntSubmissionPayload,
   isRainbowPuzzleSubmissionPayload,
   type GameSubmissionPayload,
@@ -139,6 +141,14 @@ export function submitGameResult(
       gameId: 'emojiHunt',
       totalMs: Math.min(maxTotalMs, Math.max(0, Math.round(payload.totalMs))),
     };
+  } else if (question.game.gameId === 'anagram') {
+    if (!isAnagramSubmissionPayload(payload)) {
+      throw new Error('Ugyldig spillinnsending.');
+    }
+    submissionPayload = {
+      gameId: 'anagram',
+      answer: payload.answer.slice(0, 200),
+    };
   } else {
     throw new Error('Dette spillet er ikke støttet ennå.');
   }
@@ -210,6 +220,29 @@ export function calculateGameQuestionResults(room: RoomRecord, questionId: strin
       question.game,
       submissions,
     );
+  } else if (question.game.gameId === 'anagram') {
+    results = buildAnagramResults(
+      questionId,
+      question.maxPoints,
+      question.game,
+      submissions,
+    );
+    const teamsWithResults = new Set(results.map((result) => result.teamId));
+    results = [
+      ...results,
+      ...room.teams
+        .filter((team) => !teamsWithResults.has(team.id))
+        .map((team) => ({
+          questionId,
+          teamId: team.id,
+          gameId: 'anagram' as const,
+          rankValue: 0,
+          displayValue: 'Ikke besvart',
+          rank: 0,
+          quizPoints: 0,
+          status: 'ranked' as const,
+        })),
+    ];
   }
 
   const scoreEntries = gameResultsToScoreEntries(results);

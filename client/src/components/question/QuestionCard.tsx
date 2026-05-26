@@ -173,6 +173,8 @@ export function QuestionCard({
                 ? 'Rainbow Puzzle: høyeste fullførte poengsum vinner.'
                 : question.game.gameId === 'emojiHunt'
                   ? `Emoji-jakt: finn ${question.game.targetCount} emoji raskest mulig.`
+                  : question.game.gameId === 'anagram'
+                    ? `Anagram: ${question.game.scrambledText || 'ikke satt'} · fasit ${question.game.answerText || '—'}`
               : 'Innebygd spill'}
           </p>
         </div>

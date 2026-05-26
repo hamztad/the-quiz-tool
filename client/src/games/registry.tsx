@@ -7,6 +7,7 @@ import {
   type Question,
 } from '@quiz-tool/shared';
 import type {
+  AnagramSubmissionPayload,
   GameSubmission,
   EmojiHuntSubmissionPayload,
   RainbowPuzzleSubmissionPayload,
@@ -14,6 +15,7 @@ import type {
 } from '@quiz-tool/shared';
 import { useEffect, useRef } from 'react';
 import { useSocket } from '../hooks/useSocket';
+import { AnagramGame } from './anagram/AnagramGame';
 import { EmojiHuntGame } from './emojiHunt/EmojiHuntGame';
 import { RainbowPuzzleGame } from './rainbowPuzzle/RainbowPuzzleGame';
 
@@ -43,6 +45,9 @@ export function TeamGameView({ room, question, teamId }: TeamGameViewProps) {
   }
   if (question.game?.gameId === 'emojiHunt') {
     return <EmojiHuntTeamView room={room} question={question} teamId={teamId} />;
+  }
+  if (question.game?.gameId === 'anagram') {
+    return <AnagramTeamView room={room} question={question} teamId={teamId} />;
   }
 
   return (
@@ -87,7 +92,9 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
                 key={`${result.questionId}-${result.teamId}`}
                 className="flex min-w-0 items-center gap-2 rounded-lg border border-quiz-border/70 bg-quiz-bg/40 px-3 py-2 text-sm"
               >
-                <span className="shrink-0 font-bold tabular-nums">#{result.rank}</span>
+                {result.gameId !== 'anagram' && (
+                  <span className="shrink-0 font-bold tabular-nums">#{result.rank}</span>
+                )}
                 <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Lag'}</span>
                 <span className="shrink-0 text-quiz-muted">{result.displayValue}</span>
                 <span className="shrink-0 font-semibold text-quiz-accent">
@@ -144,6 +151,12 @@ function isEmojiHuntSubmission(
   submission: GameSubmission,
 ): submission is GameSubmission & { payload: EmojiHuntSubmissionPayload } {
   return submission.payload.gameId === 'emojiHunt';
+}
+
+function isAnagramSubmission(
+  submission: GameSubmission,
+): submission is GameSubmission & { payload: AnagramSubmissionPayload } {
+  return submission.payload.gameId === 'anagram';
 }
 
 function isRainbowSubmission(
@@ -248,6 +261,34 @@ function EmojiHuntTeamView({ room, question, teamId }: TeamGameViewProps) {
       latestMs={latestMs}
       bestMs={bestMs}
       onComplete={submitTime}
+    />
+  );
+}
+
+function AnagramTeamView({ room, question, teamId }: TeamGameViewProps) {
+  const { socket } = useSocket();
+  const submissions = room.gameSubmissions
+    .filter((item) => item.questionId === question.id && item.teamId === teamId)
+    .filter(isAnagramSubmission)
+    .sort((a, b) => a.serverReceivedAt - b.serverReceivedAt);
+  const latestAnswer = submissions.at(-1)?.payload.answer ?? null;
+  const config = question.game?.gameId === 'anagram' ? question.game : null;
+
+  const submitAnswer = (answer: string) => {
+    socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
+      questionId: question.id,
+      payload: { gameId: 'anagram', answer },
+    });
+  };
+
+  if (!config) return null;
+
+  return (
+    <AnagramGame
+      title={question.lines[0]?.text ?? 'Løs anagrammet'}
+      scrambledText={config.scrambledText}
+      latestAnswer={latestAnswer}
+      onSubmit={submitAnswer}
     />
   );
 }

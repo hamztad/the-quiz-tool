@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import type {
+  AnagramGameConfig,
   EmojiHuntConfig,
   GamePointBand,
   MediaAttachment,
   Question,
   TimerChallengeConfig,
+} from '@quiz-tool/shared';
+import {
+  scrambleAnagramText,
+  validateAnagramAnswerText,
 } from '@quiz-tool/shared';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
@@ -774,6 +779,67 @@ function GameQuestionEditor({
             </label>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (question.game?.gameId === 'anagram') {
+    const config = question.game;
+    const validation = validateAnagramAnswerText(config.answerText);
+    const updateGame = (next: AnagramGameConfig) => {
+      onChange({
+        ...question,
+        gameType: 'anagram',
+        game: next,
+      });
+    };
+    const updateAnswer = (answerText: string) => {
+      const nextValidation = validateAnagramAnswerText(answerText);
+      const normalized = nextValidation.normalizedText;
+      updateGame({
+        ...config,
+        answerText: normalized,
+        scrambledText: nextValidation.ok ? scrambleAnagramText(normalized) : config.scrambledText,
+      });
+    };
+
+    return (
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
+        <div>
+          <p className="text-xs font-semibold text-amber-200">Spill: Anagram</p>
+          <p className="mt-1 text-xs text-quiz-muted">
+            Lagene løser et stokket ord eller en kort frase. Riktig svar gir poeng.
+          </p>
+        </div>
+        <label className="block min-w-0">
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">
+            Anagram-svar
+          </span>
+          <Input
+            type="text"
+            value={config.answerText}
+            onChange={(event) => updateAnswer(event.target.value)}
+            placeholder="F.eks. DET ER FINT"
+            className="bg-quiz-bg py-2 min-h-[44px]"
+          />
+        </label>
+        <div className="rounded-xl border border-quiz-border/70 bg-quiz-bg/50 px-3 py-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-quiz-muted">
+            Stokket visning
+          </p>
+          <p className="mt-1 break-words text-lg font-black tracking-wide text-quiz-text">
+            {config.scrambledText || 'Skriv et gyldig svar for å lage anagram.'}
+          </p>
+        </div>
+        <p className={`text-xs ${validation.ok ? 'text-quiz-muted' : 'text-red-200'}`}>
+          {validation.letterCount}/20 bokstaver · {validation.words.length}/4 ord
+          {validation.errors.length > 0 ? ` · ${validation.errors.join(' ')}` : ''}
+        </p>
+        {validation.warnings.map((warning) => (
+          <p key={warning} className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-100">
+            {warning}
+          </p>
+        ))}
       </div>
     );
   }

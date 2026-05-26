@@ -1,4 +1,5 @@
 import type { GameQuestionConfig } from '../games/types.js';
+import { validateAnagramAnswerText } from '../games/modules/anagram.js';
 import type { Question, QuestionType } from '../types/room.js';
 
 export const QUIZ_FILE_FORMAT = 'the-quiz-tool-quiz' as const;
@@ -101,6 +102,19 @@ function isGameQuestionConfig(value: unknown): value is GameQuestionConfig {
       (value.pointMode === 'winnerTakesAll' ||
         value.pointMode === 'rankedBands' ||
         value.pointMode === 'directScoreToPoints')
+    );
+  }
+  if (value.gameId === 'anagram') {
+    return (
+      value.mode === 'classic' &&
+      value.shuffleMode === 'perWord' &&
+      typeof value.answerText === 'string' &&
+      typeof value.scrambledText === 'string' &&
+      value.scrambledText.trim().length > 0 &&
+      validateAnagramAnswerText(value.answerText).ok &&
+      value.rankingMode === 'highest' &&
+      value.resultKind === 'directScore' &&
+      value.pointMode === 'directScoreToPoints'
     );
   }
   return false;

@@ -1,4 +1,5 @@
 import type { GameId, GameQuestionConfig } from './types.js';
+import { createDefaultAnagramConfig } from './modules/anagram.js';
 import { createDefaultEmojiHuntConfig } from './modules/emojiHunt.js';
 import { createDefaultRainbowPuzzleConfig } from './modules/rainbowPuzzle.js';
 import { createDefaultTimerChallengeConfig } from './modules/timerChallenge.js';
@@ -11,6 +12,12 @@ export interface BuiltInGameDefinition {
 }
 
 export const builtInGames: BuiltInGameDefinition[] = [
+  {
+    id: 'anagram',
+    label: 'Anagram',
+    description: 'Lagene løser et stokket ord eller en kort frase.',
+    createDefaultConfig: createDefaultAnagramConfig,
+  },
   {
     id: 'rainbowPuzzle',
     label: 'Rainbow Puzzle',

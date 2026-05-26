@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { CLIENT_EVENTS, type PublicRoomState } from '@quiz-tool/shared';
+import { CLIENT_EVENTS, type GameSubmission, type PublicRoomState, type Question } from '@quiz-tool/shared';
 import { QuestionBody } from '../question/QuestionBody';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -21,6 +21,17 @@ interface HostTeamAnswersPanelProps {
 function clampPoints(value: number, max: number): number {
   if (Number.isNaN(value)) return 0;
   return Math.max(0, Math.min(max, Math.round(value)));
+}
+
+function formatGameSubmissionForHost(question: Question, submission: GameSubmission | undefined): string | null {
+  if (!submission) return null;
+  if (question.game?.gameId === 'anagram' && submission.payload.gameId === 'anagram') {
+    return submission.payload.answer.trim() || null;
+  }
+  if (submission.payload.gameId === 'rainbowPuzzle') return `${submission.payload.score} poeng`;
+  if (submission.payload.gameId === 'emojiHunt') return `${(submission.payload.totalMs / 1000).toFixed(2)} sekunder`;
+  if (submission.payload.gameId === 'timerChallenge') return `${(submission.payload.elapsedMs / 1000).toFixed(2)} sekunder`;
+  return null;
 }
 
 export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersPanelProps) {
@@ -80,7 +91,12 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
               const answer = room.answers.find(
                 (a) => a.teamId === teamId && a.questionId === question.id,
               );
-              const answerText = formatTeamAnswerDisplay(question, answer?.value);
+              const latestGameSubmission = room.gameSubmissions
+                .filter((submission) => submission.teamId === teamId && submission.questionId === question.id)
+                .sort((a, b) => b.serverReceivedAt - a.serverReceivedAt)[0];
+              const answerText =
+                formatGameSubmissionForHost(question, latestGameSubmission) ??
+                formatTeamAnswerDisplay(question, answer?.value);
               const score = getTeamQuestionScore(room, teamId, question.id);
               const graderTeam = score.graderTeamId
                 ? room.teams.find((t) => t.id === score.graderTeamId)

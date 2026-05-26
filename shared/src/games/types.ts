@@ -30,9 +30,13 @@ export interface TimerChallengeConfig extends GameQuestionConfigBase {
 
 export interface AnagramGameConfig extends GameQuestionConfigBase {
   gameId: 'anagram';
-  mode: 'classic' | 'ranking' | 'hintDecay';
-  shuffleMode: 'perWord' | 'globalPreserveShape';
-  words: string[];
+  mode: 'classic';
+  shuffleMode: 'perWord';
+  answerText: string;
+  scrambledText: string;
+  rankingMode: 'highest';
+  resultKind: 'directScore';
+  pointMode: 'directScoreToPoints';
 }
 
 export interface MathRaceGameConfig extends GameQuestionConfigBase {

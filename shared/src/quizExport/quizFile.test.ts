@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createAnagramConfigForAnswer } from '../games/modules/anagram.js';
 import { createDefaultEmojiHuntConfig } from '../games/modules/emojiHunt.js';
 import type { Question } from '../types/room.js';
 import { buildQuizFileExport, parseQuizFile, QUIZ_FILE_FORMAT } from './quizFile.js';
@@ -61,6 +62,25 @@ describe('parseQuizFile', () => {
     expect(parseQuizFile(exported).ok).toBe(true);
     const invalid = JSON.parse(JSON.stringify(exported));
     invalid.questions[0].game.targetCount = 6;
+    expect(parseQuizFile(invalid).ok).toBe(false);
+  });
+
+  it('validates Anagram game config', () => {
+    const exported = buildQuizFileExport([
+      {
+        id: 'q-anagram',
+        order: 0,
+        type: 'game',
+        gameType: 'anagram',
+        lines: [{ text: 'Løs anagrammet', style: 'title' }],
+        game: createAnagramConfigForAnswer('DET ER FINT'),
+        maxPoints: 1,
+      },
+    ]);
+
+    expect(parseQuizFile(exported).ok).toBe(true);
+    const invalid = JSON.parse(JSON.stringify(exported));
+    invalid.questions[0].game.resultKind = 'ranked';
     expect(parseQuizFile(invalid).ok).toBe(false);
   });
 });

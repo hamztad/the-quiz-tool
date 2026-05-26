@@ -1,9 +1,11 @@
 import {
+  createDefaultAnagramConfig,
   createDefaultEmojiHuntConfig,
   createDefaultRainbowPuzzleConfig,
   createDefaultTimerChallengeConfig,
   type GameId,
   type Question,
+  validateAnagramAnswerText,
 } from '@quiz-tool/shared';
 import { generateId } from './id';
 
@@ -70,7 +72,20 @@ export function createEmojiHuntQuestion(order: number): Question {
   };
 }
 
+export function createAnagramQuestion(order: number): Question {
+  return {
+    id: generateId('q'),
+    order,
+    type: 'game',
+    gameType: 'anagram',
+    lines: [{ text: 'Løs anagrammet', style: 'title' }],
+    game: createDefaultAnagramConfig(),
+    maxPoints: 1,
+  };
+}
+
 export function createGameQuestion(order: number, gameId: GameId): Question {
+  if (gameId === 'anagram') return createAnagramQuestion(order);
   if (gameId === 'rainbowPuzzle') return createRainbowPuzzleQuestion(order);
   if (gameId === 'emojiHunt') return createEmojiHuntQuestion(order);
   return createTimerChallengeQuestion(order);
@@ -108,6 +123,9 @@ export function isQuestionIncomplete(question: Question): boolean {
   }
 
   if (question.type === 'game') {
+    if (question.game?.gameId === 'anagram') {
+      return !validateAnagramAnswerText(question.game.answerText).ok;
+    }
     return !question.game;
   }
 

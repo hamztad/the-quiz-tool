@@ -1,5 +1,6 @@
 import type { McOption, Question, QuestionLine } from '../types/room.js';
 import { DEFAULT_MAX_POINTS } from '../constants/events.js';
+import { validateAnagramAnswerText } from '../games/modules/anagram.js';
 
 export interface ParseResult {
   questions: Omit<Question, 'id' | 'order'>[];
@@ -161,6 +162,8 @@ export function validateQuestionsForSave(
     if (q.type === 'game') {
       if (!q.game) {
         errors.push(`Spørsmål ${i + 1}: spillspørsmål mangler spilloppsett.`);
+      } else if (q.game.gameId === 'anagram' && !validateAnagramAnswerText(q.game.answerText).ok) {
+        errors.push(`Spørsmål ${i + 1}: anagram mangler gyldig svar.`);
       }
       if (q.options !== undefined || q.acceptedAnswers !== undefined) {
         errors.push(`Spørsmål ${i + 1}: spillspørsmål kan ikke ha vanlig fasit eller MC-alternativer.`);
