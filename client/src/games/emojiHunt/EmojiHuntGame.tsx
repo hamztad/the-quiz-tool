@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { calculateEmojiHuntTotalMs, formatEmojiHuntMs } from '@quiz-tool/shared';
 import {
   buildEmojiHuntOptions,
-  EMOJI_HUNT_POSITIONS,
   pickEmojiHuntTargets,
 } from './emojiHuntLogic';
 import type { EmojiHuntOption, EmojiHuntPhase } from './emojiHuntTypes';
@@ -51,6 +50,7 @@ export function EmojiHuntGame({
   );
   const progressText = `${found.length} / ${targets.length || targetCount} mål`;
   const targetMs = Math.max(1_000, maxMsPerTarget);
+  const visibleOptionCount = Math.min(optionCount, 16);
 
   const setPhaseState = (next: EmojiHuntPhase) => {
     phaseRef.current = next;
@@ -80,7 +80,7 @@ export function EmojiHuntGame({
   };
 
   const refreshOptions = (remaining: string[]) => {
-    setOptions(buildEmojiHuntOptions(remaining, optionCount));
+    setOptions(buildEmojiHuntOptions(remaining, visibleOptionCount));
   };
 
   const startRoundClock = () => {
@@ -197,13 +197,14 @@ export function EmojiHuntGame({
         : messageKind === 'warn'
           ? 'text-yellow-100'
           : 'text-white';
+  const displayedTargets = remainingTargets.length > 0 ? remainingTargets : targets;
 
   return (
-    <div className="mt-4 grid max-h-[calc(100svh-6rem)] min-h-[34rem] grid-rows-[auto_auto_1fr_auto] gap-2 overflow-hidden rounded-3xl border-2 border-sky-300/35 bg-[radial-gradient(circle_at_top,#4b1165,#220033)] p-3 text-center shadow-[0_0_32px_rgba(125,211,252,0.16)]">
+    <div className="mt-4 grid max-h-[calc(100svh-6rem)] min-h-[34rem] grid-rows-[auto_auto_auto_1fr_auto_auto] gap-2 overflow-hidden rounded-3xl border-2 border-sky-300/35 bg-[radial-gradient(circle_at_top,#4b1165,#220033)] p-3 text-center shadow-[0_0_32px_rgba(125,211,252,0.16)]">
       <div className="leading-tight">
         <p className="text-2xl font-black text-white sm:text-3xl">Emoji-jakt</p>
         <p className="mt-1 text-xs font-semibold text-sky-100/90">
-          Finn emojiene i midten så raskt dere kan.
+          Finn målemojiene så raskt dere kan.
         </p>
       </div>
 
@@ -224,48 +225,61 @@ export function EmojiHuntGame({
         </div>
       </div>
 
-      <div className="relative min-h-0 overflow-hidden rounded-[1.75rem] border-2 border-white/20 bg-white/10 shadow-[inset_0_0_30px_rgba(255,255,255,0.06)]">
-        <div className="absolute left-1/2 top-1/2 z-10 flex min-h-[6.5rem] w-[min(62vw,16rem)] -translate-x-1/2 -translate-y-1/2 flex-wrap items-center justify-center gap-1 rounded-3xl border-2 border-white/25 bg-black/35 p-3 shadow-xl">
-          <span className="absolute -top-7 rounded-full bg-black/35 px-3 py-1 text-xs font-black text-white">
-            Klikk disse
-          </span>
-          {(remainingTargets.length > 0 ? remainingTargets : targets).map((emoji) => (
-            <span
-              key={emoji}
-              className={`${remainingTargets.length > 2 ? 'text-4xl' : 'text-5xl'} leading-none drop-shadow-lg`}
-            >
-              {emoji}
+      <div className="rounded-2xl border border-white/15 bg-black/25 px-3 py-2">
+        <p className="text-[11px] font-black uppercase tracking-wide text-sky-100">
+          Klikk disse
+        </p>
+        <div className="mt-1 flex min-h-10 flex-wrap items-center justify-center gap-1.5">
+          {displayedTargets.length > 0 ? (
+            displayedTargets.map((emoji) => (
+              <span
+                key={emoji}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-3xl leading-none shadow-sm sm:h-12 sm:w-12 sm:text-4xl"
+              >
+                {emoji}
+              </span>
+            ))
+          ) : (
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-white/80">
+              Trykk Start
             </span>
-          ))}
+          )}
         </div>
+      </div>
 
-        {options.map((option, index) => {
-          const position = EMOJI_HUNT_POSITIONS[index % EMOJI_HUNT_POSITIONS.length];
-          const state = highlight[option.id];
-          return (
-            <button
-              key={option.id}
-              type="button"
-              disabled={disabled || phase !== 'playing'}
-              onClick={() => clickEmoji(option)}
-              className={`absolute z-[2] flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border-2 bg-white/15 text-2xl shadow-lg transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:h-14 sm:w-14 sm:text-3xl ${
-                state === 'hit'
-                  ? 'scale-125 border-green-300 bg-green-400/50'
-                  : state === 'miss'
-                    ? 'border-red-300 bg-red-400/50'
-                    : 'border-white/20 hover:scale-105 hover:bg-white/25'
-              }`}
-              style={{ left: `${position.left}%`, top: `${position.top}%` }}
-              aria-label={`Emoji ${option.emoji}`}
-            >
-              {option.emoji}
-            </button>
-          );
-        })}
-
-        <div className={`absolute bottom-2 left-3 right-3 z-20 rounded-full bg-black/35 px-3 py-2 text-xs font-black ${messageClass}`}>
-          {message}
+      <div className="min-h-0 overflow-hidden rounded-[1.75rem] border-2 border-white/20 bg-white/10 p-2 shadow-[inset_0_0_30px_rgba(255,255,255,0.06)]">
+        <div className="grid h-full min-h-0 grid-cols-4 place-items-center gap-1.5 sm:gap-2">
+          {options.map((option) => {
+            const state = highlight[option.id];
+            return (
+              <button
+                key={option.id}
+                type="button"
+                disabled={disabled || phase !== 'playing'}
+                onClick={() => clickEmoji(option)}
+                className={`flex h-12 w-full max-w-14 items-center justify-center rounded-2xl border-2 bg-white/15 text-2xl shadow-lg transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:h-14 sm:max-w-16 sm:text-3xl ${
+                  state === 'hit'
+                    ? 'scale-110 border-green-300 bg-green-400/50'
+                    : state === 'miss'
+                      ? 'border-red-300 bg-red-400/50'
+                      : 'border-white/20 hover:scale-105 hover:bg-white/25'
+                }`}
+                aria-label={`Emoji ${option.emoji}`}
+              >
+                {option.emoji}
+              </button>
+            );
+          })}
+          {phase !== 'playing' && options.length === 0 && (
+            <p className="col-span-4 px-4 text-sm font-semibold text-white/80">
+              Start runden når dere er klare.
+            </p>
+          )}
         </div>
+      </div>
+
+      <div className={`rounded-full bg-black/35 px-3 py-2 text-xs font-black ${messageClass}`}>
+        {message}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
