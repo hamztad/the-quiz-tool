@@ -1,7 +1,6 @@
 import {
   buildTimerChallengeResults,
   gameResultsToScoreEntries,
-  isTimerChallengeSubmissionPayload,
   type GameSubmissionPayload,
 } from '@quiz-tool/shared';
 import type { GameResult, GameRound, GameSubmission } from '@quiz-tool/shared';
@@ -38,9 +37,51 @@ export function startGameRound(room: RoomRecord, questionId: string): RoomRecord
       ...room.gameRounds.filter((item) => item.questionId !== questionId),
       round,
     ],
+    gameStarts: room.gameStarts.filter((item) => item.questionId !== questionId),
     gameSubmissions: room.gameSubmissions.filter((item) => item.questionId !== questionId),
     gameResults: room.gameResults.filter((item) => item.questionId !== questionId),
     scores: room.scores.filter((score) => !(score.questionId === questionId && score.source === 'game')),
+  };
+}
+
+export function startTeamGame(
+  room: RoomRecord,
+  teamId: string,
+  questionId: string,
+): RoomRecord {
+  if (room.phase !== 'live') {
+    throw new Error('Quizen er ikke startet ennå.');
+  }
+
+  if (room.questionStatus[questionId] !== 'open') {
+    throw new Error('Spillet er ikke åpent.');
+  }
+
+  const question = room.questions.find((q) => q.id === questionId);
+  if (question?.type !== 'game' || !question.game) {
+    throw new Error('Spørsmålet er ikke et spill.');
+  }
+
+  if (room.gameSubmissions.some((item) => item.questionId === questionId && item.teamId === teamId)) {
+    throw new Error('Spillresultat er allerede sendt inn.');
+  }
+
+  const existing = room.gameStarts.find(
+    (item) => item.questionId === questionId && item.teamId === teamId,
+  );
+  if (existing) return room;
+
+  return {
+    ...room,
+    gameStarts: [
+      ...room.gameStarts,
+      {
+        questionId,
+        teamId,
+        gameId: question.game.gameId,
+        startedAt: Date.now(),
+      },
+    ],
   };
 }
 
@@ -64,7 +105,10 @@ export function submitGameResult(
   }
 
   const round = room.gameRounds.find((item) => item.questionId === questionId && !item.lockedAt);
-  if (!round) {
+  const teamStart = room.gameStarts.find(
+    (item) => item.questionId === questionId && item.teamId === teamId,
+  );
+  if (!round || !teamStart) {
     throw new Error('Spillet er ikke startet.');
   }
 
@@ -76,7 +120,7 @@ export function submitGameResult(
     }
     submissionPayload = {
       gameId: 'timerChallenge',
-      elapsedMs: Math.max(0, now - round.startedAt),
+      elapsedMs: Math.max(0, now - teamStart.startedAt),
     };
   } else {
     throw new Error('Dette spillet er ikke støttet ennå.');
@@ -132,9 +176,7 @@ export function calculateGameQuestionResults(room: RoomRecord, questionId: strin
       questionId,
       question.maxPoints,
       question.game,
-      submissions.filter((submission) =>
-        isTimerChallengeSubmissionPayload(submission.payload),
-      ),
+      submissions,
     );
   }
 

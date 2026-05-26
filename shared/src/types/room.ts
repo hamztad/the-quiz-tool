@@ -3,6 +3,7 @@ import type {
   GameResult,
   GameRound,
   GameSubmission,
+  GameTeamStart,
 } from '../games/types.js';
 
 export type QuestionType = 'open' | 'mc' | 'game';
@@ -110,6 +111,7 @@ export interface RoomState {
   answeredByTeam: Record<string, string[]>;
   answers: Answer[];
   gameRounds: GameRound[];
+  gameStarts: GameTeamStart[];
   gameSubmissions: GameSubmission[];
   gameResults: GameResult[];
   scores: ScoreEntry[];

@@ -12,6 +12,7 @@ export const CLIENT_EVENTS = {
   ROUND_LOCK: 'round:lock',
   ANSWER_SUBMIT: 'answer:submit',
   ANSWER_UPDATE: 'answer:update',
+  GAME_START: 'game:start',
   GAME_SUBMIT: 'game:submit',
   GRADING_START: 'grading:start',
   GRADING_END: 'grading:end',

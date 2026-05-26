@@ -1,13 +1,11 @@
 import { CLIENT_EVENTS, formatTimerMs, type PublicRoomState, type Question } from '@quiz-tool/shared';
-import { useEffect, useState } from 'react';
-import { Button } from '../components/ui/Button';
+import { useEffect, useRef } from 'react';
 import { useSocket } from '../hooks/useSocket';
 
 interface TeamGameViewProps {
   room: PublicRoomState;
   question: Question;
   teamId: string;
-  onSubmitted: () => void;
 }
 
 interface HostGameResultsProps {
@@ -15,14 +13,13 @@ interface HostGameResultsProps {
   question: Question;
 }
 
-export function TeamGameView({ room, question, teamId, onSubmitted }: TeamGameViewProps) {
+export function TeamGameView({ room, question, teamId }: TeamGameViewProps) {
   if (question.game?.gameId === 'timerChallenge') {
     return (
       <TimerChallengeTeamView
         room={room}
         question={question}
         teamId={teamId}
-        onSubmitted={onSubmitted}
       />
     );
   }
@@ -74,47 +71,108 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
   );
 }
 
-function TimerChallengeTeamView({ room, question, teamId, onSubmitted }: TeamGameViewProps) {
+function timerFeedback(diffMs: number): string {
+  if (diffMs === 0) return 'Fantastisk! Dere traff nøyaktig.';
+  if (diffMs <= 100) return 'Utrolig! Nesten perfekt timing.';
+  if (diffMs <= 500) return 'Svært bra! Dere var veldig nær.';
+  if (diffMs <= 1000) return 'Bra jobbet! Under ett sekund unna.';
+  if (diffMs <= 2000) return 'God innsats! Bare noen få sekunder unna.';
+  if (diffMs <= 5000) return 'Ikke dårlig, men dere kan nok gjøre det bedre.';
+  return 'Det var et godt stykke unna.';
+}
+
+function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
   const { socket } = useSocket();
-  const [now, setNow] = useState(Date.now());
+  const startButtonRef = useRef<HTMLButtonElement>(null);
+  const stopButtonRef = useRef<HTMLButtonElement>(null);
   const round = room.gameRounds.find((item) => item.questionId === question.id);
+  const start = room.gameStarts.find(
+    (item) => item.questionId === question.id && item.teamId === teamId,
+  );
   const submission = room.gameSubmissions.find(
     (item) => item.questionId === question.id && item.teamId === teamId,
   );
   const targetMs = question.game?.gameId === 'timerChallenge' ? question.game.targetMs : 10_000;
-  const elapsedMs = round ? Math.max(0, now - round.startedAt) : 0;
   const submittedElapsed =
     submission?.payload.gameId === 'timerChallenge' ? submission.payload.elapsedMs : null;
+  const diffMs = submittedElapsed === null ? null : Math.abs(submittedElapsed - targetMs);
 
   useEffect(() => {
-    if (submission || !round?.startedAt) return;
-    const id = window.setInterval(() => setNow(Date.now()), 100);
-    return () => window.clearInterval(id);
-  }, [round?.startedAt, submission]);
+    if (start && !submission) {
+      stopButtonRef.current?.focus();
+    } else if (!start) {
+      startButtonRef.current?.focus();
+    }
+  }, [start, submission]);
+
+  const startTimer = () => {
+    socket.emit(CLIENT_EVENTS.GAME_START, { questionId: question.id });
+  };
 
   const stopTimer = () => {
     socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
       questionId: question.id,
       payload: { gameId: 'timerChallenge', elapsedMs: 0 },
     });
-    onSubmitted();
   };
 
   return (
-    <div className="mt-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-center">
+    <div className="mt-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-center sm:p-5">
       <p className="text-sm text-quiz-muted">Stopp så nær målet som mulig</p>
-      <p className="mt-1 text-xl font-bold text-quiz-text">Mål: {formatTimerMs(targetMs)}</p>
-      <p className="my-6 text-5xl font-black tabular-nums text-quiz-text">
-        {formatTimerMs(submittedElapsed ?? elapsedMs)}
-      </p>
+      <p className="mt-1 text-2xl font-black text-quiz-text">Mål: {formatTimerMs(targetMs)}</p>
+      <div className="my-6 rounded-2xl border border-quiz-border/70 bg-quiz-bg/50 px-4 py-6">
+        {submission && submittedElapsed !== null && diffMs !== null ? (
+          <div role="status" aria-live="polite">
+            <p className="text-sm font-semibold uppercase tracking-wide text-green-300">
+              Innsendt
+            </p>
+            <p className="mt-2 text-3xl font-black tabular-nums text-quiz-text">
+              {formatTimerMs(submittedElapsed)}
+            </p>
+            <p className="mt-2 text-sm text-quiz-muted">
+              Dere bommet med {diffMs} ms. {timerFeedback(diffMs)}
+            </p>
+          </div>
+        ) : start ? (
+          <div role="status" aria-live="polite">
+            <p className="text-2xl font-bold text-quiz-text">Tidtakeren går...</p>
+            <p className="mt-2 text-sm text-quiz-muted">
+              Tiden er skjult. Trykk stopp når dere tror målet er nådd.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-2xl font-bold text-quiz-text">Klar?</p>
+            <p className="mt-2 text-sm text-quiz-muted">
+              Trykk Start når dere er klare. Stoppknappen vises etterpå.
+            </p>
+          </div>
+        )}
+      </div>
       {submission ? (
         <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-100">
           Innsendt. Vent på at quizmaster låser spørsmålet og viser resultatene.
         </p>
+      ) : start ? (
+        <button
+          ref={stopButtonRef}
+          type="button"
+          className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-quiz-accent px-6 py-3 text-base font-medium text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
+          onClick={stopTimer}
+          disabled={!round}
+        >
+          Stopp
+        </button>
       ) : (
-        <Button type="button" size="lg" className="w-full" onClick={stopTimer} disabled={!round}>
-          Stopp klokka
-        </Button>
+        <button
+          ref={startButtonRef}
+          type="button"
+          className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-quiz-accent px-6 py-3 text-base font-medium text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
+          onClick={startTimer}
+          disabled={!round}
+        >
+          Start
+        </button>
       )}
     </div>
   );

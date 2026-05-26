@@ -21,6 +21,7 @@ export function createRoom(title?: string): RoomRecord {
     answeredByTeam: {},
     answers: [],
     gameRounds: [],
+    gameStarts: [],
     gameSubmissions: [],
     gameResults: [],
     scores: [],
@@ -100,6 +101,7 @@ export function setQuestions(room: RoomRecord, questions: Question[]): RoomRecor
     questionsActivated,
     answers: [],
     gameRounds: [],
+    gameStarts: [],
     gameSubmissions: [],
     gameResults: [],
     scores: [],
@@ -128,6 +130,7 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
 
   const answers = room.answers.filter((a) => newIds.has(a.questionId));
   const gameRounds = room.gameRounds.filter((round) => newIds.has(round.questionId));
+  const gameStarts = room.gameStarts.filter((start) => newIds.has(start.questionId));
   const gameSubmissions = room.gameSubmissions.filter((submission) =>
     newIds.has(submission.questionId),
   );
@@ -149,6 +152,7 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
     questionsActivated,
     answers,
     gameRounds,
+    gameStarts,
     gameSubmissions,
     gameResults,
     scores,
@@ -169,6 +173,7 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
   delete teamTokens[teamId];
 
   const answers = room.answers.filter((a) => a.teamId !== teamId);
+  const gameStarts = room.gameStarts.filter((start) => start.teamId !== teamId);
   const gameSubmissions = room.gameSubmissions.filter((submission) => submission.teamId !== teamId);
   const gameResults = room.gameResults.filter((result) => result.teamId !== teamId);
   const scores = room.scores.filter((s) => s.teamId !== teamId);
@@ -185,6 +190,7 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
     teams,
     teamTokens,
     answers,
+    gameStarts,
     gameSubmissions,
     gameResults,
     scores,
@@ -248,6 +254,7 @@ export function toPublicState(
   const visibleGameRounds = room.gameRounds.filter((round) =>
     isQuestionRevealedToTeam(room, round.questionId),
   );
+  const visibleGameStarts = room.gameStarts.filter((start) => start.teamId === teamId);
   const visibleGameSubmissions = room.gameSubmissions.filter(
     (submission) => submission.teamId === teamId,
   );
@@ -293,6 +300,7 @@ export function toPublicState(
     answeredByTeam: visibleAnsweredByTeam,
     answers: visibleAnswers,
     gameRounds: visibleGameRounds,
+    gameStarts: visibleGameStarts,
     gameSubmissions: visibleGameSubmissions,
     gameResults: visibleGameResults,
     scores: visibleScores,

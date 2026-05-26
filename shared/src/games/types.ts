@@ -53,6 +53,13 @@ export interface GameRound {
   roundNonce?: string;
 }
 
+export interface GameTeamStart {
+  questionId: string;
+  teamId: string;
+  gameId: GameId;
+  startedAt: number;
+}
+
 export interface TimerChallengeSubmissionPayload {
   gameId: 'timerChallenge';
   elapsedMs: number;

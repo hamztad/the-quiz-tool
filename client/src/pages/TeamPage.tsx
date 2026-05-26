@@ -377,10 +377,6 @@ export function TeamPage() {
                   room={room}
                   question={activeQuestion}
                   teamId={teamId!}
-                  onSubmitted={() => {
-                    setActiveQuestionId(null);
-                    flashHighlight(activeQuestion.id);
-                  }}
                 />
               ) : activeQuestion.type === 'open' ? (
                 <TextArea

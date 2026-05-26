@@ -13,7 +13,7 @@ import {
 import { checkRoomAccess } from '../../domain/roomAccess.js';
 import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import { createProtest, mergePeerGradesToScores, upsertScore } from '../../domain/gradingService.js';
-import { submitGameResult } from '../../domain/gameService.js';
+import { startTeamGame, submitGameResult } from '../../domain/gameService.js';
 import { lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
 import { createRoom, endQuizForTeams, joinTeam, removeTeam, setQuestions, startQuiz, updateQuestions } from '../../domain/roomService.js';
 import { roomStore } from '../../store/memoryStore.js';
@@ -311,6 +311,21 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke oppdatere svar');
     }
   });
+
+  socket.on(
+    CLIENT_EVENTS.GAME_START,
+    (payload: { questionId: string }) => {
+      const roomId = socket.data.roomId as string;
+      const teamId = socket.data.teamId as string;
+      if (!requireSecretary(socket, roomId)) return;
+      try {
+        roomStore.update(roomId, (r) => startTeamGame(r, teamId, payload.questionId));
+        emitRoomStateToAll(io, roomId);
+      } catch (e) {
+        emitError(socket, e instanceof Error ? e.message : 'Kunne ikke starte spillet');
+      }
+    },
+  );
 
   socket.on(
     CLIENT_EVENTS.GAME_SUBMIT,
