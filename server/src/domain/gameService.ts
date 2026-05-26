@@ -62,10 +62,6 @@ export function startTeamGame(
     throw new Error('Spørsmålet er ikke et spill.');
   }
 
-  if (room.gameSubmissions.some((item) => item.questionId === questionId && item.teamId === teamId)) {
-    throw new Error('Spillresultat er allerede sendt inn.');
-  }
-
   const existing = room.gameStarts.find(
     (item) => item.questionId === questionId && item.teamId === teamId,
   );
@@ -138,11 +134,12 @@ export function submitGameResult(
   return {
     ...room,
     gameSubmissions: [
-      ...room.gameSubmissions.filter(
-        (item) => !(item.questionId === questionId && item.teamId === teamId),
-      ),
+      ...room.gameSubmissions,
       submission,
     ],
+    gameStarts: room.gameStarts.filter(
+      (item) => !(item.questionId === questionId && item.teamId === teamId),
+    ),
     answeredByTeam: markAnswered(room, teamId, questionId),
   };
 }

@@ -42,13 +42,19 @@ export function buildTimerChallengeResults(
   const timerSubmissions = submissions.filter((submission) =>
     isTimerChallengeSubmissionPayload(submission.payload),
   );
+  const bestByTeam = new Map<string, { teamId: string; rankValue: number }>();
+
+  for (const submission of timerSubmissions) {
+    const payload = submission.payload as TimerChallengeSubmissionPayload;
+    const rankValue = Math.abs(payload.elapsedMs - config.targetMs);
+    const current = bestByTeam.get(submission.teamId);
+    if (!current || rankValue < current.rankValue) {
+      bestByTeam.set(submission.teamId, { teamId: submission.teamId, rankValue });
+    }
+  }
+
   const ranked = rankGameEntries(
-    timerSubmissions.map((submission) => ({
-      teamId: submission.teamId,
-      rankValue: Math.abs(
-        (submission.payload as TimerChallengeSubmissionPayload).elapsedMs - config.targetMs,
-      ),
-    })),
+    Array.from(bestByTeam.values()),
     config.rankingMode,
   );
 

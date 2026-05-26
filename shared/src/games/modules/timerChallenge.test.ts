@@ -32,4 +32,39 @@ describe('buildTimerChallengeResults', () => {
       { teamId: 'a', rankValue: 300, rank: 2, quizPoints: 0 },
     ]);
   });
+
+  it('uses each teams best attempt when multiple attempts exist', () => {
+    const config = createDefaultTimerChallengeConfig();
+    const submissions: GameSubmission[] = [
+      {
+        questionId: 'q1',
+        teamId: 'a',
+        gameId: 'timerChallenge',
+        payload: { gameId: 'timerChallenge', elapsedMs: 8_000 },
+        submittedAt: 1,
+        serverReceivedAt: 1,
+      },
+      {
+        questionId: 'q1',
+        teamId: 'a',
+        gameId: 'timerChallenge',
+        payload: { gameId: 'timerChallenge', elapsedMs: 10_050 },
+        submittedAt: 2,
+        serverReceivedAt: 2,
+      },
+      {
+        questionId: 'q1',
+        teamId: 'b',
+        gameId: 'timerChallenge',
+        payload: { gameId: 'timerChallenge', elapsedMs: 10_200 },
+        submittedAt: 3,
+        serverReceivedAt: 3,
+      },
+    ];
+
+    expect(buildTimerChallengeResults('q1', 2, config, submissions)).toMatchObject([
+      { teamId: 'a', rankValue: 50, rank: 1, quizPoints: 2 },
+      { teamId: 'b', rankValue: 200, rank: 2, quizPoints: 0 },
+    ]);
+  });
 });

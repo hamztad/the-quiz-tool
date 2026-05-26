@@ -1,4 +1,5 @@
 import { CLIENT_EVENTS, formatTimerMs, type PublicRoomState, type Question } from '@quiz-tool/shared';
+import type { GameSubmission, TimerChallengeSubmissionPayload } from '@quiz-tool/shared';
 import { useEffect, useRef } from 'react';
 import { useSocket } from '../hooks/useSocket';
 
@@ -38,6 +39,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
     .filter((result) => result.questionId === question.id)
     .sort((a, b) => a.rank - b.rank);
   const submissions = room.gameSubmissions.filter((submission) => submission.questionId === question.id);
+  const submittedTeamCount = new Set(submissions.map((submission) => submission.teamId)).size;
 
   return (
     <div className="mt-3 rounded-xl border border-blue-500/25 bg-blue-500/5 p-3">
@@ -45,7 +47,8 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
         Spillstatus
       </p>
       <p className="mt-1 text-xs text-quiz-muted">
-        {submissions.length}/{room.teams.length} lag har sendt inn.
+        {submittedTeamCount}/{room.teams.length} lag har sendt inn
+        {submissions.length > submittedTeamCount ? ` · ${submissions.length} forsøk` : ''}.
       </p>
       {results.length > 0 && (
         <ol className="mt-3 space-y-2">
@@ -81,6 +84,12 @@ function timerFeedback(diffMs: number): string {
   return 'Det var et godt stykke unna.';
 }
 
+function isTimerSubmission(
+  submission: GameSubmission,
+): submission is GameSubmission & { payload: TimerChallengeSubmissionPayload } {
+  return submission.payload.gameId === 'timerChallenge';
+}
+
 function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
   const { socket } = useSocket();
   const startButtonRef = useRef<HTMLButtonElement>(null);
@@ -89,21 +98,27 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
   const start = room.gameStarts.find(
     (item) => item.questionId === question.id && item.teamId === teamId,
   );
-  const submission = room.gameSubmissions.find(
-    (item) => item.questionId === question.id && item.teamId === teamId,
-  );
+  const submissions = room.gameSubmissions
+    .filter((item) => item.questionId === question.id && item.teamId === teamId)
+    .filter(isTimerSubmission)
+    .sort((a, b) => a.serverReceivedAt - b.serverReceivedAt);
+  const latestSubmission = submissions.at(-1);
   const targetMs = question.game?.gameId === 'timerChallenge' ? question.game.targetMs : 10_000;
   const submittedElapsed =
-    submission?.payload.gameId === 'timerChallenge' ? submission.payload.elapsedMs : null;
+    latestSubmission?.payload.gameId === 'timerChallenge' ? latestSubmission.payload.elapsedMs : null;
   const diffMs = submittedElapsed === null ? null : Math.abs(submittedElapsed - targetMs);
+  const bestDiffMs =
+    submissions.length > 0
+      ? Math.min(...submissions.map((item) => Math.abs(item.payload.elapsedMs - targetMs)))
+      : null;
 
   useEffect(() => {
-    if (start && !submission) {
+    if (start) {
       stopButtonRef.current?.focus();
     } else if (!start) {
       startButtonRef.current?.focus();
     }
-  }, [start, submission]);
+  }, [start]);
 
   const startTimer = () => {
     socket.emit(CLIENT_EVENTS.GAME_START, { questionId: question.id });
@@ -121,10 +136,10 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
       <p className="text-sm text-quiz-muted">Stopp så nær målet som mulig</p>
       <p className="mt-1 text-2xl font-black text-quiz-text">Mål: {formatTimerMs(targetMs)}</p>
       <div className="my-6 rounded-2xl border border-quiz-border/70 bg-quiz-bg/50 px-4 py-6">
-        {submission && submittedElapsed !== null && diffMs !== null ? (
+        {!start && latestSubmission && submittedElapsed !== null && diffMs !== null ? (
           <div role="status" aria-live="polite">
             <p className="text-sm font-semibold uppercase tracking-wide text-green-300">
-              Innsendt
+              Siste forsøk
             </p>
             <p className="mt-2 text-3xl font-black tabular-nums text-quiz-text">
               {formatTimerMs(submittedElapsed)}
@@ -132,6 +147,11 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
             <p className="mt-2 text-sm text-quiz-muted">
               Dere bommet med {diffMs} ms. {timerFeedback(diffMs)}
             </p>
+            {bestDiffMs !== null && (
+              <p className="mt-2 text-xs font-medium text-green-200">
+                Beste forsøk så langt: {bestDiffMs} ms fra målet.
+              </p>
+            )}
           </div>
         ) : start ? (
           <div role="status" aria-live="polite">
@@ -149,11 +169,7 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
           </div>
         )}
       </div>
-      {submission ? (
-        <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-100">
-          Innsendt. Vent på at quizmaster låser spørsmålet og viser resultatene.
-        </p>
-      ) : start ? (
+      {start ? (
         <button
           ref={stopButtonRef}
           type="button"
@@ -164,15 +180,22 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
           Stopp
         </button>
       ) : (
-        <button
-          ref={startButtonRef}
-          type="button"
-          className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-quiz-accent px-6 py-3 text-base font-medium text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
-          onClick={startTimer}
-          disabled={!round}
-        >
-          Start
-        </button>
+        <div className="space-y-3">
+          {latestSubmission && (
+            <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-100">
+              Forsøket er lagret. Dere kan prøve igjen helt til quizmaster låser spørsmålet.
+            </p>
+          )}
+          <button
+            ref={startButtonRef}
+            type="button"
+            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-quiz-accent px-6 py-3 text-base font-medium text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
+            onClick={startTimer}
+            disabled={!round}
+          >
+            {latestSubmission ? 'Prøv igjen' : 'Start'}
+          </button>
+        </div>
       )}
     </div>
   );
