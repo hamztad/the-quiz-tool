@@ -8,7 +8,7 @@ export function questionsToQuizText(questions: Question[]): string {
   for (const q of sorted) {
     const lines: string[] = [];
     const title = q.lines[0]?.text ?? '';
-    const prefix = q.type === 'open' ? 'Q' : 'MC';
+    const prefix = q.type === 'open' ? 'Q' : q.type === 'mc' ? 'MC' : 'GAME';
     lines.push(`${prefix} ${title}`);
 
     for (let i = 1; i < q.lines.length; i++) {
@@ -24,12 +24,14 @@ export function questionsToQuizText(questions: Question[]): string {
         const trimmed = answer.trim();
         if (trimmed) lines.push(`A ${trimmed}`);
       }
-    } else {
+    } else if (q.type === 'mc') {
       for (const opt of q.options ?? []) {
         const text = opt.text.trim();
         if (!text) continue;
         lines.push(opt.isCorrect ? `*${text}` : text);
       }
+    } else {
+      lines.push(`[${q.game?.gameId ?? 'game'}] Rediger spillspørsmål i editoren.`);
     }
 
     blocks.push(lines.join('\n'));

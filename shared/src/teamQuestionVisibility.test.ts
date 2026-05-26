@@ -52,4 +52,27 @@ describe('redactQuestionForTeam', () => {
   it('keeps content when revealed', () => {
     expect(redactQuestionForTeam(question, true)).toEqual(question);
   });
+
+  it('strips game config when game question is not revealed', () => {
+    const redacted = redactQuestionForTeam(
+      {
+        id: 'game-1',
+        order: 0,
+        type: 'game',
+        lines: [{ text: 'Stop clock', style: 'title' }],
+        game: {
+          gameId: 'timerChallenge',
+          targetMs: 10_000,
+          rankingMode: 'lowest',
+          resultKind: 'ranked',
+          pointMode: 'winnerTakesAll',
+        },
+        maxPoints: 1,
+      },
+      false,
+    );
+
+    expect(redacted.lines).toHaveLength(0);
+    expect(redacted.game).toBeUndefined();
+  });
 });

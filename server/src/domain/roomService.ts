@@ -20,6 +20,9 @@ export function createRoom(title?: string): RoomRecord {
     questionsActivated: {},
     answeredByTeam: {},
     answers: [],
+    gameRounds: [],
+    gameSubmissions: [],
+    gameResults: [],
     scores: [],
     gradingAssignments: [],
     peerGrades: [],
@@ -61,12 +64,13 @@ export function joinTeam(room: RoomRecord, teamName: string): { room: RoomRecord
 function recomputeAnsweredByTeam(
   teams: RoomRecord['teams'],
   answers: RoomRecord['answers'],
+  gameSubmissions: RoomRecord['gameSubmissions'] = [],
 ): Record<string, string[]> {
   const map = Object.fromEntries(teams.map((t) => [t.id, [] as string[]]));
-  for (const answer of answers) {
-    const list = map[answer.teamId];
-    if (list && !list.includes(answer.questionId)) {
-      list.push(answer.questionId);
+  for (const item of [...answers, ...gameSubmissions]) {
+    const list = map[item.teamId];
+    if (list && !list.includes(item.questionId)) {
+      list.push(item.questionId);
     }
   }
   return map;
@@ -95,6 +99,9 @@ export function setQuestions(room: RoomRecord, questions: Question[]): RoomRecor
     questionStatus,
     questionsActivated,
     answers: [],
+    gameRounds: [],
+    gameSubmissions: [],
+    gameResults: [],
     scores: [],
     answeredByTeam: Object.fromEntries(room.teams.map((t) => [t.id, []])),
     gradingAssignments: [],
@@ -120,6 +127,11 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
   }
 
   const answers = room.answers.filter((a) => newIds.has(a.questionId));
+  const gameRounds = room.gameRounds.filter((round) => newIds.has(round.questionId));
+  const gameSubmissions = room.gameSubmissions.filter((submission) =>
+    newIds.has(submission.questionId),
+  );
+  const gameResults = room.gameResults.filter((result) => newIds.has(result.questionId));
   const scores = room.scores.filter((s) => newIds.has(s.questionId));
   const peerGrades = room.peerGrades.filter((pg) => newIds.has(pg.questionId));
   const protests = room.protests.filter((p) => newIds.has(p.questionId));
@@ -136,8 +148,11 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
     questionStatus,
     questionsActivated,
     answers,
+    gameRounds,
+    gameSubmissions,
+    gameResults,
     scores,
-    answeredByTeam: recomputeAnsweredByTeam(room.teams, answers),
+    answeredByTeam: recomputeAnsweredByTeam(room.teams, answers, gameSubmissions),
     gradingAssignments,
     peerGrades,
     protests,
@@ -154,6 +169,8 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
   delete teamTokens[teamId];
 
   const answers = room.answers.filter((a) => a.teamId !== teamId);
+  const gameSubmissions = room.gameSubmissions.filter((submission) => submission.teamId !== teamId);
+  const gameResults = room.gameResults.filter((result) => result.teamId !== teamId);
   const scores = room.scores.filter((s) => s.teamId !== teamId);
   const peerGrades = room.peerGrades.filter(
     (pg) => pg.graderTeamId !== teamId && pg.targetTeamId !== teamId,
@@ -168,11 +185,13 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
     teams,
     teamTokens,
     answers,
+    gameSubmissions,
+    gameResults,
     scores,
     peerGrades,
     protests,
     gradingAssignments,
-    answeredByTeam: recomputeAnsweredByTeam(teams, answers),
+    answeredByTeam: recomputeAnsweredByTeam(teams, answers, gameSubmissions),
   };
 }
 
@@ -226,6 +245,20 @@ export function toPublicState(
     ? { [teamId]: room.answeredByTeam[teamId] ?? [] }
     : {};
   const visibleScores = room.scores.filter((s) => s.teamId === teamId);
+  const visibleGameRounds = room.gameRounds.filter((round) =>
+    isQuestionRevealedToTeam(room, round.questionId),
+  );
+  const visibleGameSubmissions = room.gameSubmissions.filter(
+    (submission) => submission.teamId === teamId,
+  );
+  const visibleGameResults = room.gameResults.filter((result) => {
+    const resultsOpen =
+      room.questionStatus[result.questionId] === 'locked' ||
+      room.settings.showLeaderboard ||
+      room.phase === 'leaderboard' ||
+      room.phase === 'post_quiz';
+    return resultsOpen;
+  });
   const visiblePeerGrades = room.peerGrades.filter((pg) => {
     if (pg.targetTeamId === teamId) return true;
     if (room.phase === 'grading' && pg.graderTeamId === teamId) return true;
@@ -259,6 +292,9 @@ export function toPublicState(
     leaderboard: computeLeaderboard(room),
     answeredByTeam: visibleAnsweredByTeam,
     answers: visibleAnswers,
+    gameRounds: visibleGameRounds,
+    gameSubmissions: visibleGameSubmissions,
+    gameResults: visibleGameResults,
     scores: visibleScores,
     gradingAssignments: visibleGradingAssignments,
     peerGrades: visiblePeerGrades,

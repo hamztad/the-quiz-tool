@@ -60,6 +60,8 @@ export function scoreSourceLabel(source: TeamQuestionScore['source']): string {
       return 'Retterunde';
     case 'override':
       return 'Overstyrt';
+    case 'game':
+      return 'Spill';
     default:
       return 'Ikke satt';
   }

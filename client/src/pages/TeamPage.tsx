@@ -19,6 +19,7 @@ import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import { formatTeamAnswerDisplay } from '../lib/teamAnswerDisplay';
+import { TeamGameView } from '../games/registry';
 
 const HIGHLIGHT_MS = 5000;
 
@@ -371,7 +372,17 @@ export function TeamPage() {
           {activeQuestionOpen ? (
             <Card className="border-2 border-quiz-active p-3 sm:p-4 min-w-0">
               <QuestionBody question={activeQuestion} />
-              {activeQuestion.type === 'open' ? (
+              {activeQuestion.type === 'game' ? (
+                <TeamGameView
+                  room={room}
+                  question={activeQuestion}
+                  teamId={teamId!}
+                  onSubmitted={() => {
+                    setActiveQuestionId(null);
+                    flashHighlight(activeQuestion.id);
+                  }}
+                />
+              ) : activeQuestion.type === 'open' ? (
                 <TextArea
                   className="mt-4"
                   value={answerText}
@@ -435,7 +446,37 @@ export function TeamPage() {
                       className={`${canOpen ? 'cursor-pointer hover:bg-quiz-surface-elevated' : ''} ${
                         !revealed ? 'border-dashed' : ''
                       }`}
-                    />
+                    >
+                      {q.type === 'game' &&
+                        room.gameResults
+                          .filter((result) => result.questionId === q.id)
+                          .sort((a, b) => a.rank - b.rank)
+                          .map((result) => {
+                            const team = room.teams.find((item) => item.id === result.teamId);
+                            const isOwn = result.teamId === teamId;
+                            return (
+                              <div
+                                key={`${result.questionId}-${result.teamId}`}
+                                className={`mt-2 flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                                  isOwn
+                                    ? 'border-green-500/35 bg-green-500/10'
+                                    : 'border-quiz-border/70 bg-quiz-surface-elevated/50'
+                                }`}
+                              >
+                                <span className="shrink-0 font-bold">#{result.rank}</span>
+                                <span className="min-w-0 flex-1 break-words">
+                                  {team?.name ?? 'Lag'}
+                                </span>
+                                <span className="shrink-0 text-quiz-muted">
+                                  {result.displayValue}
+                                </span>
+                                <span className="shrink-0 font-semibold text-quiz-accent">
+                                  {result.quizPoints}p
+                                </span>
+                              </div>
+                            );
+                          })}
+                    </QuestionCard>
                   </div>
                 );
               })}

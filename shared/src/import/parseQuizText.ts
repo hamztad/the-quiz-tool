@@ -136,7 +136,7 @@ export function parseQuizText(raw: string): ParseResult {
 }
 
 export function validateQuestionsForSave(
-  questions: Pick<Question, 'type' | 'acceptedAnswers' | 'options' | 'lines'>[],
+  questions: Pick<Question, 'type' | 'acceptedAnswers' | 'options' | 'lines' | 'game'>[],
 ): string[] {
   const errors: string[] = [];
   if (questions.length === 0) {
@@ -156,6 +156,14 @@ export function validateQuestionsForSave(
       }
       if ((q.options?.length ?? 0) < 2) {
         errors.push(`Spørsmål ${i + 1}: MC må ha minst 2 alternativer.`);
+      }
+    }
+    if (q.type === 'game') {
+      if (!q.game) {
+        errors.push(`Spørsmål ${i + 1}: spillspørsmål mangler spilloppsett.`);
+      }
+      if (q.options !== undefined || q.acceptedAnswers !== undefined) {
+        errors.push(`Spørsmål ${i + 1}: spillspørsmål kan ikke ha vanlig fasit eller MC-alternativer.`);
       }
     }
   });

@@ -1,24 +1,27 @@
 import type { RoomRecord } from '../store/RoomStore.js';
+import { calculateGameQuestionResults, calculateGameResultsForQuestions, startGameRound } from './gameService.js';
 
 export function openQuestion(room: RoomRecord, questionId: string): RoomRecord {
   if (!room.questions.find((q) => q.id === questionId)) {
     throw new Error('Spørsmål finnes ikke.');
   }
-  return {
+  const opened = {
     ...room,
-    questionStatus: { ...room.questionStatus, [questionId]: 'open' },
+    questionStatus: { ...room.questionStatus, [questionId]: 'open' as const },
     questionsActivated: { ...room.questionsActivated, [questionId]: true },
   };
+  return startGameRound(opened, questionId);
 }
 
 export function lockQuestion(room: RoomRecord, questionId: string): RoomRecord {
   if (!room.questions.find((q) => q.id === questionId)) {
     throw new Error('Spørsmål finnes ikke.');
   }
-  return {
+  const locked = {
     ...room,
-    questionStatus: { ...room.questionStatus, [questionId]: 'locked' },
+    questionStatus: { ...room.questionStatus, [questionId]: 'locked' as const },
   };
+  return calculateGameQuestionResults(locked, questionId);
 }
 
 export function lockRound(room: RoomRecord, questionIds: string[]): RoomRecord {
@@ -28,5 +31,5 @@ export function lockRound(room: RoomRecord, questionIds: string[]): RoomRecord {
       status[id] = 'locked';
     }
   }
-  return { ...room, questionStatus: status };
+  return calculateGameResultsForQuestions({ ...room, questionStatus: status }, questionIds);
 }

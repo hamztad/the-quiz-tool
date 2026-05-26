@@ -104,8 +104,8 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                     <span className="text-xs font-semibold uppercase tracking-wider text-quiz-muted">
                       Spørsmål {index + 1}
                     </span>
-                    <Badge variant={question.type === 'mc' ? 'open' : 'submitted'}>
-                      {question.type === 'mc' ? 'MC' : 'Åpent'}
+                    <Badge variant={question.type === 'mc' || question.type === 'game' ? 'open' : 'submitted'}>
+                      {question.type === 'mc' ? 'MC' : question.type === 'game' ? 'Spill' : 'Åpent'}
                     </Badge>
                     {score.points !== null && (
                       <span className="text-xs text-quiz-muted">

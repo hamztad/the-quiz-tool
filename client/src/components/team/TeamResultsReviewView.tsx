@@ -190,8 +190,12 @@ export function TeamResultsReviewView({
                   <span className="text-xs font-semibold uppercase tracking-wider text-quiz-muted">
                     Spørsmål {index + 1}
                   </span>
-                  <Badge variant={question.type === 'mc' ? 'open' : 'submitted'}>
-                    {question.type === 'mc' ? 'Flervalg' : 'Åpent'}
+                  <Badge variant={question.type === 'mc' || question.type === 'game' ? 'open' : 'submitted'}>
+                    {question.type === 'mc'
+                      ? 'Flervalg'
+                      : question.type === 'game'
+                        ? 'Spill'
+                        : 'Åpent'}
                   </Badge>
                   <Badge variant={status.variant}>{status.label}</Badge>
                 </div>

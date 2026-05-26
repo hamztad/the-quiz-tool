@@ -1,3 +1,4 @@
+import type { GameQuestionConfig } from '../games/types.js';
 import type { Question, QuestionType } from '../types/room.js';
 
 export const QUIZ_FILE_FORMAT = 'the-quiz-tool-quiz' as const;
@@ -24,7 +25,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isQuestionType(value: unknown): value is QuestionType {
-  return value === 'open' || value === 'mc';
+  return value === 'open' || value === 'mc' || value === 'game';
 }
 
 function isQuestionLine(value: unknown): boolean {
@@ -62,12 +63,29 @@ function isMediaAttachment(value: unknown): boolean {
   );
 }
 
+function isGameQuestionConfig(value: unknown): value is GameQuestionConfig {
+  if (!isRecord(value)) return false;
+  if (value.gameId === 'timerChallenge') {
+    return (
+      typeof value.targetMs === 'number' &&
+      value.rankingMode === 'lowest' &&
+      value.resultKind === 'ranked' &&
+      (value.pointMode === 'winnerTakesAll' ||
+        value.pointMode === 'rankedBands' ||
+        value.pointMode === 'directScoreToPoints')
+    );
+  }
+  return false;
+}
+
 function isQuestion(value: unknown): value is Question {
   if (!isRecord(value)) return false;
   if (typeof value.id !== 'string' || typeof value.order !== 'number') return false;
   if (!isQuestionType(value.type)) return false;
   if (!Array.isArray(value.lines) || !value.lines.every(isQuestionLine)) return false;
   if (typeof value.maxPoints !== 'number') return false;
+  if (value.type !== 'game' && value.game !== undefined) return false;
+
   if (
     value.media !== undefined &&
     (!Array.isArray(value.media) || !value.media.every(isMediaAttachment))
@@ -85,6 +103,11 @@ function isQuestion(value: unknown): value is Question {
       return false;
     }
     return true;
+  }
+
+  if (value.type === 'game') {
+    if (value.options !== undefined || value.acceptedAnswers !== undefined) return false;
+    return isGameQuestionConfig(value.game);
   }
 
   if (

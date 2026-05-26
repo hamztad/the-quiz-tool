@@ -24,6 +24,7 @@ import { Button } from '../components/ui/Button';
 import { HostAnswerKeyPanel } from '../components/host/HostAnswerKeyPanel';
 import { HostTeamAnswersPanel } from '../components/host/HostTeamAnswersPanel';
 import { HostProtestsOverview } from '../components/host/HostProtestsOverview';
+import { HostGameResults } from '../games/registry';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 
@@ -360,6 +361,7 @@ export function HostDashboardPage() {
                         <p className="text-xs text-quiz-muted mt-3 mb-2">
                           {answeredCount}/{room.teams.length} lag har svart
                         </p>
+                        {q.type === 'game' && <HostGameResults room={room} question={q} />}
                         {room.phase === 'live' && (() => {
                           const action = getHostQuestionAction(room, q.id);
                           if (!action) return null;

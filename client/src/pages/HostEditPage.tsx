@@ -17,6 +17,7 @@ import { useSocket } from '../hooks/useSocket';
 import {
   createMcQuestion,
   createOpenQuestion,
+  createTimerChallengeQuestion,
   isQuestionIncomplete,
   normalizeQuestionsForSave,
   stampImportedQuestions,
@@ -151,11 +152,13 @@ export function HostEditPage() {
     setSaveMessage(null);
   };
 
-  const addQuestion = (type: 'open' | 'mc') => {
+  const addQuestion = (type: 'open' | 'mc' | 'timerChallenge') => {
     const nextQuestion =
       type === 'open'
         ? createOpenQuestion(draftQuestions.length)
-        : createMcQuestion(draftQuestions.length);
+        : type === 'mc'
+          ? createMcQuestion(draftQuestions.length)
+          : createTimerChallengeQuestion(draftQuestions.length);
     const nextList = [...draftQuestions, nextQuestion];
     updateDraft(nextList);
     setEditMode('editor');
@@ -359,6 +362,9 @@ export function HostEditPage() {
               </Button>
               <Button type="button" variant="secondary" onClick={() => addQuestion('mc')}>
                 + Flervalg (MC)
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => addQuestion('timerChallenge')}>
+                + Stoppklokka
               </Button>
             </div>
             {addedNotice && (

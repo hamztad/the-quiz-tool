@@ -1,4 +1,11 @@
-export type QuestionType = 'open' | 'mc';
+import type {
+  GameQuestionConfig,
+  GameResult,
+  GameRound,
+  GameSubmission,
+} from '../games/types.js';
+
+export type QuestionType = 'open' | 'mc' | 'game';
 
 export interface QuestionLine {
   text: string;
@@ -31,6 +38,7 @@ export interface Question {
   hint?: string;
   acceptedAnswers?: string[];
   options?: McOption[];
+  game?: GameQuestionConfig;
   media?: MediaAttachment[];
   maxPoints: number;
 }
@@ -61,7 +69,7 @@ export interface ScoreEntry {
   teamId: string;
   questionId: string;
   points: number;
-  source: 'auto' | 'peer' | 'override';
+  source: 'auto' | 'peer' | 'override' | 'game';
 }
 
 export interface Protest {
@@ -101,6 +109,9 @@ export interface RoomState {
   questionsActivated: Record<string, boolean>;
   answeredByTeam: Record<string, string[]>;
   answers: Answer[];
+  gameRounds: GameRound[];
+  gameSubmissions: GameSubmission[];
+  gameResults: GameResult[];
   scores: ScoreEntry[];
   gradingAssignments: GradingAssignment[];
   peerGrades: PeerGrade[];

@@ -24,6 +24,7 @@ export function redactQuestionForTeam(question: Question, revealed: boolean): Qu
       question.type === 'mc'
         ? question.options?.map((o) => ({ ...o, text: '' }))
         : undefined,
+    game: undefined,
     media: undefined,
   };
 }

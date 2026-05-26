@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { MediaAttachment, Question } from '@quiz-tool/shared';
+import type { MediaAttachment, Question, TimerChallengeConfig } from '@quiz-tool/shared';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -82,10 +82,23 @@ export function HostQuestionEditorCard({
   };
 
   const updatePoints = (maxPoints: number) => {
-    onChange({ ...question, maxPoints: Math.max(0, maxPoints) });
+    const nextMaxPoints = Math.max(0, maxPoints);
+    onChange({
+      ...question,
+      maxPoints: nextMaxPoints,
+      game:
+        question.game?.pointMode === 'rankedBands'
+          ? { ...question.game, pointBands: [{ rank: 1, points: nextMaxPoints }] }
+          : question.game,
+    });
   };
 
-  const typeLabel = question.type === 'open' ? 'Åpent svar' : 'Flervalg';
+  const typeLabel =
+    question.type === 'open'
+      ? 'Åpent svar'
+      : question.type === 'mc'
+        ? 'Flervalg'
+        : 'Spill';
 
   return (
     <article
@@ -172,8 +185,10 @@ export function HostQuestionEditorCard({
 
           {question.type === 'open' ? (
             <OpenAnswersEditor question={question} onChange={onChange} />
-          ) : (
+          ) : question.type === 'mc' ? (
             <McOptionsEditor question={question} onChange={onChange} />
+          ) : (
+            <GameQuestionEditor question={question} onChange={onChange} />
           )}
 
           <ImageAttachmentEditor question={question} onChange={onChange} roomId={roomId} />
@@ -604,6 +619,89 @@ function OpenAnswersEditor({
       <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={addAnswer}>
         + Flere godkjente svar
       </Button>
+    </div>
+  );
+}
+
+function GameQuestionEditor({
+  question,
+  onChange,
+}: {
+  question: Question;
+  onChange: (q: Question) => void;
+}) {
+  if (question.game?.gameId !== 'timerChallenge') {
+    return (
+      <div className="rounded-lg border border-quiz-border bg-quiz-bg p-3 text-sm text-quiz-muted">
+        Dette spillet støttes ikke i editoren ennå.
+      </div>
+    );
+  }
+
+  const config = question.game;
+  const targetSeconds = Math.max(1, Math.round(config.targetMs / 1000));
+
+  const updateGame = (next: TimerChallengeConfig) => {
+    onChange({ ...question, game: next });
+  };
+
+  return (
+    <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
+      <div>
+        <p className="text-xs font-semibold text-blue-200">Spill: Stoppklokka</p>
+        <p className="mt-1 text-xs text-quiz-muted">
+          Lagene stopper klokka nærmest mulig måltiden. Nærmest vinner når spørsmålet låses.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="min-w-0">
+          <label className="mb-1 block text-xs font-medium text-quiz-muted">
+            Måltid i sekunder
+          </label>
+          <Input
+            type="number"
+            min={1}
+            max={120}
+            value={targetSeconds}
+            onChange={(event) =>
+              updateGame({
+                ...config,
+                targetMs: Math.max(1, Number(event.target.value)) * 1000,
+              })
+            }
+            className="bg-quiz-bg py-2 min-h-[44px]"
+          />
+        </div>
+        <div className="min-w-0">
+          <label className="mb-1 block text-xs font-medium text-quiz-muted">
+            Poengmodell
+          </label>
+          <select
+            value={config.pointMode}
+            onChange={(event) =>
+              updateGame({
+                ...config,
+                pointMode: event.target.value as TimerChallengeConfig['pointMode'],
+                pointBands:
+                  event.target.value === 'rankedBands'
+                    ? [{ rank: 1, points: question.maxPoints }]
+                    : undefined,
+              })
+            }
+            className="box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-inset focus:ring-quiz-accent min-h-[44px]"
+          >
+            <option value="winnerTakesAll">Vinneren får alle poeng</option>
+            <option value="rankedBands">Rangerte poengbånd</option>
+          </select>
+        </div>
+      </div>
+
+      {config.pointMode === 'rankedBands' && (
+        <p className="rounded-lg border border-quiz-border/70 bg-quiz-bg/60 px-3 py-2 text-xs text-quiz-muted">
+          MVP: 1. plass får maks poeng. Flere poengbånd kan bygges ut senere.
+        </p>
+      )}
     </div>
   );
 }

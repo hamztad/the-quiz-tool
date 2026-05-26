@@ -2,13 +2,21 @@ import type { PublicRoomState, Question } from '@quiz-tool/shared';
 import { getHostQuestionDisplayStatus, hostStatusLabels } from './questionDisplayStatus';
 
 export function questionTypeLabel(type: Question['type']): string {
-  return type === 'mc' ? 'Flervalg' : 'Åpent';
+  if (type === 'mc') return 'Flervalg';
+  if (type === 'game') return 'Spill';
+  return 'Åpent';
 }
 
 export function getQuestionFasitText(question: Question): string | null {
   if (question.type === 'mc') {
     const correct = question.options?.find((o) => o.isCorrect);
     return correct?.text?.trim() || null;
+  }
+  if (question.type === 'game') {
+    if (question.game?.gameId === 'timerChallenge') {
+      return `Stoppklokka: nærmest ${(question.game.targetMs / 1000).toFixed(0)} sekunder vinner.`;
+    }
+    return 'Spillresultat beregnes automatisk.';
   }
   const accepted = (question.acceptedAnswers ?? []).filter((a) => a.trim());
   if (accepted.length === 0) return null;

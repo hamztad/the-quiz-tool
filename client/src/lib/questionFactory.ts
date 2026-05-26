@@ -1,4 +1,4 @@
-import type { Question } from '@quiz-tool/shared';
+import { createDefaultTimerChallengeConfig, type Question } from '@quiz-tool/shared';
 import { generateId } from './id';
 
 export function createOpenQuestion(order: number): Question {
@@ -24,6 +24,17 @@ export function createMcQuestion(order: number): Question {
       { id: optA, text: '', isCorrect: true },
       { id: optB, text: '', isCorrect: false },
     ],
+    maxPoints: 1,
+  };
+}
+
+export function createTimerChallengeQuestion(order: number): Question {
+  return {
+    id: generateId('q'),
+    order,
+    type: 'game',
+    lines: [{ text: 'Stopp klokka nærmest mulig målet', style: 'title' }],
+    game: createDefaultTimerChallengeConfig(),
     maxPoints: 1,
   };
 }
@@ -59,6 +70,10 @@ export function isQuestionIncomplete(question: Question): boolean {
     return answers.length === 0;
   }
 
+  if (question.type === 'game') {
+    return !question.game;
+  }
+
   const options = question.options ?? [];
   if (options.length < 2) return true;
   if (!options.some((o) => o.isCorrect)) return true;
@@ -84,5 +99,6 @@ export function normalizeQuestionsForSave(questions: Question[]): Question[] {
       q.type === 'mc'
         ? q.options?.map((o) => ({ ...o, text: o.text.trim() || 'Alternativ' }))
         : undefined,
+    game: q.type === 'game' ? q.game : undefined,
   }));
 }

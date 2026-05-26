@@ -53,7 +53,8 @@ export function QuestionCard({
 
   const hostLabel = hostDisplayStatus ? hostStatusLabels[hostDisplayStatus] : null;
   const showResponseBadge = hostLabel !== badgeLabel;
-  const questionTypeLabel = question.type === 'mc' ? 'Flervalg' : 'Åpent svar';
+  const questionTypeLabel =
+    question.type === 'mc' ? 'Flervalg' : question.type === 'game' ? 'Spill' : 'Åpent svar';
   const acceptedAnswers = (question.acceptedAnswers ?? []).filter((answer) => answer.trim());
 
   const lockedUnanswered = status === 'locked' && !answered;
@@ -81,7 +82,7 @@ export function QuestionCard({
           {showResponseBadge && <Badge variant={badgeVariant}>{badgeLabel}</Badge>}
           {showHostQuestionDetails ? (
             <>
-              <Badge variant={question.type === 'mc' ? 'active' : 'neutral'}>
+              <Badge variant={question.type === 'mc' || question.type === 'game' ? 'active' : 'neutral'}>
                 {questionTypeLabel}
               </Badge>
               <Badge variant="neutral">Maks {question.maxPoints}p</Badge>
@@ -158,6 +159,18 @@ export function QuestionCard({
           ) : (
             <p className="text-sm text-quiz-muted">Ingen fasit lagt inn.</p>
           )}
+        </div>
+      )}
+      {showHostQuestionDetails && question.type === 'game' && question.game && teamRevealed && (
+        <div className="mt-3 min-w-0 max-w-full rounded-xl border border-blue-500/25 bg-blue-500/5 p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-blue-200 sm:text-xs">
+            Spilloppsett
+          </p>
+          <p className="text-sm text-quiz-text">
+            {question.game.gameId === 'timerChallenge'
+              ? `Stoppklokka: nærmest ${(question.game.targetMs / 1000).toFixed(0)} sekunder vinner.`
+              : 'Innebygd spill'}
+          </p>
         </div>
       )}
       {teamRevealed && teamAnswerPreview && (
