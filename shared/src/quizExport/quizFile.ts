@@ -1,5 +1,6 @@
 import type { GameQuestionConfig } from '../games/types.js';
 import { validateAnagramAnswerText } from '../games/modules/anagram.js';
+import { validateMathExpressionConfig } from '../games/modules/mathExpression.js';
 import type { Question, QuestionType } from '../types/room.js';
 
 export const QUIZ_FILE_FORMAT = 'the-quiz-tool-quiz' as const;
@@ -116,6 +117,11 @@ function isGameQuestionConfig(value: unknown): value is GameQuestionConfig {
       value.resultKind === 'directScore' &&
       value.pointMode === 'directScoreToPoints'
     );
+  }
+  if (value.gameId === 'mathExpression') {
+    return validateMathExpressionConfig(
+      value as unknown as GameQuestionConfig & { gameId: 'mathExpression' },
+    ).ok;
   }
   return false;
 }

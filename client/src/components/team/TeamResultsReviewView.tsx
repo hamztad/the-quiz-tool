@@ -82,6 +82,11 @@ function formatOwnGameSubmission(question: Question, submission: GameSubmission 
   if (question.game?.gameId === 'anagram' && submission.payload.gameId === 'anagram') {
     return submission.payload.answer.trim() || null;
   }
+  if (question.game?.gameId === 'mathExpression' && submission.payload.gameId === 'mathExpression') {
+    return submission.payload.mode === 'single'
+      ? submission.payload.answer.trim() || null
+      : `${(submission.payload.totalMs / 1000).toFixed(2)} sekunder`;
+  }
   return null;
 }
 

@@ -10,6 +10,7 @@ import type {
   AnagramSubmissionPayload,
   GameSubmission,
   EmojiHuntSubmissionPayload,
+  MathExpressionSubmissionPayload,
   RainbowPuzzleSubmissionPayload,
   TimerChallengeSubmissionPayload,
 } from '@quiz-tool/shared';
@@ -17,6 +18,7 @@ import { useEffect, useRef } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import { AnagramGame } from './anagram/AnagramGame';
 import { EmojiHuntGame } from './emojiHunt/EmojiHuntGame';
+import { MathExpressionGame } from './mathExpression/MathExpressionGame';
 import { RainbowPuzzleGame } from './rainbowPuzzle/RainbowPuzzleGame';
 
 interface TeamGameViewProps {
@@ -48,6 +50,9 @@ export function TeamGameView({ room, question, teamId }: TeamGameViewProps) {
   }
   if (question.game?.gameId === 'anagram') {
     return <AnagramTeamView room={room} question={question} teamId={teamId} />;
+  }
+  if (question.game?.gameId === 'mathExpression') {
+    return <MathExpressionTeamView room={room} question={question} teamId={teamId} />;
   }
 
   return (
@@ -92,7 +97,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
                 key={`${result.questionId}-${result.teamId}`}
                 className="flex min-w-0 items-center gap-2 rounded-lg border border-quiz-border/70 bg-quiz-bg/40 px-3 py-2 text-sm"
               >
-                {result.gameId !== 'anagram' && (
+                {result.rank > 0 && (
                   <span className="shrink-0 font-bold tabular-nums">#{result.rank}</span>
                 )}
                 <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Lag'}</span>
@@ -157,6 +162,12 @@ function isAnagramSubmission(
   submission: GameSubmission,
 ): submission is GameSubmission & { payload: AnagramSubmissionPayload } {
   return submission.payload.gameId === 'anagram';
+}
+
+function isMathExpressionSubmission(
+  submission: GameSubmission,
+): submission is GameSubmission & { payload: MathExpressionSubmissionPayload } {
+  return submission.payload.gameId === 'mathExpression';
 }
 
 function isRainbowSubmission(
@@ -290,6 +301,49 @@ function AnagramTeamView({ room, question, teamId }: TeamGameViewProps) {
       scrambledText={config.scrambledText}
       latestAnswer={latestAnswer}
       onSubmit={submitAnswer}
+    />
+  );
+}
+
+function MathExpressionTeamView({ room, question, teamId }: TeamGameViewProps) {
+  const { socket } = useSocket();
+  const config = question.game?.gameId === 'mathExpression' ? question.game : null;
+  const submissions = room.gameSubmissions
+    .filter((item) => item.questionId === question.id && item.teamId === teamId)
+    .filter(isMathExpressionSubmission)
+    .sort((a, b) => a.serverReceivedAt - b.serverReceivedAt);
+  const latestSingleAnswer =
+    submissions
+      .filter((submission) => submission.payload.mode === 'single')
+      .map((submission) => submission.payload)
+      .filter((payload): payload is Extract<MathExpressionSubmissionPayload, { mode: 'single' }> => payload.mode === 'single')
+      .at(-1)?.answer ?? null;
+  const racePayload = submissions.find((submission) => submission.payload.mode === 'race')?.payload;
+  const raceResult =
+    racePayload?.mode === 'race'
+      ? { totalMs: racePayload.totalMs, penalties: racePayload.penalties }
+      : null;
+
+  if (!config) return null;
+
+  return (
+    <MathExpressionGame
+      title={question.lines[0]?.text ?? (config.mode === 'race' ? 'Regnerace' : 'Løs regnestykket')}
+      config={config}
+      latestSingleAnswer={latestSingleAnswer}
+      raceResult={raceResult}
+      onSubmitSingle={(answer) =>
+        socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
+          questionId: question.id,
+          payload: { gameId: 'mathExpression', mode: 'single', answer },
+        })
+      }
+      onSubmitRace={(totalMs, penalties) =>
+        socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
+          questionId: question.id,
+          payload: { gameId: 'mathExpression', mode: 'race', totalMs, penalties },
+        })
+      }
     />
   );
 }

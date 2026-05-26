@@ -4,6 +4,7 @@ export * from './ranking.js';
 export * from './scoring.js';
 export * from './modules/anagram.js';
 export * from './modules/emojiHunt.js';
+export * from './modules/mathExpression.js';
 export * from './modules/rainbowPuzzle.js';
 export * from './modules/rainbowPuzzleBoard.js';
 export * from './modules/timerChallenge.js';

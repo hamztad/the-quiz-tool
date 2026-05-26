@@ -175,6 +175,10 @@ export function QuestionCard({
                   ? `Emoji-jakt: finn ${question.game.targetCount} emoji raskest mulig.`
                   : question.game.gameId === 'anagram'
                     ? `Anagram: ${question.game.scrambledText || 'ikke satt'} · fasit ${question.game.answerText || '—'}`
+                    : question.game.gameId === 'mathExpression'
+                      ? question.game.mode === 'single'
+                        ? `Regnestykke: ${question.game.expression}`
+                        : `Regnerace: ${question.game.expressions.length} regnestykker`
               : 'Innebygd spill'}
           </p>
         </div>

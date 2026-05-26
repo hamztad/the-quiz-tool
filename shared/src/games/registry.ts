@@ -1,6 +1,7 @@
 import type { GameId, GameQuestionConfig } from './types.js';
 import { createDefaultAnagramConfig } from './modules/anagram.js';
 import { createDefaultEmojiHuntConfig } from './modules/emojiHunt.js';
+import { createDefaultMathExpressionConfig } from './modules/mathExpression.js';
 import { createDefaultRainbowPuzzleConfig } from './modules/rainbowPuzzle.js';
 import { createDefaultTimerChallengeConfig } from './modules/timerChallenge.js';
 
@@ -17,6 +18,12 @@ export const builtInGames: BuiltInGameDefinition[] = [
     label: 'Anagram',
     description: 'Lagene løser et stokket ord eller en kort frase.',
     createDefaultConfig: createDefaultAnagramConfig,
+  },
+  {
+    id: 'mathExpression',
+    label: 'Regnestykke',
+    description: 'Enkelt regnestykke eller regnerace med auto-scoring.',
+    createDefaultConfig: createDefaultMathExpressionConfig,
   },
   {
     id: 'rainbowPuzzle',

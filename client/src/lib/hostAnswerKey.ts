@@ -25,6 +25,12 @@ export function getQuestionFasitText(question: Question): string | null {
     if (question.game?.gameId === 'anagram') {
       return `Anagram: ${question.game.answerText || '—'}`;
     }
+    if (question.game?.gameId === 'mathExpression') {
+      if (question.game.mode === 'single') {
+        return `Regnestykke: ${question.game.expression}`;
+      }
+      return `Regnerace: ${question.game.expressions.join(' · ')}`;
+    }
     return 'Spillresultat beregnes automatisk.';
   }
   const accepted = (question.acceptedAnswers ?? []).filter((a) => a.trim());

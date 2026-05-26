@@ -4,12 +4,18 @@ import type {
   EmojiHuntConfig,
   GamePointBand,
   MediaAttachment,
+  MathExpressionConfig,
+  MathExpressionRaceConfig,
+  MathExpressionSingleConfig,
   Question,
   TimerChallengeConfig,
 } from '@quiz-tool/shared';
 import {
+  createDefaultMathRaceConfig,
   scrambleAnagramText,
   validateAnagramAnswerText,
+  validateMathExpression,
+  validateMathExpressionConfig,
 } from '@quiz-tool/shared';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
@@ -844,6 +850,98 @@ function GameQuestionEditor({
     );
   }
 
+  if (question.game?.gameId === 'mathExpression') {
+    const config = question.game;
+    const validation = validateMathExpressionConfig(config);
+    const updateGame = (next: MathExpressionConfig) => {
+      onChange({
+        ...question,
+        gameType: 'mathExpression',
+        game: next,
+        maxPoints: next.mode === 'single' ? question.maxPoints || 1 : 5,
+      });
+    };
+    const setMode = (mode: MathExpressionConfig['mode']) => {
+      if (mode === config.mode) return;
+      updateGame(mode === 'race'
+        ? createDefaultMathRaceConfig()
+        : {
+            gameId: 'mathExpression',
+            mode: 'single',
+            title: 'Regnestykke',
+            instructions: 'Løs regnestykket.',
+            expression: '2 + 2',
+            rounding: 'exact',
+            decimals: 0,
+            rankingMode: 'highest',
+            resultKind: 'directScore',
+            pointMode: 'directScoreToPoints',
+          });
+    };
+    const setBand = (rank: number, points: number) => {
+      if (config.mode !== 'race') return;
+      const bands = config.pointBands ?? [
+        { rank: 1, points: 5 },
+        { rank: 2, points: 3 },
+        { rank: 3, points: 1 },
+      ];
+      updateGame({
+        ...config,
+        pointBands: [1, 2, 3].map((item) => ({
+          rank: item,
+          points: item === rank ? Math.max(0, Math.round(points)) : (bands.find((b) => b.rank === item)?.points ?? 0),
+        })),
+      });
+    };
+
+    return (
+      <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
+        <div>
+          <p className="text-xs font-semibold text-indigo-200">Spill: Regnestykke</p>
+          <p className="mt-1 text-xs text-quiz-muted">
+            Velg enkelt auto-rettet regnestykke eller rankingbasert regnerace.
+          </p>
+        </div>
+        <label className="block min-w-0">
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Modus</span>
+          <select
+            value={config.mode}
+            onChange={(event) => setMode(event.target.value as MathExpressionConfig['mode'])}
+            className="box-border w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text min-h-[44px]"
+          >
+            <option value="single">Enkelt regnestykke</option>
+            <option value="race">Regnerace</option>
+          </select>
+        </label>
+
+        {config.mode === 'single' ? (
+          <MathSingleEditor config={config} onChange={updateGame} />
+        ) : (
+          <MathRaceEditor config={config} onChange={updateGame} setBand={setBand} />
+        )}
+
+        <details className="rounded-lg border border-quiz-border/70 bg-quiz-bg/50 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-bold text-quiz-muted">
+            Hjelp: tegn du kan bruke
+          </summary>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-quiz-muted">
+            <li>Pluss: +</li>
+            <li>Minus: -</li>
+            <li>Gange: * eller x</li>
+            <li>Dele: / eller :</li>
+            <li>Bruk 2-4 tall per regnestykke</li>
+            <li>I regnerace kan du legge inn 2-10 regnestykker</li>
+          </ul>
+        </details>
+        {!validation.ok && (
+          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+            {validation.errors.join(' ')}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   if (question.game?.gameId !== 'timerChallenge') {
     return (
       <div className="rounded-lg border border-quiz-border bg-quiz-bg p-3 text-sm text-quiz-muted">
@@ -916,6 +1014,188 @@ function GameQuestionEditor({
           MVP: 1. plass får maks poeng. Flere poengbånd kan bygges ut senere.
         </p>
       )}
+    </div>
+  );
+}
+
+function MathSingleEditor({
+  config,
+  onChange,
+}: {
+  config: MathExpressionSingleConfig;
+  onChange: (config: MathExpressionConfig) => void;
+}) {
+  const expressionValidation = validateMathExpression(config.expression);
+  return (
+    <div className="space-y-3">
+      <label className="block min-w-0">
+        <span className="mb-1 block text-xs font-medium text-quiz-muted">Regnestykke</span>
+        <Input
+          value={config.expression}
+          onChange={(event) => onChange({ ...config, expression: event.target.value })}
+          placeholder="F.eks. 12 / 3 + 4"
+          className="bg-quiz-bg py-2 min-h-[44px]"
+        />
+      </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block min-w-0">
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Avrunding</span>
+          <select
+            value={config.rounding}
+            onChange={(event) =>
+              onChange({
+                ...config,
+                rounding: event.target.value as MathExpressionSingleConfig['rounding'],
+              })
+            }
+            className="box-border w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text min-h-[44px]"
+          >
+            <option value="exact">Eksakt svar</option>
+            <option value="rounded">Avrundet svar</option>
+          </select>
+        </label>
+        {config.rounding === 'rounded' && (
+          <label className="block min-w-0">
+            <span className="mb-1 block text-xs font-medium text-quiz-muted">Desimaler</span>
+            <select
+              value={config.decimals}
+              onChange={(event) =>
+                onChange({
+                  ...config,
+                  decimals: Number(event.target.value) as MathExpressionSingleConfig['decimals'],
+                })
+              }
+              className="box-border w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text min-h-[44px]"
+            >
+              {[0, 1, 2].map((decimals) => (
+                <option key={decimals} value={decimals}>{decimals}</option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+      {!expressionValidation.ok && (
+        <p className="text-xs text-red-200">{expressionValidation.errors.join(' ')}</p>
+      )}
+      {expressionValidation.ok && (
+        <p className="text-xs text-quiz-muted">
+          Riktig svar: {expressionValidation.value}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function MathRaceEditor({
+  config,
+  onChange,
+  setBand,
+}: {
+  config: MathExpressionRaceConfig;
+  onChange: (config: MathExpressionConfig) => void;
+  setBand: (rank: number, points: number) => void;
+}) {
+  const bands = config.pointBands ?? [
+    { rank: 1, points: 5 },
+    { rank: 2, points: 3 },
+    { rank: 3, points: 1 },
+  ];
+  const setExpression = (index: number, value: string) => {
+    onChange({
+      ...config,
+      expressions: config.expressions.map((expression, i) => (i === index ? value : expression)),
+    });
+  };
+  const addExpression = () => {
+    if (config.expressions.length >= 10) return;
+    onChange({ ...config, expressions: [...config.expressions, '2 + 2'] });
+  };
+  const removeExpression = (index: number) => {
+    if (config.expressions.length <= 2) return;
+    onChange({ ...config, expressions: config.expressions.filter((_, i) => i !== index) });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        {config.expressions.map((expression, index) => {
+          const validation = validateMathExpression(expression);
+          return (
+            <div key={index} className="rounded-xl border border-quiz-border/70 bg-quiz-bg/40 p-2">
+              <div className="flex gap-2">
+                <Input
+                  value={expression}
+                  onChange={(event) => setExpression(index, event.target.value)}
+                  className="bg-quiz-bg py-2 min-h-[44px]"
+                  aria-label={`Regnestykke ${index + 1}`}
+                />
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => removeExpression(index)}
+                  disabled={config.expressions.length <= 2}
+                >
+                  ×
+                </Button>
+              </div>
+              {!validation.ok && (
+                <p className="mt-1 text-xs text-red-200">{validation.errors.join(' ')}</p>
+              )}
+            </div>
+          );
+        })}
+        <Button type="button" variant="secondary" size="sm" onClick={addExpression} disabled={config.expressions.length >= 10}>
+          + Regnestykke
+        </Button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label>
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Svarmodus</span>
+          <select
+            value={config.answerMode}
+            onChange={(event) =>
+              onChange({
+                ...config,
+                answerMode: event.target.value as MathExpressionRaceConfig['answerMode'],
+              })
+            }
+            className="box-border w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text min-h-[44px]"
+          >
+            <option value="input">Skriv svar</option>
+            <option value="multipleChoice">Tre alternativer</option>
+          </select>
+        </label>
+        <label>
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Feilstraff sekunder</span>
+          <Input
+            type="number"
+            min={0}
+            value={Math.round(config.wrongPenaltyMs / 1000)}
+            onChange={(event) =>
+              onChange({
+                ...config,
+                wrongPenaltyMs: Math.max(0, Number(event.target.value)) * 1000,
+              })
+            }
+            className="bg-quiz-bg py-2 min-h-[44px]"
+          />
+        </label>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {[1, 2, 3].map((rank) => (
+          <label key={rank} className="block min-w-0">
+            <span className="mb-1 block text-xs font-medium text-quiz-muted">{rank}. plass</span>
+            <Input
+              type="number"
+              min={0}
+              value={bands.find((band) => band.rank === rank)?.points ?? 0}
+              onChange={(event) => setBand(rank, Number(event.target.value))}
+              className="bg-quiz-bg py-2 min-h-[44px]"
+            />
+          </label>
+        ))}
+      </div>
     </div>
   );
 }

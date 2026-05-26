@@ -1,4 +1,4 @@
-export type GameId = 'timerChallenge' | 'rainbowPuzzle' | 'emojiHunt' | 'anagram' | 'mathRace';
+export type GameId = 'timerChallenge' | 'rainbowPuzzle' | 'emojiHunt' | 'anagram' | 'mathExpression' | 'mathRace';
 
 export type RankingMode = 'highest' | 'lowest';
 
@@ -44,6 +44,39 @@ export interface MathRaceGameConfig extends GameQuestionConfigBase {
   problems: string[];
 }
 
+export type MathExpressionMode = 'single' | 'race';
+export type MathExpressionAnswerMode = 'input' | 'multipleChoice';
+export type MathExpressionRoundingMode = 'exact' | 'rounded';
+
+export interface MathExpressionBaseConfig extends GameQuestionConfigBase {
+  gameId: 'mathExpression';
+  mode: MathExpressionMode;
+}
+
+export interface MathExpressionSingleConfig extends MathExpressionBaseConfig {
+  mode: 'single';
+  expression: string;
+  rounding: MathExpressionRoundingMode;
+  decimals: 0 | 1 | 2;
+  rankingMode: 'highest';
+  resultKind: 'directScore';
+  pointMode: 'directScoreToPoints';
+}
+
+export interface MathExpressionRaceConfig extends MathExpressionBaseConfig {
+  mode: 'race';
+  expressions: string[];
+  answerMode: MathExpressionAnswerMode;
+  wrongPenaltyMs: number;
+  rankingMode: 'lowest';
+  resultKind: 'ranked';
+  pointMode: 'rankedBands';
+}
+
+export type MathExpressionConfig =
+  | MathExpressionSingleConfig
+  | MathExpressionRaceConfig;
+
 export interface RainbowPuzzleConfig extends GameQuestionConfigBase {
   gameId: 'rainbowPuzzle';
   gridSize: 5;
@@ -66,6 +99,7 @@ export type GameQuestionConfig =
   | RainbowPuzzleConfig
   | EmojiHuntConfig
   | AnagramGameConfig
+  | MathExpressionConfig
   | MathRaceGameConfig;
 
 export interface GameRound {
@@ -99,6 +133,23 @@ export interface MathRaceSubmissionPayload {
   completedAtMs?: number;
 }
 
+export interface MathExpressionSingleSubmissionPayload {
+  gameId: 'mathExpression';
+  mode: 'single';
+  answer: string;
+}
+
+export interface MathExpressionRaceSubmissionPayload {
+  gameId: 'mathExpression';
+  mode: 'race';
+  totalMs: number;
+  penalties: number;
+}
+
+export type MathExpressionSubmissionPayload =
+  | MathExpressionSingleSubmissionPayload
+  | MathExpressionRaceSubmissionPayload;
+
 export type RainbowPuzzleColor =
   | 'red'
   | 'blue'
@@ -124,6 +175,7 @@ export type GameSubmissionPayload =
   | RainbowPuzzleSubmissionPayload
   | EmojiHuntSubmissionPayload
   | AnagramSubmissionPayload
+  | MathExpressionSubmissionPayload
   | MathRaceSubmissionPayload;
 
 export interface GameSubmission {

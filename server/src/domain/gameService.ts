@@ -1,12 +1,14 @@
 import {
   buildAnagramResults,
   buildEmojiHuntResults,
+  buildMathExpressionResults,
   buildRainbowPuzzleResults,
   buildTimerChallengeResults,
   gameResultsToScoreEntries,
   isAnagramAnswerCorrect,
   isAnagramSubmissionPayload,
   isEmojiHuntSubmissionPayload,
+  isMathExpressionSubmissionPayload,
   isRainbowPuzzleSubmissionPayload,
   type GameSubmissionPayload,
 } from '@quiz-tool/shared';
@@ -158,6 +160,34 @@ export function submitGameResult(
       gameId: 'anagram',
       answer: payload.answer.slice(0, 200),
     };
+  } else if (question.game.gameId === 'mathExpression') {
+    if (!isMathExpressionSubmissionPayload(payload)) {
+      throw new Error('Ugyldig spillinnsending.');
+    }
+    if (question.game.mode === 'single') {
+      if (payload.mode !== 'single') throw new Error('Ugyldig spillinnsending.');
+      submissionPayload = {
+        gameId: 'mathExpression',
+        mode: 'single',
+        answer: payload.answer.slice(0, 80),
+      };
+    } else {
+      if (payload.mode !== 'race') throw new Error('Ugyldig spillinnsending.');
+      const alreadyCompleted = room.gameSubmissions.some(
+        (submission) =>
+          submission.questionId === questionId &&
+          submission.teamId === teamId &&
+          submission.payload.gameId === 'mathExpression' &&
+          submission.payload.mode === 'race',
+      );
+      if (alreadyCompleted) return room;
+      submissionPayload = {
+        gameId: 'mathExpression',
+        mode: 'race',
+        totalMs: Math.max(0, Math.round(payload.totalMs)),
+        penalties: Math.max(0, Math.round(payload.penalties)),
+      };
+    }
   } else {
     throw new Error('Dette spillet er ikke støttet ennå.');
   }
@@ -264,6 +294,14 @@ export function calculateGameQuestionResults(
           status: 'ranked' as const,
         })),
     ];
+  } else if (question.game.gameId === 'mathExpression') {
+    results = buildMathExpressionResults(
+      questionId,
+      question.maxPoints,
+      question.game,
+      submissions,
+      room.teams.map((team) => team.id),
+    );
   }
 
   const scoreEntries = gameResultsToScoreEntries(results);
