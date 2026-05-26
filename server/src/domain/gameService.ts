@@ -29,7 +29,15 @@ export function startGameRound(room: RoomRecord, questionId: string): RoomRecord
   if (question?.type !== 'game' || !question.game) return room;
 
   const existingRound = room.gameRounds.find((round) => round.questionId === questionId);
-  if (existingRound && !existingRound.lockedAt) return room;
+  if (existingRound) {
+    return {
+      ...room,
+      gameRounds: room.gameRounds.map((round) =>
+        round.questionId === questionId ? { ...round, lockedAt: undefined } : round,
+      ),
+      gameStarts: room.gameStarts.filter((item) => item.questionId !== questionId),
+    };
+  }
 
   const round: GameRound = {
     questionId,
@@ -45,9 +53,6 @@ export function startGameRound(room: RoomRecord, questionId: string): RoomRecord
       round,
     ],
     gameStarts: room.gameStarts.filter((item) => item.questionId !== questionId),
-    gameSubmissions: room.gameSubmissions.filter((item) => item.questionId !== questionId),
-    gameResults: room.gameResults.filter((item) => item.questionId !== questionId),
-    scores: room.scores.filter((score) => !(score.questionId === questionId && score.source === 'game')),
   };
 }
 
@@ -166,7 +171,7 @@ export function submitGameResult(
     serverReceivedAt: now,
   };
 
-  return {
+  const updated: RoomRecord = {
     ...room,
     gameSubmissions: [
       ...room.gameSubmissions,
@@ -177,15 +182,27 @@ export function submitGameResult(
     ),
     answeredByTeam: markAnswered(room, teamId, questionId),
   };
+
+  return calculateGameQuestionResults(updated, questionId, { lockRound: false });
 }
 
-export function calculateGameQuestionResults(room: RoomRecord, questionId: string): RoomRecord {
+export function calculateGameQuestionResults(
+  room: RoomRecord,
+  questionId: string,
+  options: { lockRound?: boolean } = {},
+): RoomRecord {
   const question = room.questions.find((q) => q.id === questionId);
   if (question?.type !== 'game' || !question.game) return room;
 
-  const lockedAt = Date.now();
+  const lockRound = options.lockRound ?? true;
+  const timestamp = Date.now();
   const rounds = room.gameRounds.map((round) =>
-    round.questionId === questionId ? { ...round, lockedAt } : round,
+    round.questionId === questionId
+      ? {
+          ...round,
+          lockedAt: lockRound ? timestamp : round.lockedAt,
+        }
+      : round,
   );
   const hasRound = rounds.some((round) => round.questionId === questionId);
   const gameRounds = hasRound
@@ -195,8 +212,8 @@ export function calculateGameQuestionResults(room: RoomRecord, questionId: strin
         {
           questionId,
           gameId: question.game.gameId,
-          startedAt: lockedAt,
-          lockedAt,
+          startedAt: timestamp,
+          lockedAt: lockRound ? timestamp : undefined,
           roundNonce: generateId('round'),
         } satisfies GameRound,
       ];
@@ -267,5 +284,8 @@ export function calculateGameQuestionResults(room: RoomRecord, questionId: strin
 }
 
 export function calculateGameResultsForQuestions(room: RoomRecord, questionIds: string[]): RoomRecord {
-  return questionIds.reduce(calculateGameQuestionResults, room);
+  return questionIds.reduce(
+    (currentRoom, questionId) => calculateGameQuestionResults(currentRoom, questionId),
+    room,
+  );
 }

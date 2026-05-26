@@ -273,6 +273,10 @@ export function toPublicState(
   });
   const visibleProtests = room.protests.filter((p) => p.teamId === teamId);
   const visibleGradingAssignments = assignment ? [assignment] : [];
+  const leaderboardVisible =
+    room.phase === 'leaderboard' ||
+    room.settings.showLeaderboard ||
+    room.phase === 'post_quiz';
 
   const hideTeamOnlySecrets = (question: (typeof room.questions)[number]) => {
     if (question.game?.gameId !== 'anagram') return question;
@@ -307,7 +311,7 @@ export function toPublicState(
   return {
     ...room,
     questions,
-    leaderboard: computeLeaderboard(room),
+    leaderboard: leaderboardVisible ? computeLeaderboard(room) : undefined,
     answeredByTeam: visibleAnsweredByTeam,
     answers: visibleAnswers,
     gameRounds: visibleGameRounds,
