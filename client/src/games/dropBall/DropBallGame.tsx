@@ -130,6 +130,71 @@ function emptySnapshot(): DropBallSnapshot {
   };
 }
 
+function dot(a: Matter.Vector, b: Matter.Vector): number {
+  return a.x * b.x + a.y * b.y;
+}
+
+function getLocalObstacleHitNormal(ball: Matter.Body, obstacle: Matter.Body): Matter.Vector {
+  const angle = obstacle.angle;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const dx = ball.position.x - obstacle.position.x;
+  const dy = ball.position.y - obstacle.position.y;
+  const localBall = {
+    x: dx * cos + dy * sin,
+    y: -dx * sin + dy * cos,
+  };
+  const localVertices = obstacle.vertices.map((vertex) => {
+    const vx = vertex.x - obstacle.position.x;
+    const vy = vertex.y - obstacle.position.y;
+    return {
+      x: vx * cos + vy * sin,
+      y: -vx * sin + vy * cos,
+    };
+  });
+  const halfWidth = Math.max(1, Math.max(...localVertices.map((vertex) => Math.abs(vertex.x))));
+  const halfHeight = Math.max(1, Math.max(...localVertices.map((vertex) => Math.abs(vertex.y))));
+  const edgeBias = Math.abs(localBall.x) / halfWidth > Math.abs(localBall.y) / halfHeight * 1.12;
+  const localNormal = edgeBias
+    ? { x: Math.sign(localBall.x) || 1, y: 0 }
+    : { x: 0, y: Math.sign(localBall.y) || -1 };
+
+  return {
+    x: localNormal.x * cos - localNormal.y * sin,
+    y: localNormal.x * sin + localNormal.y * cos,
+  };
+}
+
+function calculateObstacleBounceVelocity(
+  ball: Matter.Body,
+  obstacle: Matter.Body,
+  ballKind: DropBallBallKind,
+): Matter.Vector {
+  const normal = getLocalObstacleHitNormal(ball, obstacle);
+  const tangent = { x: -normal.y, y: normal.x };
+  const velocity = ball.velocity;
+  const speed = Math.max(1, Math.hypot(velocity.x, velocity.y));
+  const normalVelocity = dot(velocity, normal);
+  const tangentVelocity = dot(velocity, tangent);
+  const minAwaySpeed = ballKind === 'bonus' ? 4.6 : 4;
+  const targetSpeed = Math.max(ballKind === 'bonus' ? 8.1 : 7, speed * 1.04);
+  const awayNormalVelocity =
+    normalVelocity < 0
+      ? Math.max(-normalVelocity * (ballKind === 'bonus' ? 1.12 : 1.04), minAwaySpeed)
+      : Math.max(normalVelocity, minAwaySpeed * 0.7);
+  const preservedTangentVelocity = tangentVelocity * 0.94;
+  const raw = {
+    x: tangent.x * preservedTangentVelocity + normal.x * awayNormalVelocity,
+    y: tangent.y * preservedTangentVelocity + normal.y * awayNormalVelocity,
+  };
+  const rawSpeed = Math.max(1, Math.hypot(raw.x, raw.y));
+  const scale = targetSpeed / rawSpeed;
+  return {
+    x: raw.x * scale,
+    y: raw.y * scale,
+  };
+}
+
 function drawRoundedRect(
   context: CanvasRenderingContext2D,
   x: number,
@@ -410,15 +475,10 @@ function createSimulation(
       if (other.label.startsWith('obstacle:')) {
         const id = other.label.split(':')[1];
         if (!id || sim.obstacleHits.has(id)) continue;
-        const dx = sim.ball.position.x - other.position.x;
-        const dy = sim.ball.position.y - other.position.y;
-        const distance = Math.max(1, Math.hypot(dx, dy));
-        const currentSpeed = Math.hypot(sim.ball.velocity.x, sim.ball.velocity.y);
-        const bounceSpeed = Math.max(ballKind === 'bonus' ? 8.4 : 7.2, currentSpeed * 1.1);
-        Matter.Body.setVelocity(sim.ball, {
-          x: (dx / distance) * bounceSpeed + sim.ball.velocity.x * 0.15,
-          y: (dy / distance) * bounceSpeed + sim.ball.velocity.y * 0.08,
-        });
+        Matter.Body.setVelocity(
+          sim.ball,
+          calculateObstacleBounceVelocity(sim.ball, other, ballKind),
+        );
         sim.obstacleHits.add(id);
         sim.obstacleBodies.delete(id);
         Matter.Composite.remove(engine.world, other);
