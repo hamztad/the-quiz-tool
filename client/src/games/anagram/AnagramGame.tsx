@@ -10,6 +10,13 @@ interface TilePosition {
   tileIndex: number;
 }
 
+interface TileRow {
+  id: string;
+  wordIndex: number;
+  startTileIndex: number;
+  tiles: LetterTile[];
+}
+
 interface AnagramGameProps {
   title: string;
   hint?: string;
@@ -41,6 +48,22 @@ function tileWordsToAnswer(tileWords: LetterTile[][]): string {
   return tileWords.map((word) => word.map((tile) => tile.char).join('')).join(' ');
 }
 
+function buildTileRows(tileWords: LetterTile[][]): TileRow[] {
+  return tileWords.flatMap((word, wordIndex) => {
+    const chunkSize = word.length > 14 ? 7 : word.length > 8 ? Math.ceil(word.length / 2) : word.length;
+    const rows: TileRow[] = [];
+    for (let start = 0; start < word.length; start += chunkSize) {
+      rows.push({
+        id: `${wordIndex}-${start}`,
+        wordIndex,
+        startTileIndex: start,
+        tiles: word.slice(start, start + chunkSize),
+      });
+    }
+    return rows;
+  });
+}
+
 export function AnagramGame({
   title,
   hint,
@@ -52,22 +75,25 @@ export function AnagramGame({
   const initialText = latestAnswer && sameWordShape(latestAnswer, scrambledText) ? latestAnswer : scrambledText;
   const [tileWords, setTileWords] = useState<LetterTile[][]>(() => makeTileWords(initialText));
   const [selectedTile, setSelectedTile] = useState<TilePosition | null>(null);
+  const [draggingTile, setDraggingTile] = useState<TilePosition | null>(null);
   const dragRef = useRef<TilePosition | null>(null);
   const dragMovedRef = useRef(false);
   const submittedAnswerRef = useRef(latestAnswer ?? '');
   const answer = tileWordsToAnswer(tileWords);
   const locked = disabled || Boolean(latestAnswer);
-  const totalTileCount = Math.max(1, tileWords.reduce((sum, word) => sum + word.length, 0));
+  const tileRows = buildTileRows(tileWords);
+  const longestRowLength = Math.max(1, ...tileRows.map((row) => row.tiles.length));
   const tileStyle = {
-    width: `min(3.25rem, calc((100vw - 5rem) / ${totalTileCount}))`,
-    height: `min(3.25rem, calc((100vw - 5rem) / ${totalTileCount}))`,
-    fontSize: `min(1.75rem, calc((100vw - 5rem) / ${totalTileCount} * 0.54))`,
+    width: `min(3.35rem, calc((100vw - 5.5rem) / ${longestRowLength}))`,
+    height: `min(3.35rem, calc((100vw - 5.5rem) / ${longestRowLength}))`,
+    fontSize: `min(1.8rem, calc((100vw - 5.5rem) / ${longestRowLength} * 0.56))`,
   };
 
   useEffect(() => {
     const nextText = latestAnswer && sameWordShape(latestAnswer, scrambledText) ? latestAnswer : scrambledText;
     setTileWords(makeTileWords(nextText));
     setSelectedTile(null);
+    setDraggingTile(null);
     dragRef.current = null;
     submittedAnswerRef.current = latestAnswer ?? '';
   }, [latestAnswer, scrambledText]);
@@ -99,6 +125,7 @@ export function AnagramGame({
     dragRef.current = position;
     dragMovedRef.current = false;
     setSelectedTile(position);
+    setDraggingTile(position);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
@@ -120,10 +147,12 @@ export function AnagramGame({
     swapTiles(from, nextPosition);
     dragRef.current = nextPosition;
     setSelectedTile(nextPosition);
+    setDraggingTile(nextPosition);
   };
 
   const endDrag = () => {
     dragRef.current = null;
+    setDraggingTile(null);
   };
 
   const clickTile = (position: TilePosition) => {
@@ -150,12 +179,16 @@ export function AnagramGame({
       )}
 
       <div className="mt-5 rounded-3xl border border-quiz-border/70 bg-quiz-bg/55 px-3 py-5">
-        <div className="flex min-w-0 flex-nowrap items-center justify-center gap-x-1 overflow-hidden">
-          {tileWords.map((word, wordIndex) => (
-            <div key={wordIndex} className="flex min-w-0 flex-nowrap justify-center gap-0.5">
-              {word.map((tile, tileIndex) => {
+        <div className="flex min-w-0 flex-col items-center justify-center gap-2.5">
+          {tileRows.map((row) => (
+            <div key={row.id} className="flex min-w-0 flex-nowrap justify-center gap-1">
+              {row.tiles.map((tile, localTileIndex) => {
+                const tileIndex = row.startTileIndex + localTileIndex;
+                const wordIndex = row.wordIndex;
                 const selected =
                   selectedTile?.wordIndex === wordIndex && selectedTile.tileIndex === tileIndex;
+                const dragging =
+                  draggingTile?.wordIndex === wordIndex && draggingTile.tileIndex === tileIndex;
                 return (
                   <button
                     key={tile.id}
@@ -169,11 +202,11 @@ export function AnagramGame({
                     onPointerUp={endDrag}
                     onPointerCancel={endDrag}
                     onClick={() => clickTile({ wordIndex, tileIndex })}
-                    className={`touch-none select-none rounded-2xl border-2 p-0 font-black shadow-lg transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-75 ${
+                    className={`touch-none select-none rounded-2xl border-2 p-0 font-black shadow-lg transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-75 ${
                       selected
                         ? 'border-amber-200 bg-amber-300 text-purple-950 ring-4 ring-amber-200/35'
                         : 'border-amber-200/35 bg-amber-300/20 text-amber-50 hover:bg-amber-300/30'
-                    }`}
+                    } ${dragging ? 'relative z-10 -translate-y-7 scale-105' : ''}`}
                     style={tileStyle}
                     aria-label={`Bokstav ${tile.char}`}
                   >
@@ -184,6 +217,11 @@ export function AnagramGame({
             </div>
           ))}
         </div>
+        {tileRows.length > tileWords.length && (
+          <p className="mt-3 text-xs font-semibold text-quiz-muted">
+            Lange ord er delt over flere rader for større fliser.
+          </p>
+        )}
       </div>
 
       {latestAnswer && (
