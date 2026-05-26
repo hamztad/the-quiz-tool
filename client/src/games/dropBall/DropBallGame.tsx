@@ -164,7 +164,6 @@ function drawNeonBar(context: CanvasRenderingContext2D, body: Matter.Body, color
 function drawGameBoard(
   canvas: HTMLCanvasElement,
   config: DropBallConfig,
-  dropX: number,
   boardIndex: number,
   pendingBonus: boolean,
   sim: SimState | null,
@@ -193,22 +192,10 @@ function drawGameBoard(
   context.strokeStyle = 'rgba(125,211,252,0.50)';
   context.lineWidth = 2;
   drawRoundedRect(context, 12, 14, CANVAS_WIDTH - 24, LAUNCH_HEIGHT - 16, 10);
-  context.fillStyle = 'rgba(255,255,255,0.16)';
-  context.fillRect(16, 39, CANVAS_WIDTH - 32, 24);
   context.fillStyle = '#f5d0fe';
-  context.font = '900 12px system-ui, sans-serif';
+  context.font = '900 14px system-ui, sans-serif';
   context.textAlign = 'center';
-  context.fillText('HØY FART', CANVAS_WIDTH / 2, 31);
-  context.fillText('NORMAL', CANVAS_WIDTH / 2, 55);
-  context.fillText('LAV FART', CANVAS_WIDTH / 2, 79);
-
-  context.strokeStyle = '#fef3c7';
-  context.lineWidth = 3;
-  context.beginPath();
-  context.moveTo(dropX - 16, 28);
-  context.lineTo(dropX, 70);
-  context.lineTo(dropX + 16, 28);
-  context.stroke();
+  context.fillText('Trykk der du vil slippe ballen', CANVAS_WIDTH / 2, 55);
 
   const obstacleColor = new Map(baseBumpers.map((bumper) => [bumper.id, bumper.color]));
   if (sim) {
@@ -247,7 +234,10 @@ function drawGameBoard(
     context.restore();
   } else {
     for (const bumper of boardBumpers(boardIndex)) {
-      const body = Matter.Bodies.rectangle(bumper.x, bumper.y, bumper.width, bumper.height, { angle: bumper.angle });
+      const body = Matter.Bodies.rectangle(bumper.x, bumper.y, bumper.width, bumper.height, {
+        angle: bumper.angle,
+        chamfer: { radius: 7 },
+      });
       drawNeonBar(context, body, bumper.color);
     }
     for (const coin of boardCoins(boardIndex)) {
@@ -303,7 +293,7 @@ function createSimulation(
   dropX: number,
   onSnapshot: (snapshot: DropBallSnapshot) => void,
 ): SimState {
-  const engine = Matter.Engine.create({ gravity: { x: 0, y: ballKind === 'bonus' ? 0.82 : 0.92 } });
+  const engine = Matter.Engine.create({ gravity: { x: 0, y: ballKind === 'bonus' ? 1.1 : 1.25 } });
   const ballRadius = ballKind === 'bonus' ? BONUS_BALL_RADIUS : NORMAL_BALL_RADIUS;
   const ball = Matter.Bodies.circle(dropX, LAUNCH_HEIGHT - 18, ballRadius, {
     label: 'ball',
@@ -312,7 +302,10 @@ function createSimulation(
     frictionAir: ballKind === 'bonus' ? 0.002 : 0.004,
     density: ballKind === 'bonus' ? 0.0024 : 0.0016,
   });
-  Matter.Body.setVelocity(ball, { x: (Math.random() - 0.5) * 1.4, y: 0 });
+  Matter.Body.setVelocity(ball, {
+    x: (Math.random() - 0.5) * 3.2,
+    y: ballKind === 'bonus' ? 6.8 : 6.2,
+  });
 
   const wallOptions = { isStatic: true, restitution: 0.92, friction: 0.02 };
   const walls = [
@@ -481,7 +474,7 @@ export function DropBallGame({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || simRef.current) return;
-    drawGameBoard(canvas, config, dropX, boardIndex, pendingBonus, null, snapshot);
+    drawGameBoard(canvas, config, boardIndex, pendingBonus, null, snapshot);
   }, [boardIndex, config, dropX, pendingBonus, snapshot]);
 
   const animate = (sim: SimState) => {
@@ -504,7 +497,7 @@ export function DropBallGame({
 
     const canvas = canvasRef.current;
     if (canvas) {
-      drawGameBoard(canvas, config, dropX, sim.boardIndex, sim.ballKind === 'bonus', sim, nextSnapshot);
+      drawGameBoard(canvas, config, sim.boardIndex, sim.ballKind === 'bonus', sim, nextSnapshot);
     }
 
     if (nextSnapshot.bottomTouched) {
