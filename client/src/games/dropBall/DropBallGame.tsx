@@ -10,7 +10,8 @@ import {
 
 const CANVAS_WIDTH = 340;
 const CANVAS_HEIGHT = 560;
-const LAUNCH_HEIGHT = 82;
+const LAUNCH_HEIGHT = 58;
+const LAUNCH_Y = 42;
 const FLOOR_Y = CANVAS_HEIGHT - 24;
 const NORMAL_BALL_RADIUS = 10;
 const BONUS_BALL_RADIUS = 14;
@@ -188,20 +189,26 @@ function drawGameBoard(
   context.lineWidth = 3;
   context.strokeRect(8, 8, CANVAS_WIDTH - 16, CANVAS_HEIGHT - 16);
 
-  context.fillStyle = 'rgba(236,72,153,0.24)';
+  context.fillStyle = 'rgba(236,72,153,0.20)';
   context.strokeStyle = 'rgba(125,211,252,0.50)';
   context.lineWidth = 2;
-  drawRoundedRect(context, 12, 14, CANVAS_WIDTH - 24, LAUNCH_HEIGHT - 16, 10);
+  drawRoundedRect(context, 12, 14, CANVAS_WIDTH - 24, LAUNCH_HEIGHT - 14, 10);
   context.fillStyle = '#f5d0fe';
-  context.font = '900 14px system-ui, sans-serif';
+  context.font = '900 12px system-ui, sans-serif';
   context.textAlign = 'center';
-  context.fillText('Trykk der du vil slippe ballen', CANVAS_WIDTH / 2, 55);
+  context.fillText('Trykk der du vil slippe ballen', CANVAS_WIDTH / 2, 29);
+  context.strokeStyle = 'rgba(255,255,255,0.48)';
+  context.lineWidth = 3;
+  context.beginPath();
+  context.moveTo(28, LAUNCH_Y);
+  context.lineTo(CANVAS_WIDTH - 28, LAUNCH_Y);
+  context.stroke();
   if (!sim) {
     context.save();
     context.shadowColor = pendingBonus ? '#fde047' : '#dbeafe';
     context.shadowBlur = pendingBonus ? 18 : 12;
     context.beginPath();
-    context.arc(dropX, LAUNCH_HEIGHT - 18, pendingBonus ? BONUS_BALL_RADIUS : NORMAL_BALL_RADIUS, 0, Math.PI * 2);
+    context.arc(dropX, LAUNCH_Y, pendingBonus ? BONUS_BALL_RADIUS : NORMAL_BALL_RADIUS, 0, Math.PI * 2);
     context.fillStyle = pendingBonus ? '#fde047' : '#f8fafc';
     context.fill();
     context.strokeStyle = pendingBonus ? '#f97316' : '#bfdbfe';
@@ -297,13 +304,15 @@ function createSimulation(
   dropX: number,
   onSnapshot: (snapshot: DropBallSnapshot) => void,
 ): SimState {
-  const engine = Matter.Engine.create({ gravity: { x: 0, y: ballKind === 'bonus' ? 1.1 : 1.25 } });
+  const engine = Matter.Engine.create({ gravity: { x: 0, y: ballKind === 'bonus' ? 1.0 : 1.15 } });
+  engine.positionIterations = 8;
+  engine.velocityIterations = 6;
   const ballRadius = ballKind === 'bonus' ? BONUS_BALL_RADIUS : NORMAL_BALL_RADIUS;
-  const ball = Matter.Bodies.circle(dropX, LAUNCH_HEIGHT - 18, ballRadius, {
+  const ball = Matter.Bodies.circle(dropX, LAUNCH_Y, ballRadius, {
     label: 'ball',
-    restitution: ballKind === 'bonus' ? 1.18 : 1.08,
-    friction: 0.006,
-    frictionAir: ballKind === 'bonus' ? 0.0015 : 0.0025,
+    restitution: ballKind === 'bonus' ? 1.08 : 0.98,
+    friction: 0.008,
+    frictionAir: ballKind === 'bonus' ? 0.002 : 0.003,
     density: ballKind === 'bonus' ? 0.0024 : 0.0016,
   });
   Matter.Body.setVelocity(ball, {
@@ -311,11 +320,15 @@ function createSimulation(
     y: ballKind === 'bonus' ? 6.8 : 6.2,
   });
 
-  const wallOptions = { isStatic: true, restitution: 1.08, friction: 0.01 };
+  const wallOptions = { isStatic: true, restitution: 0.92, friction: 0.01 };
   const walls = [
-    Matter.Bodies.rectangle(-8, CANVAS_HEIGHT / 2, 16, CANVAS_HEIGHT, wallOptions),
-    Matter.Bodies.rectangle(CANVAS_WIDTH + 8, CANVAS_HEIGHT / 2, 16, CANVAS_HEIGHT, wallOptions),
-    Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y + 12, CANVAS_WIDTH, 24, {
+    Matter.Bodies.rectangle(-20, CANVAS_HEIGHT / 2, 40, CANVAS_HEIGHT + 80, wallOptions),
+    Matter.Bodies.rectangle(CANVAS_WIDTH + 20, CANVAS_HEIGHT / 2, 40, CANVAS_HEIGHT + 80, wallOptions),
+    Matter.Bodies.rectangle(CANVAS_WIDTH / 2, -20, CANVAS_WIDTH + 80, 40, {
+      ...wallOptions,
+      label: 'ceiling',
+    }),
+    Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y + 20, CANVAS_WIDTH + 80, 40, {
       ...wallOptions,
       label: 'floor',
     }),
@@ -332,8 +345,8 @@ function createSimulation(
     const body = Matter.Bodies.rectangle(bumper.x, bumper.y, bumper.width, bumper.height, {
       isStatic: true,
       angle: bumper.angle,
-      restitution: 1.45,
-      friction: 0.004,
+      restitution: 1.2,
+      friction: 0.006,
       label: `obstacle:${bumper.id}`,
       chamfer: { radius: 7 },
     });
@@ -400,10 +413,10 @@ function createSimulation(
         const dy = sim.ball.position.y - other.position.y;
         const distance = Math.max(1, Math.hypot(dx, dy));
         const currentSpeed = Math.hypot(sim.ball.velocity.x, sim.ball.velocity.y);
-        const bounceSpeed = Math.max(ballKind === 'bonus' ? 10 : 8.5, currentSpeed * 1.28);
+        const bounceSpeed = Math.max(ballKind === 'bonus' ? 8.4 : 7.2, currentSpeed * 1.1);
         Matter.Body.setVelocity(sim.ball, {
-          x: (dx / distance) * bounceSpeed + sim.ball.velocity.x * 0.2,
-          y: (dy / distance) * bounceSpeed + sim.ball.velocity.y * 0.1,
+          x: (dx / distance) * bounceSpeed + sim.ball.velocity.x * 0.15,
+          y: (dy / distance) * bounceSpeed + sim.ball.velocity.y * 0.08,
         });
         sim.obstacleHits.add(id);
         sim.obstacleBodies.delete(id);
