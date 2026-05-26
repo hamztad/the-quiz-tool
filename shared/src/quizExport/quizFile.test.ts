@@ -81,7 +81,7 @@ describe('parseQuizFile', () => {
 
     expect(parseQuizFile(exported).ok).toBe(true);
     const invalid = JSON.parse(JSON.stringify(exported));
-    invalid.questions[0].game.slotScores = [100, 200];
+    invalid.questions[0].game.obstacleCount = 0;
     expect(parseQuizFile(invalid).ok).toBe(false);
   });
 

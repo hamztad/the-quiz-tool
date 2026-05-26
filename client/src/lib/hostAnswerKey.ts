@@ -23,7 +23,7 @@ export function getQuestionFasitText(question: Question): string | null {
       return `Emoji-jakt: finn ${question.game.targetCount} emoji raskest mulig.`;
     }
     if (question.game?.gameId === 'dropBall') {
-      return `Drop Ball: ${question.game.totalRounds} drops. Slots: ${question.game.slotScores.join(' · ')}.`;
+      return `Drop Ball: ${question.game.totalRounds} brett, ${question.game.obstacleCount} hindre, bonusball ved ${question.game.bonusBallThreshold.toLocaleString('nb-NO')} poeng på ett brett.`;
     }
     if (question.game?.gameId === 'anagram') {
       return `Anagram: ${question.game.answerText || '—'}`;

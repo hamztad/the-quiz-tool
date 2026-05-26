@@ -10,21 +10,27 @@ import { rankGameEntries } from '../ranking.js';
 import { quizPointsForRank } from '../scoring.js';
 
 export const DROP_BALL_DEFAULT_ROUNDS = 3;
-export const DROP_BALL_SLOT_SCORES = [0, 100, 200, 500, 200, 100, 0] as const;
-export const DROP_BALL_BONUS_SLOT_INDEX = 3;
-export const DROP_BALL_BONUS_MULTIPLIER = 3;
-export const DROP_BALL_JACKPOT_BONUS = 1000;
+export const DROP_BALL_OBSTACLE_COUNT = 14;
+export const DROP_BALL_COIN_VALUES = [1000, 2000, 3000] as const;
+export const DROP_BALL_BONUS_BALL_THRESHOLD = 40_000;
+export const DROP_BALL_MAX_AIR_TIME_MS = 30_000;
+export const DROP_BALL_ALL_COINS_BONUS = 5000;
+export const DROP_BALL_ALL_OBSTACLES_BONUS = 10_000;
+export const DROP_BALL_PERFECT_BOARD_BONUS = 25_000;
 
 export function createDefaultDropBallConfig(): DropBallConfig {
   return {
     gameId: 'dropBall',
     title: 'Drop Ball',
-    instructions: 'Slipp ballen tre ganger. Høyeste totalscore vinner.',
+    instructions: 'Slipp ballen tre ganger. Fjern hindre, samle mynter og få høyest totalscore.',
     totalRounds: DROP_BALL_DEFAULT_ROUNDS,
-    slotScores: [...DROP_BALL_SLOT_SCORES],
-    bonusSlotIndex: DROP_BALL_BONUS_SLOT_INDEX,
-    bonusMultiplier: DROP_BALL_BONUS_MULTIPLIER,
-    jackpotBonus: DROP_BALL_JACKPOT_BONUS,
+    obstacleCount: DROP_BALL_OBSTACLE_COUNT,
+    coinValues: [...DROP_BALL_COIN_VALUES],
+    bonusBallThreshold: DROP_BALL_BONUS_BALL_THRESHOLD,
+    maxAirTimeMs: DROP_BALL_MAX_AIR_TIME_MS,
+    allCoinsBonus: DROP_BALL_ALL_COINS_BONUS,
+    allObstaclesBonus: DROP_BALL_ALL_OBSTACLES_BONUS,
+    perfectBoardBonus: DROP_BALL_PERFECT_BOARD_BONUS,
     rankingMode: 'highest',
     resultKind: 'ranked',
     pointMode: 'rankedBands',
@@ -48,59 +54,97 @@ export function isValidDropBallConfig(config: DropBallConfig): boolean {
   return (
     config.gameId === 'dropBall' &&
     (config.totalRounds === 1 || config.totalRounds === 2 || config.totalRounds === 3) &&
-    Array.isArray(config.slotScores) &&
-    config.slotScores.length === 7 &&
-    config.slotScores.every((score) => Number.isFinite(score) && score >= 0) &&
-    Number.isInteger(config.bonusSlotIndex) &&
-    config.bonusSlotIndex >= 0 &&
-    config.bonusSlotIndex < config.slotScores.length &&
-    Number.isFinite(config.bonusMultiplier) &&
-    config.bonusMultiplier >= 1 &&
-    Number.isFinite(config.jackpotBonus) &&
-    config.jackpotBonus >= 0 &&
+    Number.isInteger(config.obstacleCount) &&
+    config.obstacleCount >= 1 &&
+    config.obstacleCount <= 30 &&
+    Array.isArray(config.coinValues) &&
+    config.coinValues.length > 0 &&
+    config.coinValues.length <= 10 &&
+    config.coinValues.every((score) => Number.isFinite(score) && score >= 0) &&
+    Number.isFinite(config.bonusBallThreshold) &&
+    config.bonusBallThreshold >= 0 &&
+    Number.isFinite(config.maxAirTimeMs) &&
+    config.maxAirTimeMs >= 1000 &&
+    Number.isFinite(config.allCoinsBonus) &&
+    config.allCoinsBonus >= 0 &&
+    Number.isFinite(config.allObstaclesBonus) &&
+    config.allObstaclesBonus >= 0 &&
+    Number.isFinite(config.perfectBoardBonus) &&
+    config.perfectBoardBonus >= 0 &&
     config.rankingMode === 'highest' &&
     config.resultKind === 'ranked' &&
     config.pointMode === 'rankedBands'
   );
 }
 
-export function calculateDropBallRoundScore(
+export function calculateDropBallObstaclePoints(obstacleHits: number): number {
+  const safeHits = Math.max(0, Math.floor(obstacleHits));
+  return (safeHits * (safeHits + 1) * 100) / 2;
+}
+
+export function calculateDropBallBoardScore(
   config: DropBallConfig,
-  slotIndex: number,
   ballKind: DropBallBallKind,
+  airTimeMs: number,
+  obstacleHits: number,
+  coinValues: number[],
+  roundIndex = 0,
 ): DropBallRoundResult {
-  const safeSlotIndex = Math.max(0, Math.min(config.slotScores.length - 1, Math.round(slotIndex)));
-  const baseScore = Math.max(0, Math.round(config.slotScores[safeSlotIndex] ?? 0));
-  const multiplier = ballKind === 'bonus' ? Math.max(1, Math.round(config.bonusMultiplier)) : 1;
-  const jackpotBonus =
-    ballKind === 'bonus' && safeSlotIndex === config.bonusSlotIndex
-      ? Math.max(0, Math.round(config.jackpotBonus))
+  const safeAirTimeMs = Math.max(0, Math.min(config.maxAirTimeMs, Math.round(airTimeMs)));
+  const safeObstacleHits = Math.max(0, Math.min(config.obstacleCount, Math.floor(obstacleHits)));
+  const remainingCoinValues = [...config.coinValues];
+  const safeCoinValues: number[] = [];
+  for (const value of coinValues) {
+    if (!Number.isFinite(value)) continue;
+    const index = remainingCoinValues.indexOf(value);
+    if (index === -1) continue;
+    safeCoinValues.push(Math.max(0, Math.round(value)));
+    remainingCoinValues.splice(index, 1);
+  }
+  const obstaclePoints = calculateDropBallObstaclePoints(safeObstacleHits);
+  const coinPoints = safeCoinValues.reduce((sum, value) => sum + value, 0);
+  const allCoinsBonus =
+    safeCoinValues.length >= config.coinValues.length
+      ? Math.max(0, Math.round(config.allCoinsBonus))
       : 0;
-  const score = baseScore * multiplier + jackpotBonus;
+  const allObstaclesBonus =
+    safeObstacleHits >= config.obstacleCount
+      ? Math.max(0, Math.round(config.allObstaclesBonus))
+      : 0;
+  const perfectBoardBonus =
+    allCoinsBonus > 0 && allObstaclesBonus > 0
+      ? Math.max(0, Math.round(config.perfectBoardBonus))
+      : 0;
+  const score = safeAirTimeMs + obstaclePoints + coinPoints + allCoinsBonus + allObstaclesBonus + perfectBoardBonus;
 
   return {
-    roundIndex: 0,
-    slotIndex: safeSlotIndex,
+    roundIndex,
     ballKind,
-    baseScore,
-    multiplier,
-    jackpotBonus,
+    airTimeMs: safeAirTimeMs,
+    obstacleHits: safeObstacleHits,
+    coinValues: safeCoinValues,
+    obstaclePoints,
+    coinPoints,
+    allCoinsBonus,
+    allObstaclesBonus,
+    perfectBoardBonus,
     score,
-    unlockedBonus: ballKind === 'normal' && safeSlotIndex === config.bonusSlotIndex,
+    unlockedBonus: score >= config.bonusBallThreshold,
   };
 }
 
+export function calculateDropBallMaxBoardScore(config: DropBallConfig): number {
+  return calculateDropBallBoardScore(
+    config,
+    'bonus',
+    config.maxAirTimeMs,
+    config.obstacleCount,
+    config.coinValues,
+  ).score;
+}
+
 export function calculateDropBallMaxScore(config: DropBallConfig): number {
-  const maxSlotScore = Math.max(...config.slotScores.map((score) => Math.max(0, Math.round(score))));
-  const bonusSlotScore = Math.max(0, Math.round(config.slotScores[config.bonusSlotIndex] ?? maxSlotScore));
-  const bonusScore = bonusSlotScore * Math.max(1, Math.round(config.bonusMultiplier)) +
-    Math.max(0, Math.round(config.jackpotBonus));
-
-  if (config.totalRounds <= 1) return maxSlotScore;
-
-  // Best case: unlock once on a normal ball, use the bonusball automatically next round,
-  // then continue with the best normal slot for any remaining drops.
-  return maxSlotScore + bonusScore + Math.max(0, config.totalRounds - 2) * maxSlotScore;
+  return calculateDropBallMaxBoardScore(config) * config.totalRounds;
 }
 
 export function clampDropBallScore(score: number, config: DropBallConfig): number {
@@ -108,8 +152,25 @@ export function clampDropBallScore(score: number, config: DropBallConfig): numbe
   return Math.max(0, Math.min(calculateDropBallMaxScore(config), Math.floor(score)));
 }
 
+export function sanitizeDropBallRounds(
+  rounds: DropBallRoundResult[] | undefined,
+  config: DropBallConfig,
+): DropBallRoundResult[] {
+  if (!Array.isArray(rounds)) return [];
+  return rounds.slice(0, config.totalRounds).map((round, index) =>
+    calculateDropBallBoardScore(
+      config,
+      round.ballKind === 'bonus' ? 'bonus' : 'normal',
+      round.airTimeMs,
+      round.obstacleHits,
+      round.coinValues,
+      index,
+    ),
+  );
+}
+
 export function formatDropBallScore(score: number): string {
-  return `${score} poeng`;
+  return `${Math.round(score).toLocaleString('nb-NO')} poeng`;
 }
 
 export function buildDropBallResults(

@@ -820,7 +820,7 @@ function GameQuestionEditor({
         <div>
           <p className="text-xs font-semibold text-emerald-200">Spill: Drop Ball</p>
           <p className="mt-1 text-xs text-quiz-muted">
-            Lagene slipper ballen i score-slots. Høyeste totalscore vinner.
+            Lagene fjerner hindre og samler mynter. Høyeste totalscore vinner.
           </p>
         </div>
         <label className="block min-w-0">
@@ -846,13 +846,13 @@ function GameQuestionEditor({
         </label>
         <div className="rounded-xl border border-quiz-border/70 bg-quiz-bg/50 px-3 py-2">
           <p className="text-xs font-bold uppercase tracking-wide text-quiz-muted">
-            Score-slots
+            Original-inspirert scoring
           </p>
           <p className="mt-1 text-sm font-semibold text-quiz-text">
-            {config.slotScores.join(' · ')}
+            {config.obstacleCount} hindre · mynter {config.coinValues.map((value) => `${value / 1000}K`).join(', ')}
           </p>
           <p className="mt-1 text-xs text-quiz-muted">
-            Midten låser opp bonusball. Bonusball gir x{config.bonusMultiplier} og +{config.jackpotBonus} jackpot i midten.
+            1 poeng per ms i lufta. Bonusball låses opp ved {config.bonusBallThreshold.toLocaleString('nb-NO')} poeng på ett brett.
           </p>
         </div>
         <div className="grid gap-2 sm:grid-cols-3">

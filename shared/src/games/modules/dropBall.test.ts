@@ -1,33 +1,69 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildDropBallResults,
+  calculateDropBallBoardScore,
   calculateDropBallMaxScore,
-  calculateDropBallRoundScore,
   createDefaultDropBallConfig,
+  sanitizeDropBallRounds,
 } from './dropBall.js';
 import type { GameSubmission } from '../types.js';
 
 describe('dropBall', () => {
-  it('scores normal and bonus jackpot drops', () => {
+  it('scores airtime, obstacle chain, coins and completion bonuses', () => {
     const config = createDefaultDropBallConfig();
 
-    expect(calculateDropBallRoundScore(config, 3, 'normal')).toMatchObject({
-      slotIndex: 3,
-      baseScore: 500,
-      multiplier: 1,
-      jackpotBonus: 0,
-      score: 500,
-      unlockedBonus: true,
-    });
-    expect(calculateDropBallRoundScore(config, 3, 'bonus')).toMatchObject({
-      slotIndex: 3,
-      baseScore: 500,
-      multiplier: 3,
-      jackpotBonus: 1000,
-      score: 2500,
+    expect(calculateDropBallBoardScore(config, 'normal', 7000, 3, [1000], 0)).toMatchObject({
+      airTimeMs: 7000,
+      obstacleHits: 3,
+      obstaclePoints: 600,
+      coinPoints: 1000,
+      allCoinsBonus: 0,
+      allObstaclesBonus: 0,
+      perfectBoardBonus: 0,
+      score: 8600,
       unlockedBonus: false,
     });
-    expect(calculateDropBallMaxScore(config)).toBe(3500);
+    expect(calculateDropBallBoardScore(config, 'bonus', 12_000, 14, [1000, 2000, 3000], 1)).toMatchObject({
+      airTimeMs: 12_000,
+      obstacleHits: 14,
+      obstaclePoints: 10_500,
+      coinPoints: 6000,
+      allCoinsBonus: 5000,
+      allObstaclesBonus: 10_000,
+      perfectBoardBonus: 25_000,
+      score: 68_500,
+      unlockedBonus: true,
+    });
+    expect(calculateDropBallMaxScore(config)).toBe(259_500);
+  });
+
+  it('sanitizes client board breakdowns', () => {
+    const config = createDefaultDropBallConfig();
+
+    expect(sanitizeDropBallRounds([
+      {
+        roundIndex: 9,
+        ballKind: 'bonus',
+        airTimeMs: 99_000,
+        obstacleHits: 99,
+        coinValues: [1000, 1000, 2000, 3000, 99_000],
+        obstaclePoints: 0,
+        coinPoints: 0,
+        allCoinsBonus: 0,
+        allObstaclesBonus: 0,
+        perfectBoardBonus: 0,
+        score: 0,
+        unlockedBonus: false,
+      },
+    ], config)).toMatchObject([
+      {
+        roundIndex: 0,
+        airTimeMs: 30_000,
+        obstacleHits: 14,
+        coinValues: [1000, 2000, 3000],
+        score: 86_500,
+      },
+    ]);
   });
 
   it('uses each teams best score and awards top 3 points', () => {

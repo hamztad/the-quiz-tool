@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import Matter from 'matter-js';
 import {
-  calculateDropBallRoundScore,
+  calculateDropBallBoardScore,
   formatDropBallScore,
   type DropBallBallKind,
   type DropBallConfig,
   type DropBallRoundResult,
 } from '@quiz-tool/shared';
 
-const CANVAS_WIDTH = 320;
-const CANVAS_HEIGHT = 440;
-const SLOT_HEIGHT = 58;
-const BALL_RADIUS = 10;
-const BONUS_BALL_RADIUS = 13;
-const PEG_RADIUS = 7;
+const CANVAS_WIDTH = 340;
+const CANVAS_HEIGHT = 560;
+const LAUNCH_HEIGHT = 82;
+const FLOOR_Y = CANVAS_HEIGHT - 24;
+const NORMAL_BALL_RADIUS = 10;
+const BONUS_BALL_RADIUS = 14;
 
-type DropBallPhase = 'ready' | 'falling' | 'roundResult' | 'finished';
+type DropBallPhase = 'ready' | 'falling' | 'betweenBoards' | 'finished';
 
 interface DropBallGameProps {
   config: DropBallConfig;
@@ -23,46 +24,151 @@ interface DropBallGameProps {
   onComplete: (score: number, rounds: DropBallRoundResult[]) => void;
 }
 
-interface BallState {
+interface BumperDefinition {
+  id: string;
   x: number;
   y: number;
-  vx: number;
-  vy: number;
-  radius: number;
-  kind: DropBallBallKind;
+  width: number;
+  height: number;
+  angle: number;
+  color: string;
+  moving?: boolean;
+  phase?: number;
 }
 
-const pegs = [
-  { x: 80, y: 100 },
-  { x: 160, y: 100 },
-  { x: 240, y: 100 },
-  { x: 120, y: 155 },
-  { x: 200, y: 155 },
-  { x: 70, y: 210 },
-  { x: 160, y: 210 },
-  { x: 250, y: 210 },
-  { x: 115, y: 265 },
-  { x: 205, y: 265 },
-  { x: 70, y: 320 },
-  { x: 160, y: 320 },
-  { x: 250, y: 320 },
+interface CoinDefinition {
+  id: string;
+  x: number;
+  y: number;
+  value: number;
+  color: string;
+}
+
+interface DropBallSnapshot {
+  currentScore: number;
+  airTimeMs: number;
+  obstacleHits: number;
+  coinValues: number[];
+  bottomTouched: boolean;
+  latestMessage: string | null;
+}
+
+interface SimState {
+  engine: Matter.Engine;
+  ball: Matter.Body;
+  boardIndex: number;
+  ballKind: DropBallBallKind;
+  startTime: number;
+  finalAirTimeMs: number | null;
+  obstacleHits: Set<string>;
+  coinValues: number[];
+  obstacleBodies: Map<string, Matter.Body>;
+  coinBodies: Map<string, Matter.Body>;
+  movingBodies: Array<{
+    body: Matter.Body;
+    baseX: number;
+    baseY: number;
+    baseAngle: number;
+    phase: number;
+  }>;
+  animationFrame: number | null;
+}
+
+const baseBumpers: BumperDefinition[] = [
+  { id: 'b1', x: 58, y: 142, width: 72, height: 16, angle: 0.58, color: '#f59e0b' },
+  { id: 'b2', x: 160, y: 148, width: 52, height: 14, angle: -0.07, color: '#ec4899' },
+  { id: 'b3', x: 263, y: 146, width: 48, height: 14, angle: -0.06, color: '#8b5cf6' },
+  { id: 'b4', x: 78, y: 225, width: 48, height: 16, angle: 1.07, color: '#06b6d4' },
+  { id: 'b5', x: 190, y: 203, width: 88, height: 17, angle: 0.08, color: '#93c5fd', moving: true, phase: 0.5 },
+  { id: 'b6', x: 270, y: 215, width: 70, height: 16, angle: -0.46, color: '#8b5cf6' },
+  { id: 'b7', x: 205, y: 250, width: 90, height: 19, angle: 0.74, color: '#f59e0b' },
+  { id: 'b8', x: 66, y: 325, width: 82, height: 17, angle: 0.62, color: '#ef4444' },
+  { id: 'b9', x: 170, y: 318, width: 80, height: 17, angle: 0.88, color: '#f43f5e' },
+  { id: 'b10', x: 258, y: 365, width: 74, height: 16, angle: 0.47, color: '#8b5cf6', moving: true, phase: 2.1 },
+  { id: 'b11', x: 144, y: 392, width: 52, height: 17, angle: -1.15, color: '#8b5cf6' },
+  { id: 'b12', x: 211, y: 440, width: 112, height: 20, angle: -0.33, color: '#06b6d4' },
+  { id: 'b13', x: 68, y: 482, width: 100, height: 16, angle: 0.22, color: '#8b5cf6' },
+  { id: 'b14', x: 268, y: 477, width: 86, height: 18, angle: -0.72, color: '#06b6d4' },
+];
+
+const baseCoins: CoinDefinition[] = [
+  { id: 'c1', x: 246, y: 294, value: 2000, color: '#f472b6' },
+  { id: 'c2', x: 263, y: 468, value: 1000, color: '#fb923c' },
+  { id: 'c3', x: 128, y: 474, value: 3000, color: '#facc15' },
 ];
 
 function clampDropX(value: number): number {
-  return Math.max(24, Math.min(CANVAS_WIDTH - 24, value));
+  return Math.max(26, Math.min(CANVAS_WIDTH - 26, value));
 }
 
-function slotIndexFromX(x: number, slotCount: number): number {
-  const slotWidth = CANVAS_WIDTH / slotCount;
-  return Math.max(0, Math.min(slotCount - 1, Math.floor(x / slotWidth)));
+function boardBumpers(boardIndex: number): BumperDefinition[] {
+  const offset = boardIndex * 0.18;
+  return baseBumpers.map((bumper, index) => ({
+    ...bumper,
+    angle: bumper.angle + (index % 3 === 0 ? offset : index % 3 === 1 ? -offset : offset / 2),
+    y: bumper.y + (boardIndex % 2 === 0 ? 0 : index % 2 === 0 ? 8 : -6),
+  }));
 }
 
-function drawBoard(
+function boardCoins(boardIndex: number): CoinDefinition[] {
+  return baseCoins.map((coin, index) => ({
+    ...coin,
+    x: coin.x + (boardIndex === 1 ? [-14, 10, 16][index] : boardIndex === 2 ? [12, -12, -10][index] : 0),
+    y: coin.y + (boardIndex === 2 ? [-8, -18, 10][index] : 0),
+  }));
+}
+
+function emptySnapshot(): DropBallSnapshot {
+  return {
+    currentScore: 0,
+    airTimeMs: 0,
+    obstacleHits: 0,
+    coinValues: [],
+    bottomTouched: false,
+    latestMessage: null,
+  };
+}
+
+function drawRoundedRect(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  context.beginPath();
+  context.roundRect(x, y, width, height, radius);
+  context.fill();
+  context.stroke();
+}
+
+function drawNeonBar(context: CanvasRenderingContext2D, body: Matter.Body, color: string) {
+  context.save();
+  context.shadowColor = color;
+  context.shadowBlur = 14;
+  context.fillStyle = color;
+  context.strokeStyle = 'rgba(255,255,255,0.42)';
+  context.lineWidth = 3;
+  context.beginPath();
+  body.vertices.forEach((vertex, index) => {
+    if (index === 0) context.moveTo(vertex.x, vertex.y);
+    else context.lineTo(vertex.x, vertex.y);
+  });
+  context.closePath();
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
+function drawGameBoard(
   canvas: HTMLCanvasElement,
   config: DropBallConfig,
   dropX: number,
-  ball: BallState | null,
-  landingSlot: number | null,
+  boardIndex: number,
+  pendingBonus: boolean,
+  sim: SimState | null,
+  snapshot: DropBallSnapshot,
 ) {
   const context = canvas.getContext('2d');
   if (!context) return;
@@ -70,81 +176,274 @@ function drawBoard(
   context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
   const gradient = context.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-  gradient.addColorStop(0, '#16315f');
-  gradient.addColorStop(0.55, '#1f4a7a');
-  gradient.addColorStop(1, '#10223f');
+  gradient.addColorStop(0, '#5b35d5');
+  gradient.addColorStop(0.42, '#7e22ce');
+  gradient.addColorStop(1, '#351a78');
   context.fillStyle = gradient;
   context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-  context.fillStyle = 'rgba(255, 255, 255, 0.10)';
-  context.fillRect(0, 0, CANVAS_WIDTH, 56);
-  context.fillStyle = '#bfdbfe';
-  context.font = '700 13px system-ui, sans-serif';
-  context.textAlign = 'center';
-  context.fillText('Velg hvor ballen skal slippes', CANVAS_WIDTH / 2, 27);
+  context.fillStyle = 'rgba(15,23,42,0.18)';
+  context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-  context.strokeStyle = '#fde68a';
+  context.strokeStyle = 'rgba(125,211,252,0.55)';
+  context.lineWidth = 3;
+  context.strokeRect(8, 8, CANVAS_WIDTH - 16, CANVAS_HEIGHT - 16);
+
+  context.fillStyle = 'rgba(236,72,153,0.24)';
+  context.strokeStyle = 'rgba(125,211,252,0.50)';
+  context.lineWidth = 2;
+  drawRoundedRect(context, 12, 14, CANVAS_WIDTH - 24, LAUNCH_HEIGHT - 16, 10);
+  context.fillStyle = 'rgba(255,255,255,0.16)';
+  context.fillRect(16, 39, CANVAS_WIDTH - 32, 24);
+  context.fillStyle = '#f5d0fe';
+  context.font = '900 12px system-ui, sans-serif';
+  context.textAlign = 'center';
+  context.fillText('HØY FART', CANVAS_WIDTH / 2, 31);
+  context.fillText('NORMAL', CANVAS_WIDTH / 2, 55);
+  context.fillText('LAV FART', CANVAS_WIDTH / 2, 79);
+
+  context.strokeStyle = '#fef3c7';
   context.lineWidth = 3;
   context.beginPath();
-  context.moveTo(dropX - 16, 48);
+  context.moveTo(dropX - 16, 28);
   context.lineTo(dropX, 70);
-  context.lineTo(dropX + 16, 48);
+  context.lineTo(dropX + 16, 28);
   context.stroke();
 
-  for (const peg of pegs) {
+  const obstacleColor = new Map(baseBumpers.map((bumper) => [bumper.id, bumper.color]));
+  if (sim) {
+    for (const [id, body] of sim.obstacleBodies) {
+      drawNeonBar(context, body, obstacleColor.get(id) ?? '#38bdf8');
+    }
+    for (const [id, body] of sim.coinBodies) {
+      const definition = baseCoins.find((coin) => coin.id === id);
+      const value = definition?.value ?? 0;
+      context.save();
+      context.shadowColor = definition?.color ?? '#facc15';
+      context.shadowBlur = 20;
+      context.beginPath();
+      context.arc(body.position.x, body.position.y, 17, 0, Math.PI * 2);
+      context.fillStyle = definition?.color ?? '#facc15';
+      context.fill();
+      context.strokeStyle = 'rgba(255,255,255,0.48)';
+      context.lineWidth = 3;
+      context.stroke();
+      context.shadowBlur = 0;
+      context.fillStyle = '#3b0764';
+      context.font = '900 13px system-ui, sans-serif';
+      context.fillText(`${value / 1000}k`, body.position.x, body.position.y + 5);
+      context.restore();
+    }
+    context.save();
+    context.shadowColor = sim.ballKind === 'bonus' ? '#fde047' : '#dbeafe';
+    context.shadowBlur = sim.ballKind === 'bonus' ? 24 : 16;
     context.beginPath();
-    context.arc(peg.x, peg.y, PEG_RADIUS, 0, Math.PI * 2);
-    context.fillStyle = '#fef3c7';
+    context.arc(sim.ball.position.x, sim.ball.position.y, sim.ball.circleRadius ?? NORMAL_BALL_RADIUS, 0, Math.PI * 2);
+    context.fillStyle = sim.ballKind === 'bonus' ? '#fde047' : '#f8fafc';
     context.fill();
-    context.strokeStyle = '#f59e0b';
-    context.lineWidth = 2;
+    context.strokeStyle = sim.ballKind === 'bonus' ? '#f97316' : '#bfdbfe';
+    context.lineWidth = 3;
     context.stroke();
-  }
-
-  const slotWidth = CANVAS_WIDTH / config.slotScores.length;
-  const slotTop = CANVAS_HEIGHT - SLOT_HEIGHT;
-  for (let index = 0; index < config.slotScores.length; index += 1) {
-    const x = index * slotWidth;
-    const isBonus = index === config.bonusSlotIndex;
-    const active = landingSlot === index;
-    context.fillStyle = active
-      ? 'rgba(34, 197, 94, 0.38)'
-      : isBonus
-        ? 'rgba(250, 204, 21, 0.24)'
-        : 'rgba(15, 23, 42, 0.72)';
-    context.fillRect(x, slotTop, slotWidth, SLOT_HEIGHT);
-    context.strokeStyle = isBonus ? '#fde047' : '#60a5fa';
-    context.lineWidth = isBonus ? 3 : 2;
-    context.strokeRect(x, slotTop, slotWidth, SLOT_HEIGHT);
-
-    context.fillStyle = isBonus ? '#fef08a' : '#dbeafe';
-    context.font = '800 14px system-ui, sans-serif';
-    context.fillText(String(config.slotScores[index]), x + slotWidth / 2, slotTop + 25);
-    if (isBonus) {
-      context.font = '700 10px system-ui, sans-serif';
-      context.fillText('BONUS', x + slotWidth / 2, slotTop + 43);
+    context.restore();
+  } else {
+    for (const bumper of boardBumpers(boardIndex)) {
+      const body = Matter.Bodies.rectangle(bumper.x, bumper.y, bumper.width, bumper.height, { angle: bumper.angle });
+      drawNeonBar(context, body, bumper.color);
+    }
+    for (const coin of boardCoins(boardIndex)) {
+      context.save();
+      context.shadowColor = coin.color;
+      context.shadowBlur = 18;
+      context.beginPath();
+      context.arc(coin.x, coin.y, 17, 0, Math.PI * 2);
+      context.fillStyle = coin.color;
+      context.fill();
+      context.strokeStyle = 'rgba(255,255,255,0.48)';
+      context.lineWidth = 3;
+      context.stroke();
+      context.shadowBlur = 0;
+      context.fillStyle = '#3b0764';
+      context.font = '900 13px system-ui, sans-serif';
+      context.fillText(`${coin.value / 1000}k`, coin.x, coin.y + 5);
+      context.restore();
     }
   }
 
-  if (ball) {
-    const ballGradient = context.createRadialGradient(
-      ball.x - 4,
-      ball.y - 5,
-      2,
-      ball.x,
-      ball.y,
-      ball.radius,
-    );
-    ballGradient.addColorStop(0, ball.kind === 'bonus' ? '#fef08a' : '#bfdbfe');
-    ballGradient.addColorStop(1, ball.kind === 'bonus' ? '#f59e0b' : '#2563eb');
-    context.beginPath();
-    context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-    context.fillStyle = ballGradient;
-    context.fill();
-    context.strokeStyle = ball.kind === 'bonus' ? '#fef3c7' : '#dbeafe';
-    context.lineWidth = 2;
-    context.stroke();
+  context.fillStyle = '#eab308';
+  context.fillRect(0, FLOOR_Y, CANVAS_WIDTH, CANVAS_HEIGHT - FLOOR_Y);
+  context.fillStyle = 'rgba(15,23,42,0.56)';
+  context.strokeStyle = 'rgba(255,255,255,0.36)';
+  context.lineWidth = 2;
+  drawRoundedRect(context, CANVAS_WIDTH / 2 - 62, FLOOR_Y - 22, 124, 26, 13);
+  context.fillStyle = '#e0f2fe';
+  context.font = '800 13px system-ui, sans-serif';
+  context.fillText(`Brett ${boardIndex + 1} av ${config.totalRounds}`, CANVAS_WIDTH / 2, FLOOR_Y - 5);
+
+  context.textAlign = 'left';
+  context.fillStyle = 'rgba(15,23,42,0.58)';
+  context.fillRect(14, 94, 142, 50);
+  context.fillStyle = '#f8fafc';
+  context.font = '900 12px system-ui, sans-serif';
+  context.fillText(`${formatDropBallScore(snapshot.currentScore)}`, 24, 116);
+  context.font = '700 10px system-ui, sans-serif';
+  context.fillText(`${snapshot.airTimeMs} ms luft · ${snapshot.obstacleHits} hindre`, 24, 134);
+
+  if (pendingBonus) {
+    context.textAlign = 'right';
+    context.fillStyle = '#fef08a';
+    context.font = '900 12px system-ui, sans-serif';
+    context.fillText('BONUSBALL AKTIV', CANVAS_WIDTH - 18, 116);
   }
+}
+
+function createSimulation(
+  config: DropBallConfig,
+  boardIndex: number,
+  ballKind: DropBallBallKind,
+  dropX: number,
+  onSnapshot: (snapshot: DropBallSnapshot) => void,
+): SimState {
+  const engine = Matter.Engine.create({ gravity: { x: 0, y: ballKind === 'bonus' ? 0.82 : 0.92 } });
+  const ballRadius = ballKind === 'bonus' ? BONUS_BALL_RADIUS : NORMAL_BALL_RADIUS;
+  const ball = Matter.Bodies.circle(dropX, LAUNCH_HEIGHT - 18, ballRadius, {
+    label: 'ball',
+    restitution: ballKind === 'bonus' ? 0.98 : 0.86,
+    friction: 0.015,
+    frictionAir: ballKind === 'bonus' ? 0.002 : 0.004,
+    density: ballKind === 'bonus' ? 0.0024 : 0.0016,
+  });
+  Matter.Body.setVelocity(ball, { x: (Math.random() - 0.5) * 1.4, y: 0 });
+
+  const wallOptions = { isStatic: true, restitution: 0.92, friction: 0.02 };
+  const walls = [
+    Matter.Bodies.rectangle(-8, CANVAS_HEIGHT / 2, 16, CANVAS_HEIGHT, wallOptions),
+    Matter.Bodies.rectangle(CANVAS_WIDTH + 8, CANVAS_HEIGHT / 2, 16, CANVAS_HEIGHT, wallOptions),
+    Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y + 12, CANVAS_WIDTH, 24, {
+      ...wallOptions,
+      label: 'floor',
+    }),
+    Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y - 8, CANVAS_WIDTH, 8, {
+      isStatic: true,
+      isSensor: true,
+      label: 'bottomSensor',
+    }),
+  ];
+
+  const obstacleBodies = new Map<string, Matter.Body>();
+  const movingBodies: SimState['movingBodies'] = [];
+  for (const bumper of boardBumpers(boardIndex)) {
+    const body = Matter.Bodies.rectangle(bumper.x, bumper.y, bumper.width, bumper.height, {
+      isStatic: true,
+      angle: bumper.angle,
+      restitution: 1.02,
+      friction: 0.02,
+      label: `obstacle:${bumper.id}`,
+      chamfer: { radius: 7 },
+    });
+    obstacleBodies.set(bumper.id, body);
+    if (bumper.moving) {
+      movingBodies.push({
+        body,
+        baseX: bumper.x,
+        baseY: bumper.y,
+        baseAngle: bumper.angle,
+        phase: bumper.phase ?? 0,
+      });
+    }
+  }
+
+  const coinBodies = new Map<string, Matter.Body>();
+  for (const coin of boardCoins(boardIndex)) {
+    const body = Matter.Bodies.circle(coin.x, coin.y, 17, {
+      isStatic: true,
+      isSensor: true,
+      label: `coin:${coin.id}:${coin.value}`,
+    });
+    coinBodies.set(coin.id, body);
+  }
+
+  const sim: SimState = {
+    engine,
+    ball,
+    boardIndex,
+    ballKind,
+    startTime: performance.now(),
+    finalAirTimeMs: null,
+    obstacleHits: new Set(),
+    coinValues: [],
+    obstacleBodies,
+    coinBodies,
+    movingBodies,
+    animationFrame: null,
+  };
+
+  Matter.Composite.add(engine.world, [
+    ...walls,
+    ...Array.from(obstacleBodies.values()),
+    ...Array.from(coinBodies.values()),
+    ball,
+  ]);
+
+  Matter.Events.on(engine, 'collisionStart', (event) => {
+    for (const pair of event.pairs) {
+      const labels = [pair.bodyA.label, pair.bodyB.label];
+      if (!labels.includes('ball')) continue;
+      const other = pair.bodyA.label === 'ball' ? pair.bodyB : pair.bodyA;
+
+      if (other.label === 'bottomSensor' && sim.finalAirTimeMs === null) {
+        sim.finalAirTimeMs = Math.round(performance.now() - sim.startTime);
+        onSnapshot(buildSnapshot(config, sim, 'Ballen traff bunnen. Du kan gå videre når du vil.'));
+        continue;
+      }
+
+      if (other.label.startsWith('obstacle:')) {
+        const id = other.label.split(':')[1];
+        if (!id || sim.obstacleHits.has(id)) continue;
+        sim.obstacleHits.add(id);
+        sim.obstacleBodies.delete(id);
+        Matter.Composite.remove(engine.world, other);
+        const hitNumber = sim.obstacleHits.size;
+        onSnapshot(buildSnapshot(config, sim, `Hinder ${hitNumber}: +${hitNumber * 100}`));
+        continue;
+      }
+
+      if (other.label.startsWith('coin:')) {
+        const [, id, valueText] = other.label.split(':');
+        const value = Number(valueText);
+        if (!id || !Number.isFinite(value)) continue;
+        sim.coinBodies.delete(id);
+        sim.coinValues.push(value);
+        Matter.Composite.remove(engine.world, other);
+        onSnapshot(buildSnapshot(config, sim, `Mynt: +${value.toLocaleString('nb-NO')}`));
+      }
+    }
+  });
+
+  return sim;
+}
+
+function buildSnapshot(
+  config: DropBallConfig,
+  sim: SimState,
+  latestMessage: string | null,
+): DropBallSnapshot {
+  const airTimeMs = sim.finalAirTimeMs ?? Math.round(performance.now() - sim.startTime);
+  const score = calculateDropBallBoardScore(
+    config,
+    sim.ballKind,
+    airTimeMs,
+    sim.obstacleHits.size,
+    sim.coinValues,
+    sim.boardIndex,
+  );
+  return {
+    currentScore: score.score,
+    airTimeMs: score.airTimeMs,
+    obstacleHits: score.obstacleHits,
+    coinValues: score.coinValues,
+    bottomTouched: sim.finalAirTimeMs !== null,
+    latestMessage,
+  };
 }
 
 export function DropBallGame({
@@ -154,260 +453,249 @@ export function DropBallGame({
   onComplete,
 }: DropBallGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef<number | null>(null);
+  const simRef = useRef<SimState | null>(null);
   const [phase, setPhase] = useState<DropBallPhase>('ready');
   const [dropX, setDropX] = useState(CANVAS_WIDTH / 2);
-  const [roundIndex, setRoundIndex] = useState(0);
-  const [totalScore, setTotalScore] = useState(0);
-  const [rounds, setRounds] = useState<DropBallRoundResult[]>([]);
+  const [boardIndex, setBoardIndex] = useState(0);
+  const [completedRounds, setCompletedRounds] = useState<DropBallRoundResult[]>([]);
   const [pendingBonus, setPendingBonus] = useState(false);
-  const [bonusUsed, setBonusUsed] = useState(false);
-  const [latestRound, setLatestRound] = useState<DropBallRoundResult | null>(null);
-  const [landingSlot, setLandingSlot] = useState<number | null>(null);
-  const currentBallKind: DropBallBallKind = pendingBonus && !bonusUsed ? 'bonus' : 'normal';
-  const isNewBest = bestScore === null || totalScore > bestScore;
+  const [snapshot, setSnapshot] = useState<DropBallSnapshot>(() => emptySnapshot());
+  const completedScore = completedRounds.reduce((sum, round) => sum + round.score, 0);
+  const displayedTotal = completedScore + (phase === 'falling' || phase === 'betweenBoards' ? snapshot.currentScore : 0);
+  const isNewBest = bestScore === null || displayedTotal > bestScore;
+  const currentBallKind: DropBallBallKind = pendingBonus ? 'bonus' : 'normal';
+
+  const stopSimulation = () => {
+    const sim = simRef.current;
+    if (sim && sim.animationFrame !== null) {
+      window.cancelAnimationFrame(sim.animationFrame);
+    }
+    if (sim) {
+      Matter.Engine.clear(sim.engine);
+    }
+    simRef.current = null;
+  };
+
+  useEffect(() => () => stopSimulation(), []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    drawBoard(canvas, config, dropX, null, landingSlot);
-  }, [config, dropX, landingSlot]);
+    if (!canvas || simRef.current) return;
+    drawGameBoard(canvas, config, dropX, boardIndex, pendingBonus, null, snapshot);
+  }, [boardIndex, config, dropX, pendingBonus, snapshot]);
 
-  useEffect(() => () => {
-    if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
-  }, []);
+  const animate = (sim: SimState) => {
+    const now = performance.now();
+    const elapsedSeconds = (now - sim.startTime) / 1000;
+    for (const moving of sim.movingBodies) {
+      Matter.Body.setAngle(moving.body, moving.baseAngle + Math.sin(elapsedSeconds * 1.8 + moving.phase) * 0.34);
+      Matter.Body.setPosition(moving.body, {
+        x: moving.baseX + Math.sin(elapsedSeconds * 1.2 + moving.phase) * 10,
+        y: moving.baseY + Math.cos(elapsedSeconds * 1.35 + moving.phase) * 6,
+      });
+    }
 
-  const resetAttempt = () => {
-    if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
-    frameRef.current = null;
-    setPhase('ready');
-    setRoundIndex(0);
-    setTotalScore(0);
-    setRounds([]);
-    setPendingBonus(false);
-    setBonusUsed(false);
-    setLatestRound(null);
-    setLandingSlot(null);
+    Matter.Engine.update(sim.engine, 1000 / 60);
+    const nextSnapshot = buildSnapshot(config, sim, null);
+    setSnapshot((current) => ({
+      ...nextSnapshot,
+      latestMessage: current.latestMessage,
+    }));
+
+    const canvas = canvasRef.current;
+    if (canvas) {
+      drawGameBoard(canvas, config, dropX, sim.boardIndex, sim.ballKind === 'bonus', sim, nextSnapshot);
+    }
+
+    if (nextSnapshot.bottomTouched) {
+      setPhase((current) => current === 'falling' ? 'betweenBoards' : current);
+    }
+
+    sim.animationFrame = window.requestAnimationFrame(() => animate(sim));
   };
 
-  const finishRound = (slotIndex: number, ballKind: DropBallBallKind) => {
-    const result = {
-      ...calculateDropBallRoundScore(config, slotIndex, ballKind),
-      roundIndex,
-    };
-    const nextRounds = [...rounds, result];
-    const nextTotal = totalScore + result.score;
-    const nextRoundIndex = roundIndex + 1;
-    const nextBonusUsed = bonusUsed || ballKind === 'bonus';
-    const nextPendingBonus = !nextBonusUsed && result.unlockedBonus;
+  const startDropAt = (nextDropX: number) => {
+    if (disabled || phase !== 'ready') return;
+    stopSimulation();
+    const sim = createSimulation(config, boardIndex, currentBallKind, nextDropX, setSnapshot);
+    simRef.current = sim;
+    setSnapshot(emptySnapshot());
+    setPhase('falling');
+    sim.animationFrame = window.requestAnimationFrame(() => animate(sim));
+  };
 
-    setLandingSlot(slotIndex);
-    setLatestRound(result);
-    setRounds(nextRounds);
-    setTotalScore(nextTotal);
-    setRoundIndex(nextRoundIndex);
-    setBonusUsed(nextBonusUsed);
-    setPendingBonus(nextPendingBonus);
+  const finishCurrentBoard = () => {
+    const sim = simRef.current;
+    if (!sim || !snapshot.bottomTouched) return;
+    const result = calculateDropBallBoardScore(
+      config,
+      sim.ballKind,
+      sim.finalAirTimeMs ?? snapshot.airTimeMs,
+      sim.obstacleHits.size,
+      sim.coinValues,
+      boardIndex,
+    );
+    const nextRounds = [...completedRounds, result];
+    const nextTotal = nextRounds.reduce((sum, round) => sum + round.score, 0);
+    stopSimulation();
+    setCompletedRounds(nextRounds);
+    setPendingBonus(result.unlockedBonus);
+    setSnapshot(emptySnapshot());
 
-    if (nextRoundIndex >= config.totalRounds) {
+    if (boardIndex + 1 >= config.totalRounds) {
       setPhase('finished');
       onComplete(nextTotal, nextRounds);
     } else {
-      setPhase('roundResult');
+      setBoardIndex((current) => current + 1);
+      setPhase('ready');
     }
   };
 
-  const startDrop = () => {
-    if (disabled || phase !== 'ready') return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
-
-    const ballKind = currentBallKind;
-    const ball: BallState = {
-      x: dropX,
-      y: 72,
-      vx: (Math.random() - 0.5) * 1.3,
-      vy: 0,
-      radius: ballKind === 'bonus' ? BONUS_BALL_RADIUS : BALL_RADIUS,
-      kind: ballKind,
-    };
-    const touchedPegs = new Set<number>();
-    setPhase('falling');
-    setLandingSlot(null);
-
-    const step = () => {
-      ball.vy += ball.kind === 'bonus' ? 0.18 : 0.24;
-      ball.x += ball.vx;
-      ball.y += ball.vy;
-
-      if (ball.x < ball.radius) {
-        ball.x = ball.radius;
-        ball.vx = Math.abs(ball.vx) * 0.82;
-      } else if (ball.x > CANVAS_WIDTH - ball.radius) {
-        ball.x = CANVAS_WIDTH - ball.radius;
-        ball.vx = -Math.abs(ball.vx) * 0.82;
-      }
-
-      pegs.forEach((peg, index) => {
-        const dx = ball.x - peg.x;
-        const dy = ball.y - peg.y;
-        const distance = Math.hypot(dx, dy);
-        const minDistance = ball.radius + PEG_RADIUS;
-        if (distance > 0 && distance < minDistance && !touchedPegs.has(index)) {
-          const nx = dx / distance;
-          const ny = dy / distance;
-          ball.x = peg.x + nx * minDistance;
-          ball.y = peg.y + ny * minDistance;
-          const speed = Math.max(1.2, Math.hypot(ball.vx, ball.vy));
-          ball.vx = nx * speed * (ball.kind === 'bonus' ? 0.95 : 1.12);
-          ball.vy = Math.max(0.8, Math.abs(ny * speed) * 0.62);
-          touchedPegs.add(index);
-        }
-      });
-
-      ball.vx *= 0.992;
-
-      if (ball.y >= CANVAS_HEIGHT - SLOT_HEIGHT - ball.radius) {
-        const slotIndex = slotIndexFromX(ball.x, config.slotScores.length);
-        drawBoard(canvas, config, dropX, ball, slotIndex);
-        frameRef.current = null;
-        finishRound(slotIndex, ballKind);
-        return;
-      }
-
-      drawBoard(canvas, config, dropX, ball, null);
-      frameRef.current = window.requestAnimationFrame(step);
-    };
-
-    frameRef.current = window.requestAnimationFrame(step);
+  const resetAttempt = () => {
+    stopSimulation();
+    setPhase('ready');
+    setDropX(CANVAS_WIDTH / 2);
+    setBoardIndex(0);
+    setCompletedRounds([]);
+    setPendingBonus(false);
+    setSnapshot(emptySnapshot());
   };
 
-  const chooseFromCanvas = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (phase === 'falling' || disabled) return;
+  const handleCanvasPointer = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (disabled || phase !== 'ready') return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const nextX = ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH;
-    setDropX(clampDropX(nextX));
+    const nextX = clampDropX(((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH);
+    setDropX(nextX);
+    startDropAt(nextX);
   };
 
   return (
-    <div className="mt-4 overflow-hidden rounded-3xl border-2 border-emerald-300/40 bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-emerald-500/15 p-4 text-center shadow-[0_0_32px_rgba(16,185,129,0.18)] sm:p-5">
-      <p className="text-2xl font-black uppercase tracking-[0.12em] text-emerald-100 sm:text-3xl">
+    <div className="mt-4 overflow-hidden rounded-3xl border-2 border-violet-300/40 bg-gradient-to-br from-violet-600/35 via-fuchsia-500/20 to-blue-500/20 p-4 text-center shadow-[0_0_32px_rgba(168,85,247,0.22)] sm:p-5">
+      <p className="text-2xl font-black uppercase tracking-[0.12em] text-fuchsia-100 sm:text-3xl">
         Drop Ball
       </p>
       <p className="mt-2 text-sm font-semibold text-quiz-text">
-        Velg droppunkt, slipp ballen og jakt bonusball-jackpoten.
+        Fjern hindre, samle mynter og få bonusball ved minst {formatDropBallScore(config.bonusBallThreshold)} på ett brett.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-yellow-300/45 bg-yellow-300/15 px-4 py-3">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-100">Beste</p>
           <p className="mt-1 text-2xl font-black tabular-nums text-yellow-50">
-            {bestScore ?? '—'}
+            {bestScore === null ? '—' : formatDropBallScore(bestScore)}
           </p>
         </div>
-        <div className="rounded-2xl border border-blue-300/35 bg-blue-300/10 px-4 py-3">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-100">Runde</p>
-          <p className="mt-1 text-2xl font-black tabular-nums text-blue-50">
-            {Math.min(roundIndex + 1, config.totalRounds)}/{config.totalRounds}
+        <div className="rounded-2xl border border-fuchsia-300/35 bg-fuchsia-300/10 px-4 py-3">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-fuchsia-100">Brett</p>
+          <p className="mt-1 text-2xl font-black tabular-nums text-fuchsia-50">
+            {Math.min(boardIndex + 1, config.totalRounds)}/{config.totalRounds}
           </p>
         </div>
         <div className="rounded-2xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-3">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100">Total</p>
           <p className="mt-1 text-2xl font-black tabular-nums text-emerald-50">
-            {totalScore}
+            {formatDropBallScore(displayedTotal)}
           </p>
         </div>
       </div>
 
-      <div className="mx-auto mt-5 max-w-[22rem] overflow-hidden rounded-3xl border-2 border-blue-200/30 bg-blue-950/70 shadow-inner">
+      <div className="mx-auto mt-5 max-w-[23rem] overflow-hidden rounded-3xl border-2 border-cyan-300/35 bg-violet-950/80 shadow-[inset_0_0_36px_rgba(15,23,42,0.4)]">
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
           className="block h-auto w-full touch-none"
-          onPointerDown={chooseFromCanvas}
+          onPointerDown={handleCanvasPointer}
           aria-label="Drop Ball-spillebrett"
         />
       </div>
 
-      <label className="mx-auto mt-4 block max-w-[22rem] text-left">
+      <label className="mx-auto mt-4 block max-w-[23rem] text-left">
         <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-quiz-muted">
           Droppunkt
         </span>
         <input
           type="range"
-          min={24}
-          max={CANVAS_WIDTH - 24}
+          min={26}
+          max={CANVAS_WIDTH - 26}
           value={dropX}
-          disabled={disabled || phase === 'falling'}
+          disabled={disabled || phase !== 'ready'}
           onChange={(event) => setDropX(clampDropX(Number(event.target.value)))}
           className="w-full"
         />
       </label>
 
-      {currentBallKind === 'bonus' && phase === 'ready' && (
+      {pendingBonus && phase === 'ready' && (
         <p className="mt-3 rounded-2xl border border-yellow-300/45 bg-yellow-300/15 px-4 py-3 text-sm font-black text-yellow-50">
-          Bonusball klar: x{config.bonusMultiplier} score og +{config.jackpotBonus} jackpot i midten.
+          Bonusball aktiv på dette brettet.
         </p>
       )}
 
-      {latestRound && phase !== 'falling' && (
-        <div className="mt-4 rounded-2xl border border-quiz-border/70 bg-quiz-bg/60 px-4 py-3" role="status" aria-live="polite">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-quiz-muted">
-            Siste drop
-          </p>
-          <p className="mt-1 text-xl font-black text-quiz-text">
-            Slot {latestRound.slotIndex + 1}: {formatDropBallScore(latestRound.score)}
-          </p>
-          {latestRound.unlockedBonus && (
-            <p className="mt-1 text-sm font-bold text-yellow-100">
-              Bonusball låst opp til neste drop!
+      {(phase === 'falling' || phase === 'betweenBoards') && (
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-2xl border border-blue-300/30 bg-blue-300/10 px-3 py-2">
+            <p className="text-xs font-bold text-blue-100">Lufttid</p>
+            <p className="text-xl font-black tabular-nums text-blue-50">{snapshot.airTimeMs} ms</p>
+          </div>
+          <div className="rounded-2xl border border-fuchsia-300/30 bg-fuchsia-300/10 px-3 py-2">
+            <p className="text-xs font-bold text-fuchsia-100">Hindre</p>
+            <p className="text-xl font-black tabular-nums text-fuchsia-50">
+              {snapshot.obstacleHits}/{config.obstacleCount}
             </p>
-          )}
+          </div>
+          <div className="rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-3 py-2">
+            <p className="text-xs font-bold text-yellow-100">Mynter</p>
+            <p className="text-xl font-black tabular-nums text-yellow-50">
+              {snapshot.coinValues.length}/{config.coinValues.length}
+            </p>
+          </div>
         </div>
+      )}
+
+      {snapshot.latestMessage && phase !== 'ready' && (
+        <p className="mt-3 rounded-2xl border border-cyan-300/35 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-50" role="status" aria-live="polite">
+          {snapshot.latestMessage}
+        </p>
       )}
 
       {phase === 'finished' && (
         <div className="mt-4 rounded-2xl border-2 border-green-400/50 bg-green-400/15 px-4 py-4">
           <p className="text-xl font-black text-green-50">Forsøket er sendt inn!</p>
           <p className="mt-1 text-sm font-semibold text-green-100">
-            {formatDropBallScore(totalScore)}. {isNewBest ? 'Dette er beste forsøk.' : 'Beste forsøk teller fortsatt.'}
+            {formatDropBallScore(completedScore)}. {isNewBest ? 'Dette er beste forsøk.' : 'Beste forsøk teller fortsatt.'}
           </p>
         </div>
       )}
 
-      <div className="mt-5 space-y-3">
-        {phase === 'roundResult' ? (
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        {phase === 'ready' && (
           <button
             type="button"
-            onClick={() => setPhase('ready')}
+            onClick={() => startDropAt(dropX)}
             disabled={disabled}
-            className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-emerald-200/30 bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(16,185,129,0.26)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            Neste drop
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={startDrop}
-            disabled={disabled || phase !== 'ready'}
-            className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-blue-200/30 bg-gradient-to-r from-blue-500 via-emerald-500 to-lime-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(59,130,246,0.26)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-fuchsia-200/30 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-blue-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.28)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             Slipp
           </button>
         )}
-        {phase === 'finished' && (
+        {phase === 'betweenBoards' && (
           <button
             type="button"
-            onClick={resetAttempt}
+            onClick={finishCurrentBoard}
             disabled={disabled}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-quiz-border bg-quiz-surface-elevated px-5 py-3 text-base font-bold text-quiz-text transition-colors hover:border-quiz-accent/60 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-emerald-200/30 bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(16,185,129,0.26)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
-            Prøv igjen
+            {boardIndex + 1 >= config.totalRounds ? 'Send inn forsøk' : 'Neste brett'}
           </button>
         )}
+        <button
+          type="button"
+          onClick={resetAttempt}
+          disabled={disabled}
+          className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-quiz-border bg-quiz-surface-elevated px-5 py-3 text-base font-bold text-quiz-text transition-colors hover:border-quiz-accent/60 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+        >
+          Start på nytt
+        </button>
       </div>
     </div>
   );

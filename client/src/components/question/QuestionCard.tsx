@@ -174,7 +174,7 @@ export function QuestionCard({
                 : question.game.gameId === 'emojiHunt'
                   ? `Emoji-jakt: finn ${question.game.targetCount} emoji raskest mulig.`
                   : question.game.gameId === 'dropBall'
-                    ? `Drop Ball: ${question.game.totalRounds} drops, høyeste totalscore vinner.`
+                    ? `Drop Ball: ${question.game.totalRounds} brett med hindre, mynter og lufttidspoeng.`
                   : question.game.gameId === 'anagram'
                     ? `Anagram: ${question.game.scrambledText || 'ikke satt'} · fasit ${question.game.answerText || '—'}`
                     : question.game.gameId === 'mathExpression'

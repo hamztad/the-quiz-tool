@@ -2,6 +2,7 @@ import {
   buildAnagramResults,
   buildDropBallResults,
   clampDropBallScore,
+  sanitizeDropBallRounds,
   buildEmojiHuntResults,
   buildMathExpressionResults,
   buildRainbowPuzzleResults,
@@ -147,10 +148,15 @@ export function submitGameResult(
     if (!isDropBallSubmissionPayload(payload)) {
       throw new Error('Ugyldig spillinnsending.');
     }
+    const rounds = sanitizeDropBallRounds(payload.rounds, question.game);
+    const score =
+      rounds.length > 0
+        ? rounds.reduce((sum, roundResult) => sum + roundResult.score, 0)
+        : clampDropBallScore(payload.score, question.game);
     submissionPayload = {
       gameId: 'dropBall',
-      score: clampDropBallScore(payload.score, question.game),
-      rounds: payload.rounds,
+      score: clampDropBallScore(score, question.game),
+      rounds,
     };
   } else if (question.game.gameId === 'emojiHunt') {
     if (!isEmojiHuntSubmissionPayload(payload)) {
