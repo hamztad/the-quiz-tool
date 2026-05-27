@@ -36,6 +36,15 @@ describe('anagram', () => {
     expect(validateAnagramAnswerText('TO TRE FIRE FEM SEKS').ok).toBe(false);
   });
 
+  it('warns when a word exceeds recommended length per word', () => {
+    const short = validateAnagramAnswerText('DET ER FINT');
+    expect(short.warnings).toEqual([]);
+
+    const long = validateAnagramAnswerText('KARAKTER');
+    expect(long.ok).toBe(true);
+    expect(long.warnings.some((w) => w.includes('7 bokstaver per ord'))).toBe(true);
+  });
+
   it('normalizes answers case, spaces and punctuation', () => {
     expect(normalizeAnagramAnswer('  Ære,  ØL!  ÅS  ')).toBe('ære øl ås');
     expect(isAnagramAnswerCorrect('det   er fint!', 'DET ER FINT')).toBe(true);

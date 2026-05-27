@@ -439,7 +439,7 @@ export function HostEditPage() {
   const editorSection = (
         <section
           ref={editorEntryRef}
-          className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden box-border"
+          className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 min-w-0 max-w-full overflow-hidden box-border"
         >
           <div className="rounded-xl bg-quiz-bg/60 border border-quiz-accent/20 p-4 mb-6 min-w-0 max-w-full overflow-hidden">
             <p className="text-sm font-medium text-quiz-text mb-3">Legg til spørsmål</p>
@@ -557,13 +557,13 @@ export function HostEditPage() {
   );
 
   const aiSection = roomId ? (
-    <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden box-border">
+    <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 min-w-0 max-w-full overflow-hidden box-border">
       <HostAiGeneratePanel roomId={roomId} onGenerated={applyAiGeneratedQuestions} />
     </section>
   ) : null;
 
   const tekstSection = (
-        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 mb-28 min-w-0 max-w-full overflow-hidden box-border">
+        <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 min-w-0 max-w-full overflow-hidden box-border">
           <QuickImportPanel
             importText={importText}
             onImportTextChange={setImportText}
@@ -591,6 +591,7 @@ export function HostEditPage() {
 
   const phaseLinks =
     roomId && draftQuestions.length > 0 ? { present: `/host/${roomId}/present` } : undefined;
+  const showEditFooter = draftQuestions.length > 0;
 
   return (
     <PageShell title="Bygg quiz" subtitle={pageSubtitle}>
@@ -665,8 +666,15 @@ export function HostEditPage() {
         </>
       )}
 
-      {draftQuestions.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 w-full max-w-full min-w-0 overflow-x-hidden border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md">
+      {showEditFooter && (
+        <div
+          className="h-44 sm:h-32 shrink-0"
+          aria-hidden
+        />
+      )}
+
+      {showEditFooter && (
+        <div className="fixed inset-x-0 bottom-0 z-20 w-full max-w-full min-w-0 overflow-x-hidden border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md pb-[env(safe-area-inset-bottom,0px)]">
           <div className="mx-auto w-full min-w-0 max-w-full box-border px-4 py-4 md:max-w-4xl">
             <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col gap-3 md:max-w-none sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm min-w-0 flex-1 break-words">

@@ -216,6 +216,7 @@ function buildRepairPrompt(params: AiGenerateQuizRequest, invalidJson: string, e
 - Ikke inkluder unsupported game types
 - Spillnavn må være nøyaktige: Rainbow Puzzle, Emoji-jakt, Drop the Ball, Regnerace, Løs anagrammet
 - Anagram må være et ekte etablert ord/navn/uttrykk, og krever anagramKind + anagramEvidence
+- Anagram: maks 7 bokstaver per ord (kortere ord/fraser) — lengre ord gir små fliser og linjebryt
 - Hvis du ikke er helt sikker på anagrammet, bruk mathRace i slot 4`
       : `
 - type må følge ønsket spørsmålstype: ${params.questionStyle}
@@ -306,7 +307,7 @@ function systemMessageForStyle(style: AiGenerateQuizRequest['questionStyle']): s
     return `${base} Alle spørsmål skal ha type "mc" — aldri "open".`;
   }
   if (style === 'quizPackage') {
-    return `${base} Lag en Quizpakke med nøyaktig fem oppgaver i fast slot-rekkefølge: open, multipleChoice, ordering, puzzle, game. Ikke bruk andre spill enn de som er oppgitt. Spillnavn må være kanoniske: Rainbow Puzzle, Emoji-jakt, Drop the Ball, Regnerace, Løs anagrammet. Anagram må være et ekte etablert ord/navn/uttrykk, aldri et oppfunnet ord; velg mathRace hvis du er usikker.`;
+    return `${base} Lag en Quizpakke med nøyaktig fem oppgaver i fast slot-rekkefølge: open, multipleChoice, ordering, puzzle, game. Ikke bruk andre spill enn de som er oppgitt. Spillnavn må være kanoniske: Rainbow Puzzle, Emoji-jakt, Drop the Ball, Regnerace, Løs anagrammet. Anagram må være et ekte etablert ord/navn/uttrykk, aldri et oppfunnet ord; maks 7 bokstaver per ord; velg mathRace hvis du er usikker.`;
   }
   return `${base} Quizen skal blande type "open" og "mc" som angitt.`;
 }

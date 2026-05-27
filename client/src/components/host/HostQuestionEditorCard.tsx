@@ -4,10 +4,10 @@ import type {
   DropBallConfig,
   EmojiHuntConfig,
   GamePointBand,
-  MediaAttachment,
   MathExpressionConfig,
   MathExpressionRaceConfig,
   MathExpressionSingleConfig,
+  McOption,
   OrderingItem,
   Question,
   TimerChallengeConfig,
@@ -18,6 +18,7 @@ import {
   validateAnagramAnswerText,
   validateMathExpression,
   validateMathExpressionConfig,
+  choiceItemHasContent,
 } from '@quiz-tool/shared';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
@@ -30,9 +31,9 @@ import {
 } from '../../lib/questionFactory';
 import type { HostQuestionDisplayStatus } from '../../lib/questionDisplayStatus';
 import { generateId } from '../../lib/id';
-import { searchPixabayImages, type PixabayImageResult } from '../../lib/pixabayApi';
-import { getHostSession } from '../../lib/tokens';
 import { SortableOrderingList } from '../ordering/SortableOrderingList';
+import { OrderingChoiceEditorFields } from '../ordering/OrderingChoiceEditorFields';
+import { PixabayImagePicker } from '../media/PixabayImagePicker';
 
 interface HostQuestionEditorCardProps {
   question: Question;
@@ -208,9 +209,9 @@ export function HostQuestionEditorCard({
           {question.type === 'open' ? (
             <OpenAnswersEditor question={question} onChange={onChange} />
           ) : question.type === 'mc' ? (
-            <McOptionsEditor question={question} onChange={onChange} />
+            <McOptionsEditor question={question} onChange={onChange} roomId={roomId} />
           ) : question.type === 'ordering' ? (
-            <OrderingQuestionEditor question={question} onChange={onChange} />
+            <OrderingQuestionEditor question={question} onChange={onChange} roomId={roomId} />
           ) : (
             <GameQuestionEditor question={question} onChange={onChange} />
           )}
@@ -298,292 +299,17 @@ function ImageAttachmentEditor({
   onChange: (q: Question) => void;
   roomId?: string;
 }) {
-  const [error, setError] = useState<string | null>(null);
-  const [pixabayQuery, setPixabayQuery] = useState('');
-  const [pixabayLoading, setPixabayLoading] = useState<'nb' | 'en' | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [pixabayResults, setPixabayResults] = useState<PixabayImageResult[]>([]);
-  const [resultsVisible, setResultsVisible] = useState(false);
-  const [searchNotice, setSearchNotice] = useState<string | null>(null);
-  const [activeSearch, setActiveSearch] = useState<{
-    query: string;
-    language: 'nb' | 'en';
-    page: number;
-    hasMore: boolean;
-  } | null>(null);
-  const [noMoreResults, setNoMoreResults] = useState(false);
   const image = question.media?.find((m) => m.type === 'image');
 
-  const attachImage = (media: MediaAttachment) => {
-    onChange({ ...question, media: [media] });
-    setError(null);
-  };
-
-  const removeImage = () => {
-    onChange({ ...question, media: undefined });
-    setPixabayResults([]);
-    setError(null);
-  };
-
-  const updateAlt = (alt: string) => {
-    if (!image) return;
-    attachImage({ ...image, alt });
-  };
-
-  const handlePixabaySearch = async (language: 'nb' | 'en') => {
-    const query = pixabayQuery.trim();
-    if (!roomId || query.length < 2) {
-      setError('Skriv minst to tegn for å søke etter bilde.');
-      return;
-    }
-    const session = getHostSession(roomId);
-    if (!session) {
-      setError('Fant ikke quizmaster-økt. Oppdater siden og prøv igjen.');
-      return;
-    }
-
-    setPixabayLoading(language);
-    setError(null);
-    setSearchNotice(null);
-    setNoMoreResults(false);
-    try {
-      const response = await searchPixabayImages(session, query, language, 1);
-      setPixabayResults(response.results);
-      setResultsVisible(response.results.length > 0);
-      setActiveSearch({ query, language, page: response.page, hasMore: response.hasMore });
-      if (response.translatedQuery) {
-        setSearchNotice(`Oversatt søk: ${response.translatedQuery}`);
-      } else if (response.notice) {
-        setSearchNotice(response.notice);
-      }
-      if (response.results.length === 0) {
-        setError('Fant ingen bilder på Pixabay for dette søket.');
-        setNoMoreResults(true);
-      }
-    } catch (err) {
-      setPixabayResults([]);
-      setError(err instanceof Error ? err.message : 'Kunne ikke søke etter bilder.');
-    } finally {
-      setPixabayLoading(null);
-    }
-  };
-
-  const loadMorePixabayResults = async () => {
-    if (!roomId || !activeSearch || !activeSearch.hasMore) return;
-    const session = getHostSession(roomId);
-    if (!session) {
-      setError('Fant ikke quizmaster-økt. Oppdater siden og prøv igjen.');
-      return;
-    }
-
-    setLoadingMore(true);
-    setError(null);
-    try {
-      const nextPage = activeSearch.page + 1;
-      const response = await searchPixabayImages(
-        session,
-        activeSearch.query,
-        activeSearch.language,
-        nextPage,
-      );
-      setPixabayResults((current) => {
-        const seen = new Set(current.map((r) => r.id));
-        const appended = response.results.filter((r) => !seen.has(r.id));
-        return [...current, ...appended];
-      });
-      setActiveSearch({
-        query: activeSearch.query,
-        language: activeSearch.language,
-        page: response.page,
-        hasMore: response.hasMore,
-      });
-      if (response.results.length === 0 || !response.hasMore) {
-        setNoMoreResults(true);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kunne ikke laste flere bilder.');
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
-  const attachPixabay = (result: PixabayImageResult) => {
-    attachImage({
-      type: 'image',
-      url: result.imageUrl,
-      previewUrl: result.previewUrl,
-      alt: result.tags,
-      source: 'pixabay',
-      photographer: result.photographer,
-      pageUrl: result.pageUrl,
-    });
-    setResultsVisible(false);
-  };
-
   return (
-    <section className="rounded-lg border border-quiz-border bg-quiz-bg p-3 space-y-3 min-w-0 max-w-full overflow-hidden">
-      <div>
-        <p className="text-xs font-semibold text-quiz-text">Søk bilde fra Pixabay</p>
-        <p className="mt-1 text-xs text-quiz-muted">
-          Velg et bilde fra Pixabay. Kilde og fotograf lagres automatisk med spørsmålet.
-        </p>
-      </div>
-
-      {image && (
-        <figure className="rounded-xl border border-quiz-border/70 bg-quiz-surface/60 p-3">
-          <img
-            src={image.url}
-            alt={image.alt ?? ''}
-            className="max-h-56 max-w-full rounded-lg object-contain"
-          />
-          {image.source === 'pixabay' && (
-            <figcaption className="mt-2 text-xs text-quiz-muted break-words">
-              Bilde fra Pixabay
-              {image.photographer ? ` · ${image.photographer}` : ''}
-              {image.pageUrl ? (
-                <>
-                  {' · '}
-                  <a
-                    href={image.pageUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-quiz-accent hover:underline"
-                  >
-                    Kilde
-                  </a>
-                </>
-              ) : null}
-            </figcaption>
-          )}
-          <div className="mt-3 space-y-2">
-            <Input
-              value={image.alt ?? ''}
-              onChange={(e) => updateAlt(e.target.value)}
-              placeholder="Alt-tekst / kort bildebeskrivelse"
-              className="text-sm"
-            />
-            <Button type="button" variant="ghost" size="sm" onClick={removeImage}>
-              Fjern bilde
-            </Button>
-          </div>
-        </figure>
-      )}
-
-      <div className="space-y-3 rounded-xl border border-quiz-border/60 bg-quiz-surface/40 p-3">
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input
-            value={pixabayQuery}
-            onChange={(e) => setPixabayQuery(e.target.value)}
-            placeholder="Søk på norsk eller engelsk"
-            className="text-sm"
-          />
-        </div>
-        <p className="-mt-1 text-xs text-quiz-muted">
-          Norske søk oversettes til engelsk før bildesøk.
-        </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="w-full"
-            onClick={() => handlePixabaySearch('nb')}
-            disabled={pixabayLoading !== null}
-          >
-            {pixabayLoading === 'nb' ? 'Søker…' : '🇳🇴 Søk norsk'}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="w-full"
-            onClick={() => handlePixabaySearch('en')}
-            disabled={pixabayLoading !== null}
-          >
-            {pixabayLoading === 'en' ? 'Searching…' : '🇬🇧 Search English'}
-          </Button>
-        </div>
-
-        {searchNotice && (
-          <p className="text-xs text-quiz-muted break-words" role="status">
-            {searchNotice}
-          </p>
-        )}
-
-        {pixabayResults.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-medium text-quiz-muted">
-                {pixabayResults.length} bilder funnet
-              </p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="w-full sm:w-auto"
-                onClick={() => setResultsVisible((current) => !current)}
-              >
-                {resultsVisible ? 'Skjul søkeresultater' : 'Vis søkeresultater'}
-              </Button>
-            </div>
-
-            {resultsVisible && (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {pixabayResults.map((result) => (
-                  <button
-                    key={result.id}
-                    type="button"
-                    className={`min-w-0 rounded-xl border p-2 text-left hover:border-quiz-accent ${
-                      image?.url === result.imageUrl
-                        ? 'border-quiz-accent bg-quiz-accent/10'
-                        : 'border-quiz-border bg-quiz-bg'
-                    }`}
-                    onClick={() => attachPixabay(result)}
-                    aria-pressed={image?.url === result.imageUrl}
-                  >
-                    <img
-                      src={result.previewUrl || result.imageUrl}
-                      alt={result.tags}
-                      className="mx-auto h-20 w-full max-w-32 rounded-lg object-cover sm:h-24"
-                    />
-                    <span className="mt-2 block text-xs font-medium text-quiz-text">
-                      Velg bilde
-                    </span>
-                    <span className="block text-[11px] leading-snug text-quiz-muted break-words">
-                      Bilde fra Pixabay{result.photographer ? ` · ${result.photographer}` : ''}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {resultsVisible && activeSearch && (
-              <div className="pt-1">
-                {noMoreResults || !activeSearch.hasMore ? (
-                  <p className="text-xs text-quiz-muted">Ingen flere treff</p>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    onClick={loadMorePixabayResults}
-                    disabled={loadingMore}
-                  >
-                    {loadingMore ? 'Laster flere bilder...' : 'Vis flere bilder'}
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <p className="text-sm text-red-300 break-words" role="alert">
-          {error}
-        </p>
-      )}
+    <section className="rounded-lg border border-quiz-border bg-quiz-bg p-3 min-w-0 max-w-full overflow-hidden">
+      <PixabayImagePicker
+        roomId={roomId}
+        media={image}
+        onMediaChange={(media) => onChange({ ...question, media: media ? [media] : undefined })}
+        label="Søk bilde fra Pixabay"
+        hint="Valgfritt bilde til spørsmålsteksten. Kilde og fotograf lagres automatisk."
+      />
     </section>
   );
 }
@@ -905,8 +631,9 @@ function GameQuestionEditor({
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
         <div>
           <p className="text-xs font-semibold text-amber-200">Spill: Anagram</p>
-          <p className="mt-1 text-xs text-quiz-muted">
-            Lagene løser et stokket ord eller en kort frase. Riktig svar gir poeng.
+          <p className="mt-1 text-xs text-quiz-muted leading-relaxed">
+            Deltakerne løser et stokket ord eller en kort frase. Riktig svar gir poeng. Anbefalt
+            maks 7 bokstaver per ord — lengre ord gir små fliser og brytes over flere linjer.
           </p>
         </div>
         <label className="block min-w-0">
@@ -917,7 +644,7 @@ function GameQuestionEditor({
             type="text"
             value={config.answerText}
             onChange={(event) => updateAnswer(event.target.value)}
-            placeholder="F.eks. DET ER FINT"
+            placeholder="F.eks. DET ER FINT (maks 7 bokstaver per ord)"
             className="bg-quiz-bg py-2 min-h-[44px]"
           />
         </label>
@@ -1295,9 +1022,11 @@ function MathRaceEditor({
 function McOptionsEditor({
   question,
   onChange,
+  roomId,
 }: {
   question: Question;
   onChange: (q: Question) => void;
+  roomId?: string;
 }) {
   const options = question.options ?? [];
 
@@ -1305,6 +1034,13 @@ function McOptionsEditor({
     onChange({
       ...question,
       options: options.map((o) => (o.id === id ? { ...o, text } : o)),
+    });
+  };
+
+  const setOptionMedia = (id: string, media: McOption['media']) => {
+    onChange({
+      ...question,
+      options: options.map((o) => (o.id === id ? { ...o, media } : o)),
     });
   };
 
@@ -1335,38 +1071,53 @@ function McOptionsEditor({
   return (
     <div className="rounded-lg border border-quiz-border bg-quiz-bg p-3 space-y-2 min-w-0 max-w-full overflow-x-hidden">
       <p className="text-xs font-semibold text-quiz-text">Svaralternativer — trykk for riktig</p>
+      <p className="text-xs text-quiz-muted">
+        Tekst og/eller bilde per alternativ. Bilder skaleres for mobil og stor skjerm.
+      </p>
       {options.map((opt, i) => (
-        <div key={opt.id} className="flex gap-1.5 items-start min-w-0">
-          <button
-            type="button"
-            onClick={() => setCorrect(opt.id)}
-            className={`shrink-0 h-11 w-11 rounded-full border-2 text-xs font-bold transition-colors ${
-              opt.isCorrect
-                ? 'border-green-500 bg-green-500/25 text-green-200'
-                : 'border-quiz-border text-quiz-muted hover:border-quiz-muted'
-            }`}
-            title="Riktig svar"
-          >
-            {opt.isCorrect ? '✓' : i + 1}
-          </button>
-          <EditorTextArea
-            value={opt.text}
-            onChange={(e) => setOptionText(opt.id, e.target.value)}
-            placeholder={`Alternativ ${i + 1}…`}
-            minRows={1}
-            className="flex-1 min-w-0 bg-quiz-surface py-2 text-sm"
+        <div
+          key={opt.id}
+          className="space-y-2 rounded-xl border border-quiz-border/60 bg-quiz-surface/30 p-2 min-w-0"
+        >
+          <div className="flex gap-1.5 items-start min-w-0">
+            <button
+              type="button"
+              onClick={() => setCorrect(opt.id)}
+              className={`shrink-0 h-11 w-11 rounded-full border-2 text-xs font-bold transition-colors ${
+                opt.isCorrect
+                  ? 'border-green-500 bg-green-500/25 text-green-200'
+                  : 'border-quiz-border text-quiz-muted hover:border-quiz-muted'
+              }`}
+              title="Riktig svar"
+            >
+              {opt.isCorrect ? '✓' : i + 1}
+            </button>
+            <EditorTextArea
+              value={opt.text}
+              onChange={(e) => setOptionText(opt.id, e.target.value)}
+              placeholder={`Alternativ ${i + 1}… (valgfritt med bilde)`}
+              minRows={1}
+              className="flex-1 min-w-0 bg-quiz-surface py-2 text-sm"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0 min-h-[44px] min-w-[44px] px-0"
+              onClick={() => removeOption(opt.id)}
+              disabled={options.length <= 2}
+              aria-label="Fjern alternativ"
+            >
+              ×
+            </Button>
+          </div>
+          <PixabayImagePicker
+            roomId={roomId}
+            media={opt.media}
+            onMediaChange={(media) => setOptionMedia(opt.id, media)}
+            compact
+            label={`Bilde for alternativ ${i + 1}`}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="shrink-0 min-h-[44px] min-w-[44px] px-0"
-            onClick={() => removeOption(opt.id)}
-            disabled={options.length <= 2}
-            aria-label="Fjern alternativ"
-          >
-            ×
-          </Button>
         </div>
       ))}
       <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={addOption}>
@@ -1379,16 +1130,21 @@ function McOptionsEditor({
 function OrderingQuestionEditor({
   question,
   onChange,
+  roomId,
 }: {
   question: Question;
   onChange: (q: Question) => void;
+  roomId?: string;
 }) {
   const items = question.orderingItems ?? [];
   const order = question.orderingCorrectOrder ?? items.map((item) => item.id);
   const canAdd = items.length < 5;
   const canRemove = items.length > 3;
-  const trimmedTexts = items.map((item) => item.text.trim().toLocaleLowerCase('nb')).filter(Boolean);
+  const trimmedTexts = items
+    .map((item) => item.text.trim().toLocaleLowerCase('nb'))
+    .filter(Boolean);
   const hasDuplicateTexts = new Set(trimmedTexts).size !== trimmedTexts.length;
+  const hasEmptyItems = items.some((item) => !choiceItemHasContent(item));
 
   const setItemsAndOrder = (nextItems: OrderingItem[], nextOrder = order) => {
     const itemIds = new Set(nextItems.map((item) => item.id));
@@ -1403,6 +1159,10 @@ function OrderingQuestionEditor({
 
   const updateItemText = (id: string, text: string) => {
     setItemsAndOrder(items.map((item) => (item.id === id ? { ...item, text } : item)));
+  };
+
+  const updateItemMedia = (id: string, media: OrderingItem['media']) => {
+    setItemsAndOrder(items.map((item) => (item.id === id ? { ...item, media } : item)));
   };
 
   const addItem = () => {
@@ -1424,8 +1184,8 @@ function OrderingQuestionEditor({
       <div>
         <p className="text-xs font-semibold text-quiz-text">Rekkefølge — fasit er topp til bunn</p>
         <p className="mt-1 text-xs text-quiz-muted">
-          Dra elementene i riktig vertikal rekkefølge. Lagene får elementene tilfeldig stokket når
-          de svarer.
+          Dra elementene i riktig vertikal rekkefølge. Deltakerne får dem tilfeldig stokket. Hvert
+          element kan ha tekst og/eller bilde.
         </p>
       </div>
 
@@ -1462,31 +1222,25 @@ function OrderingQuestionEditor({
         bottomLabel={question.orderingDirectionBottom || 'Nederst'}
         dragHandleLabel="Dra fasit-element"
         getItemContent={(item, index) => (
-          <div className="flex min-h-[52px] items-start gap-2">
-            <EditorTextArea
-              value={item.text}
-              onChange={(event) => updateItemText(item.id, event.target.value)}
-              placeholder={`Element ${index + 1}…`}
-              minRows={1}
-              className="min-w-0 flex-1 bg-quiz-surface py-2 text-sm"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="min-h-[44px] min-w-[44px] shrink-0 px-0"
-              onClick={() => removeItem(item.id)}
-              disabled={!canRemove}
-              aria-label="Fjern element"
-            >
-              ×
-            </Button>
-          </div>
+          <OrderingChoiceEditorFields
+            item={item}
+            index={index}
+            roomId={roomId}
+            canRemove={canRemove}
+            onTextChange={(text) => updateItemText(item.id, text)}
+            onMediaChange={(media) => updateItemMedia(item.id, media)}
+            onRemove={() => removeItem(item.id)}
+          />
         )}
       />
 
+      {hasEmptyItems && (
+        <p className="text-xs font-medium text-yellow-200">
+          Hvert element trenger tekst eller bilde.
+        </p>
+      )}
       {hasDuplicateTexts && (
-        <p className="text-xs font-medium text-yellow-200">Elementene må være unike.</p>
+        <p className="text-xs font-medium text-yellow-200">Tekstene må være unike.</p>
       )}
 
       <div className="flex flex-wrap items-center gap-2">

@@ -26,7 +26,7 @@ export function redactQuestionForTeam(question: Question, revealed: boolean): Qu
     orderingDirectionBottom: undefined,
     options:
       question.type === 'mc'
-        ? question.options?.map((o) => ({ ...o, text: '' }))
+        ? question.options?.map((o) => ({ ...o, text: '', media: undefined }))
         : undefined,
     gameType: undefined,
     game: undefined,

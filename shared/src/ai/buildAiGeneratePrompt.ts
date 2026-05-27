@@ -33,6 +33,7 @@ function buildStyleBlock(style: AiQuizQuestionStyle, count: number): string {
 - Velg helst "mathRace" i slot 4 hvis du ikke har et helt sikkert anagram.
 - Hvis puzzleType er "anagram", må answerText være et ekte, etablert norsk ord, egennavn, sted, tittel eller etablert uttrykk — aldri et konstruert/non-word, aldri blanding av engelsk/norsk.
 - Anagram krever også "anagramKind" og "anagramEvidence". Hvis du er usikker på om ordet faktisk finnes, bruk "mathRace" i stedet.
+- Anagram: bruk maks 7 bokstaver per ord (ikke lengre enkeltord) — ellers blir flisene små og ord brytes over flere linjer i spillet.
 
 JSON-eksempel (bruk disse feltene):
 {

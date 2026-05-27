@@ -1,4 +1,6 @@
 export * from './types/room.js';
+export * from './media/mediaAttachment.js';
+export * from './choice/choiceItem.js';
 export * from './joinCodes/joinCode.js';
 export * from './teamQuestionVisibility.js';
 export * from './teamName.js';

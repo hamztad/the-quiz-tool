@@ -1,4 +1,5 @@
 import { getOrderingItemsById, parseOrderingAnswer, type Question } from '@quiz-tool/shared';
+import { OrderingChoiceContent } from './OrderingChoiceContent';
 
 interface OrderingComparisonProps {
   question: Question;
@@ -29,9 +30,11 @@ export function OrderingComparison({ question, submittedValue }: OrderingCompari
                 }`}
               >
                 <span className="shrink-0 font-black tabular-nums">{index + 1}</span>
-                <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
-                  {itemsById.get(itemId)?.text ?? itemId}
-                </span>
+                {itemsById.get(itemId) ? (
+                  <OrderingChoiceContent item={itemsById.get(itemId)!} variant="comparison" />
+                ) : (
+                  <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{itemId}</span>
+                )}
                 {compare && (
                   <span className="shrink-0 text-xs font-bold">{correct ? '✓' : '✕'}</span>
                 )}

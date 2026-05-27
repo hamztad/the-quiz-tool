@@ -1,4 +1,5 @@
-import { formatOrderingOrder, type Question, type QuestionStatus } from '@quiz-tool/shared';
+import { formatOrderingOrder, getChoiceItemLabel, type Question, type QuestionStatus } from '@quiz-tool/shared';
+import { ChoiceMediaDisplay } from '../media/ChoiceMediaDisplay';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { HostQuestionStatusBadge } from '../host/HostQuestionStatusBadge';
@@ -131,8 +132,11 @@ export function QuestionCard({
                     }`}
                   >
                     <span className="shrink-0 font-semibold tabular-nums">{marker}.</span>
+                    {option.media && (
+                      <ChoiceMediaDisplay media={option.media} variant="comparison-row" />
+                    )}
                     <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
-                      {option.text}
+                      {getChoiceItemLabel(option)}
                     </span>
                     {option.isCorrect && (
                       <span className="shrink-0 rounded-full border border-green-500/40 bg-green-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-200">

@@ -30,11 +30,13 @@ export interface McOption {
   id: string;
   text: string;
   isCorrect: boolean;
+  media?: MediaAttachment;
 }
 
 export interface OrderingItem {
   id: string;
   text: string;
+  media?: MediaAttachment;
 }
 
 export interface Question {

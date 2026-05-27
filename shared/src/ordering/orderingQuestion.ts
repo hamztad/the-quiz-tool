@@ -1,3 +1,4 @@
+import { choiceItemHasContent, getChoiceItemLabel } from '../media/mediaAttachment.js';
 import type { OrderingItem, Question, ScoreEntry } from '../types/room.js';
 
 export const ORDERING_MIN_ITEMS = 3;
@@ -23,18 +24,20 @@ export function validateOrderingQuestion(question: Pick<Question, 'orderingItems
     if (!item.id.trim()) {
       errors.push('rekkefølge har et element uten id.');
     }
-    if (!text) {
-      errors.push('rekkefølge har tomme elementer.');
+    if (!choiceItemHasContent(item)) {
+      errors.push('rekkefølge har tomme elementer (tekst eller bilde).');
     }
     if (ids.has(item.id)) {
       errors.push('rekkefølge har dupliserte element-id-er.');
     }
     ids.add(item.id);
-    const lowerText = text.toLocaleLowerCase('nb');
-    if (normalizedTexts.has(lowerText)) {
-      errors.push('rekkefølge må ha unike elementer.');
+    if (text) {
+      const lowerText = text.toLocaleLowerCase('nb');
+      if (normalizedTexts.has(lowerText)) {
+        errors.push('rekkefølge må ha unike elementer.');
+      }
+      normalizedTexts.add(lowerText);
     }
-    normalizedTexts.add(lowerText);
   }
 
   if (correctOrder.length !== items.length) {
@@ -103,7 +106,10 @@ export function getOrderingItemsById(items: OrderingItem[] = []): Map<string, Or
 export function formatOrderingOrder(question: Question, order: string[] | undefined): string {
   const itemsById = getOrderingItemsById(question.orderingItems);
   return (order ?? [])
-    .map((id, index) => `${index + 1}. ${itemsById.get(id)?.text ?? id}`)
+    .map((id, index) => {
+      const item = itemsById.get(id);
+      return `${index + 1}. ${item ? getChoiceItemLabel(item, id) : id}`;
+    })
     .join('\n');
 }
 

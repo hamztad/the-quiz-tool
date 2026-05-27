@@ -7,6 +7,8 @@ import type {
 
 export const ANAGRAM_MAX_WORDS = 4;
 export const ANAGRAM_MAX_LETTERS = 20;
+/** Anbefalt maks per ord — lengre ord gir små fliser og linjebryt i spillet. */
+export const ANAGRAM_RECOMMENDED_MAX_LETTERS_PER_WORD = 7;
 
 export interface AnagramValidationResult {
   ok: boolean;
@@ -66,8 +68,15 @@ export function validateAnagramAnswerText(value: string): AnagramValidationResul
   if (letterCount > ANAGRAM_MAX_LETTERS) errors.push(`Maks ${ANAGRAM_MAX_LETTERS} bokstaver totalt.`);
 
   for (const word of words) {
-    if (lettersOnly(word).length < 2) {
+    const wordLetters = lettersOnly(word).length;
+    if (wordLetters < 2) {
       errors.push('Hvert ord må ha minst 2 bokstaver.');
+      break;
+    }
+    if (wordLetters > ANAGRAM_RECOMMENDED_MAX_LETTERS_PER_WORD) {
+      warnings.push(
+        `Anbefalt maks ${ANAGRAM_RECOMMENDED_MAX_LETTERS_PER_WORD} bokstaver per ord — lengre ord gir små fliser, linjebryt og blir vanskelig å spille.`,
+      );
       break;
     }
   }

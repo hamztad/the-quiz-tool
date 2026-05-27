@@ -1,4 +1,5 @@
 import {
+  choiceItemHasContent,
   createDefaultAnagramConfig,
   createDefaultDropBallConfig,
   createDefaultEmojiHuntConfig,
@@ -185,12 +186,16 @@ export function isQuestionIncomplete(question: Question): boolean {
   if (question.type === 'ordering') {
     const items = question.orderingItems ?? [];
     const correctOrder = question.orderingCorrectOrder ?? [];
-    const nonEmptyItems = items.filter((item) => item.text.trim());
-    const uniqueTexts = new Set(nonEmptyItems.map((item) => item.text.trim().toLocaleLowerCase('nb')));
+    const filledItems = items.filter((item) => choiceItemHasContent(item));
+    const uniqueTexts = new Set(
+      filledItems
+        .map((item) => item.text.trim().toLocaleLowerCase('nb'))
+        .filter(Boolean),
+    );
     return (
       items.length < 3 ||
       items.length > 5 ||
-      nonEmptyItems.length !== items.length ||
+      filledItems.length !== items.length ||
       uniqueTexts.size !== items.length ||
       correctOrder.length !== items.length ||
       !correctOrder.every((id) => items.some((item) => item.id === id))
@@ -200,7 +205,7 @@ export function isQuestionIncomplete(question: Question): boolean {
   const options = question.options ?? [];
   if (options.length < 2) return true;
   if (!options.some((o) => o.isCorrect)) return true;
-  if (options.some((o) => !o.text.trim())) return true;
+  if (options.some((o) => !choiceItemHasContent(o))) return true;
   return false;
 }
 
@@ -220,13 +225,16 @@ export function normalizeQuestionsForSave(questions: Question[]): Question[] {
         : undefined,
     options:
       q.type === 'mc'
-        ? q.options?.map((o) => ({ ...o, text: o.text.trim() || 'Alternativ' }))
+        ? q.options?.map((o) => ({
+            ...o,
+            text: o.text.trim() || (o.media?.url ? '' : 'Alternativ'),
+          }))
         : undefined,
     orderingItems:
       q.type === 'ordering'
         ? q.orderingItems?.map((item, itemIndex) => ({
             ...item,
-            text: item.text.trim() || `Element ${itemIndex + 1}`,
+            text: item.text.trim() || (item.media?.url ? '' : `Element ${itemIndex + 1}`),
           }))
         : undefined,
     orderingCorrectOrder: q.type === 'ordering' ? q.orderingCorrectOrder : undefined,

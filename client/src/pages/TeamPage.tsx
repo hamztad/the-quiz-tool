@@ -24,7 +24,9 @@ import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import { formatTeamAnswerDisplay } from '../lib/teamAnswerDisplay';
 import { TeamGameView } from '../games/registry';
+import { OrderingChoiceContent } from '../components/ordering/OrderingChoiceContent';
 import { SortableOrderingList } from '../components/ordering/SortableOrderingList';
+import { McOptionButtonContent } from '../components/question/McOptionButtonContent';
 import { TestModeBanner } from '../components/test/TestModeBanner';
 
 const HIGHLIGHT_MS = 5000;
@@ -559,22 +561,25 @@ export function TeamPage() {
                     topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
                     bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
                     dragHandleLabel="Dra svar"
+                    getItemContent={(item) => (
+                      <OrderingChoiceContent item={item} variant="participant" />
+                    )}
                   />
                 </div>
               ) : (
-                <div className="mt-4 space-y-2 min-w-0 max-w-full">
+                <div className="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-2 sm:grid-cols-2">
                   {activeQuestion.options?.map((opt) => (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => updateActiveAnswer(opt.id)}
-                      className={`box-border w-full min-w-0 max-w-full rounded-xl border px-4 py-3 text-left min-h-[44px] transition-colors quiz-user-text ${
+                      className={`box-border flex w-full min-w-0 max-w-full flex-col items-stretch justify-center rounded-xl border px-3 py-3 text-left min-h-[3.25rem] transition-colors quiz-user-text sm:min-h-[4.5rem] ${
                         answerText === opt.id
                           ? 'border-quiz-accent bg-quiz-accent/20'
                           : 'border-quiz-border bg-quiz-surface-elevated'
                       }`}
                     >
-                      {opt.text}
+                      <McOptionButtonContent option={opt} />
                     </button>
                   ))}
                 </div>

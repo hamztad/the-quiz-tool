@@ -2,6 +2,7 @@ import type { GameQuestionConfig } from '../games/types.js';
 import { validateAnagramAnswerText } from '../games/modules/anagram.js';
 import { isValidDropBallConfig } from '../games/modules/dropBall.js';
 import { validateMathExpressionConfig } from '../games/modules/mathExpression.js';
+import { isMediaAttachment } from '../media/mediaAttachment.js';
 import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
 import type { Question, QuestionType } from '../types/room.js';
 
@@ -45,30 +46,17 @@ function isMcOption(value: unknown): boolean {
   return (
     typeof value.id === 'string' &&
     typeof value.text === 'string' &&
-    typeof value.isCorrect === 'boolean'
+    typeof value.isCorrect === 'boolean' &&
+    (value.media === undefined || isMediaAttachment(value.media))
   );
 }
 
 function isOrderingItem(value: unknown): boolean {
   if (!isRecord(value)) return false;
-  return typeof value.id === 'string' && typeof value.text === 'string';
-}
-
-function isMediaAttachment(value: unknown): boolean {
-  if (!isRecord(value)) return false;
-  const validSource = value.source === undefined || value.source === 'pixabay';
-  const validOptionalStrings =
-    (value.alt === undefined || typeof value.alt === 'string') &&
-    (value.previewUrl === undefined || typeof value.previewUrl === 'string') &&
-    (value.photographer === undefined || typeof value.photographer === 'string') &&
-    (value.pageUrl === undefined || typeof value.pageUrl === 'string');
-
   return (
-    value.type === 'image' &&
-    typeof value.url === 'string' &&
-    value.url.length <= 2_000 &&
-    validSource &&
-    validOptionalStrings
+    typeof value.id === 'string' &&
+    typeof value.text === 'string' &&
+    (value.media === undefined || isMediaAttachment(value.media))
   );
 }
 
