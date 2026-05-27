@@ -1,4 +1,7 @@
 export * from './types/room.js';
+export * from './types/schedule.js';
+export * from './timing/timerConfig.js';
+export * from './timing/timerEngine.js';
 export * from './media/mediaAttachment.js';
 export * from './choice/choiceItem.js';
 export * from './joinCodes/joinCode.js';

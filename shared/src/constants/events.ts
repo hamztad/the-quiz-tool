@@ -29,6 +29,9 @@ export const CLIENT_EVENTS = {
   TEAM_REMOVE: 'team:remove',
   TEST_SESSION_START: 'testSession:start',
   TEST_SESSION_END: 'testSession:end',
+  QUIZ_SCHEDULE_SET: 'quiz:schedule:set',
+  QUIZ_SCHEDULE_CANCEL: 'quiz:schedule:cancel',
+  QUESTION_FORCE_REOPEN: 'question:force-reopen',
 } as const;
 
 export const SERVER_EVENTS = {

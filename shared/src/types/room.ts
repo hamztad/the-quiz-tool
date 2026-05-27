@@ -6,6 +6,11 @@ import type {
   GameSubmission,
   GameTeamStart,
 } from '../games/types.js';
+import type {
+  ActiveQuestionTimer,
+  QuestionTimerConfig,
+  QuizSchedule,
+} from './schedule.js';
 
 export type QuestionType = 'open' | 'mc' | 'ordering' | 'game';
 
@@ -55,6 +60,7 @@ export interface Question {
   game?: GameQuestionConfig;
   media?: MediaAttachment[];
   maxPoints: number;
+  timer?: QuestionTimerConfig;
 }
 
 export type QuestionStatus = 'locked' | 'open';
@@ -126,6 +132,8 @@ export interface RoomSettings {
   /** Quizmaster kjører prøvegjennomgang med én testdeltaker. */
   testMode: boolean;
   testTeamId?: string;
+  /** Deltakere kan ikke svare etter quiz-slutt (schedule end eller QUIZ_END). */
+  teamsLockedOut?: boolean;
 }
 
 export interface FinalLeaderboardSnapshot {
@@ -155,6 +163,11 @@ export interface RoomState {
   peerGrades: PeerGrade[];
   protests: Protest[];
   settings: RoomSettings;
+  schedule?: QuizSchedule;
+  liveStartedAt?: number;
+  activeQuestionTimers: Record<string, ActiveQuestionTimer>;
+  /** Server clock hint for client countdown skew correction (updated on state emit). */
+  serverNow?: number;
 }
 
 export type SocketRole = 'host' | 'secretary';

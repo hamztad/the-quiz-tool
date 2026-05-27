@@ -14,6 +14,8 @@ import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
+import { HostScheduleCard } from '../components/timing/HostScheduleCard';
+import { QuizScheduleBanner } from '../components/timing/QuizScheduleBanner';
 import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
 import { clearTeamSession } from '../lib/tokens';
 import { isQuestionIncomplete } from '../lib/questionFactory';
@@ -90,6 +92,11 @@ export function HostLobbyPage() {
 
   const joinUrl = buildParticipantJoinUrl(room.joinCode);
   const canStart = room.questions.length > 0 && room.phase === 'lobby';
+  const schedule = room.schedule;
+  const scheduleBlocksManualStart =
+    Boolean(schedule?.enabled && schedule.startsAt) &&
+    schedule?.runMode !== 'manual' &&
+    Date.now() < (schedule?.startsAt ?? 0);
   const inviteOnly = room.phase !== 'lobby';
   const incompleteCount = room.questions.filter(isQuestionIncomplete).length;
   const canStartTest = room.questions.length > 0 && incompleteCount === 0;
@@ -166,6 +173,8 @@ export function HostLobbyPage() {
       )}
 
       <div className="w-full min-w-0 max-w-full space-y-6">
+        <QuizScheduleBanner room={room} />
+        {!inviteOnly && <HostScheduleCard room={room} disabled={!connected} />}
         <JoinCodeDisplay joinCode={room.joinCode} joinUrl={joinUrl} />
 
         {!inviteOnly && (
@@ -225,9 +234,14 @@ export function HostLobbyPage() {
               variant="cta"
               className="w-full text-xl"
               onClick={startQuiz}
-              disabled={!connected}
+              disabled={!connected || scheduleBlocksManualStart}
+              title={
+                scheduleBlocksManualStart
+                  ? 'Quizen har planlagt start — vent på nedtellingen eller avbryt planen'
+                  : undefined
+              }
             >
-              🚀 Start quiz
+              {scheduleBlocksManualStart ? '⏰ Planlagt start' : '🚀 Start quiz'}
             </Button>
           )}
           <Button size="lg" variant="secondary" className="w-full" onClick={leavePresent}>

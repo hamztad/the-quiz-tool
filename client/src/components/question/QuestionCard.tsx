@@ -1,4 +1,10 @@
-import { formatOrderingOrder, getChoiceItemLabel, type Question, type QuestionStatus } from '@quiz-tool/shared';
+import {
+  formatOrderingOrder,
+  getChoiceItemLabel,
+  type ActiveQuestionTimer,
+  type Question,
+  type QuestionStatus,
+} from '@quiz-tool/shared';
 import { ChoiceMediaDisplay } from '../media/ChoiceMediaDisplay';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
@@ -8,6 +14,7 @@ import { hostStatusLabels } from '../../lib/questionDisplayStatus';
 import { getTeamQuestionBadge } from '../../lib/teamAnswerDisplay';
 import { getQuestionTypeTheme } from '../../lib/questionTypeTheme';
 import { QuestionBody } from './QuestionBody';
+import { QuestionTimerBar } from '../timing/QuestionTimerBar';
 
 interface QuestionCardProps {
   question: Question;
@@ -20,6 +27,8 @@ interface QuestionCardProps {
   teamRevealed?: boolean;
   teamEditableHint?: boolean;
   showHostQuestionDetails?: boolean;
+  activeQuestionTimer?: ActiveQuestionTimer;
+  serverNow?: number;
   viewMode?: 'default' | 'team';
   onClick?: () => void;
   className?: string;
@@ -37,6 +46,8 @@ export function QuestionCard({
   teamRevealed = true,
   teamEditableHint = false,
   showHostQuestionDetails = false,
+  activeQuestionTimer,
+  serverNow,
   viewMode = 'default',
   onClick,
   className = '',
@@ -97,6 +108,16 @@ export function QuestionCard({
           )}
         </div>
       </div>
+      {status === 'open' && activeQuestionTimer && (
+        <div className="mb-3">
+          <QuestionTimerBar
+            endsAt={activeQuestionTimer.endsAt}
+            openedAt={activeQuestionTimer.openedAt}
+            serverNow={serverNow}
+            compact={viewMode === 'team'}
+          />
+        </div>
+      )}
       {viewMode === 'team' && teamEditableHint && (
         <p className="text-xs text-quiz-muted mb-3 -mt-1 leading-relaxed">
           Klikk for å endre svaret før spørsmålet låses.

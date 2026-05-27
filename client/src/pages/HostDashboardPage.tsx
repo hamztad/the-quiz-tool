@@ -35,6 +35,7 @@ import {
   readHostDraftSession,
 } from '../lib/hostDraftSession';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
+import { QuizScheduleBanner } from '../components/timing/QuizScheduleBanner';
 import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
 import { clearTeamSession } from '../lib/tokens';
 
@@ -238,6 +239,15 @@ export function HostDashboardPage() {
         active="live"
         links={{ present: `/host/${roomId}/present?invite=1` }}
       />
+
+      <QuizScheduleBanner room={room} />
+
+      {room.settings.teamsLockedOut && (
+        <p className="mb-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Quizen er avsluttet for deltakere. Bruk «Tving åpne» på et spørsmål for å åpne igjen
+          manuelt.
+        </p>
+      )}
 
       {isPostQuiz && (
         <p className="mb-4 rounded-xl border border-quiz-border bg-quiz-surface/60 px-4 py-3 text-sm text-quiz-muted break-words">
@@ -555,6 +565,8 @@ export function HostDashboardPage() {
                         answered={answeredCount > 0}
                         hostDisplayStatus={displayStatus}
                         showHostQuestionDetails
+                        activeQuestionTimer={room.activeQuestionTimers[q.id]}
+                        serverNow={room.serverNow}
                         className={incomplete ? 'border-dashed border-slate-400/40' : ''}
                       >
                         {incomplete && (
@@ -587,6 +599,20 @@ export function HostDashboardPage() {
                               >
                                 {hostQuestionActionLabel(action)}
                               </Button>
+                              {room.settings.teamsLockedOut &&
+                                (action === 'open' || action === 'reopen') && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      emit(CLIENT_EVENTS.QUESTION_FORCE_REOPEN, {
+                                        questionId: q.id,
+                                      })
+                                    }
+                                  >
+                                    Tving åpne
+                                  </Button>
+                                )}
                             </div>
                           );
                         })()}

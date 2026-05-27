@@ -19,7 +19,7 @@ describe('buildQuizFileExport', () => {
   it('builds a valid export envelope', () => {
     const data = buildQuizFileExport([sampleQuestion], { title: 'Testquiz' });
     expect(data.format).toBe(QUIZ_FILE_FORMAT);
-    expect(data.version).toBe(1);
+    expect(data.version).toBe(2);
     expect(data.title).toBe('Testquiz');
     expect(data.questions).toHaveLength(1);
     expect(data.exportedAt).toBeTruthy();
@@ -33,6 +33,29 @@ describe('parseQuizFile', () => {
     expect(parsed.ok).toBe(true);
     if (parsed.ok) {
       expect(parsed.data.questions[0].lines[0].text).toBe('Hva er 2+2?');
+    }
+  });
+
+  it('accepts legacy v1 export without timers', () => {
+    const legacy = {
+      format: QUIZ_FILE_FORMAT,
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      questions: [sampleQuestion],
+    };
+    const parsed = parseQuizFile(legacy);
+    expect(parsed.ok).toBe(true);
+  });
+
+  it('round-trips question timer config', () => {
+    const withTimer: Question = {
+      ...sampleQuestion,
+      timer: { mode: 'preset', preset: '30s' },
+    };
+    const parsed = parseQuizFile(buildQuizFileExport([withTimer]));
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.data.questions[0].timer).toEqual({ mode: 'preset', preset: '30s' });
     }
   });
 

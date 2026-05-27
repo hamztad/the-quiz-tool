@@ -16,8 +16,9 @@ import type {
   RainbowPuzzleSubmissionPayload,
   TimerChallengeSubmissionPayload,
 } from '@quiz-tool/shared';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useSocket } from '../hooks/useSocket';
+import { isQuestionFrozen } from '../lib/gameFreeze';
 import { AnagramGame } from './anagram/AnagramGame';
 import { DropBallGame } from './dropBall/DropBallGame';
 import { EmojiHuntGame } from './emojiHunt/EmojiHuntGame';
@@ -35,36 +36,69 @@ interface HostGameResultsProps {
   question: Question;
 }
 
+function GameFrozenOverlay({ frozen }: { frozen: boolean }) {
+  if (!frozen) return null;
+  return (
+    <p className="mb-3 rounded-xl border-2 border-red-300/70 bg-red-50 px-4 py-3 text-sm font-bold text-red-800 text-center">
+      ⏱️ Tiden er ute — spillet er låst
+    </p>
+  );
+}
+
+function wrapGameFreeze(content: ReactNode, frozen: boolean) {
+  return (
+    <>
+      <GameFrozenOverlay frozen={frozen} />
+      <div className={frozen ? 'pointer-events-none opacity-70' : undefined}>{content}</div>
+    </>
+  );
+}
+
 export function TeamGameView({ room, question, teamId }: TeamGameViewProps) {
+  const frozen = isQuestionFrozen(room, question.id);
+
   if (question.game?.gameId === 'timerChallenge') {
-    return (
-      <TimerChallengeTeamView
-        room={room}
-        question={question}
-        teamId={teamId}
-      />
+    return wrapGameFreeze(
+      <TimerChallengeTeamView room={room} question={question} teamId={teamId} />,
+      frozen,
     );
   }
   if (question.game?.gameId === 'rainbowPuzzle') {
-    return <RainbowPuzzleTeamView room={room} question={question} teamId={teamId} />;
+    return wrapGameFreeze(
+      <RainbowPuzzleTeamView room={room} question={question} teamId={teamId} />,
+      frozen,
+    );
   }
   if (question.game?.gameId === 'emojiHunt') {
-    return <EmojiHuntTeamView room={room} question={question} teamId={teamId} />;
+    return wrapGameFreeze(
+      <EmojiHuntTeamView room={room} question={question} teamId={teamId} />,
+      frozen,
+    );
   }
   if (question.game?.gameId === 'dropBall') {
-    return <DropBallTeamView room={room} question={question} teamId={teamId} />;
+    return wrapGameFreeze(
+      <DropBallTeamView room={room} question={question} teamId={teamId} />,
+      frozen,
+    );
   }
   if (question.game?.gameId === 'anagram') {
-    return <AnagramTeamView room={room} question={question} teamId={teamId} />;
+    return wrapGameFreeze(
+      <AnagramTeamView room={room} question={question} teamId={teamId} frozen={frozen} />,
+      frozen,
+    );
   }
   if (question.game?.gameId === 'mathExpression') {
-    return <MathExpressionTeamView room={room} question={question} teamId={teamId} />;
+    return wrapGameFreeze(
+      <MathExpressionTeamView room={room} question={question} teamId={teamId} />,
+      frozen,
+    );
   }
 
-  return (
+  return wrapGameFreeze(
     <p className="mt-4 rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-sm text-quiz-muted">
       Dette spillet støttes ikke ennå.
-    </p>
+    </p>,
+    frozen,
   );
 }
 
@@ -353,7 +387,12 @@ function DropBallTeamView({ room, question, teamId }: TeamGameViewProps) {
   );
 }
 
-function AnagramTeamView({ room, question, teamId }: TeamGameViewProps) {
+function AnagramTeamView({
+  room,
+  question,
+  teamId,
+  frozen = false,
+}: TeamGameViewProps & { frozen?: boolean }) {
   const { socket } = useSocket();
   const submissions = room.gameSubmissions
     .filter((item) => item.questionId === question.id && item.teamId === teamId)
@@ -377,6 +416,7 @@ function AnagramTeamView({ room, question, teamId }: TeamGameViewProps) {
       hint={question.hint}
       scrambledText={config.scrambledText}
       latestAnswer={latestAnswer}
+      disabled={frozen || Boolean(latestAnswer)}
       onSubmit={submitAnswer}
     />
   );

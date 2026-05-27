@@ -1,5 +1,7 @@
 import type { Server, Socket } from 'socket.io';
 import { SERVER_EVENTS } from '@quiz-tool/shared';
+import { applyDueDeadlines } from '../domain/timing/applyTimerDeadline.js';
+import { timerCoordinator } from '../domain/timing/TimerCoordinator.js';
 import { toPublicState } from '../domain/roomService.js';
 import { roomStore } from '../store/memoryStore.js';
 
@@ -16,6 +18,21 @@ export function emitRoomStateToAll(io: Server, roomId: string): void {
       emitRoomStateToSocket(socket, roomId);
     }
   }
+}
+
+/** Apply due timers, broadcast state, and arm the next server deadline. */
+export function publishRoomState(io: Server, roomId: string): void {
+  const room = roomStore.get(roomId);
+  if (!room) return;
+
+  const now = Date.now();
+  const processed = applyDueDeadlines(room, now);
+  if (processed !== room) {
+    roomStore.update(roomId, () => processed);
+  }
+
+  emitRoomStateToAll(io, roomId);
+  timerCoordinator.arm(roomId);
 }
 
 export function emitRoomStateToSocket(socket: Socket, roomId: string): void {

@@ -34,6 +34,7 @@ import { generateId } from '../../lib/id';
 import { SortableOrderingList } from '../ordering/SortableOrderingList';
 import { OrderingChoiceEditorFields } from '../ordering/OrderingChoiceEditorFields';
 import { PixabayImagePicker } from '../media/PixabayImagePicker';
+import { QuestionTimerEditor } from './QuestionTimerEditor';
 
 interface HostQuestionEditorCardProps {
   question: Question;
@@ -271,6 +272,11 @@ export function HostQuestionEditorCard({
                   aria-label="Poeng for spørsmålet"
                 />
               </div>
+
+              <QuestionTimerEditor
+                question={question}
+                onChange={(timer) => onChange({ ...question, timer })}
+              />
             </div>
           </details>
         </div>

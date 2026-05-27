@@ -28,6 +28,8 @@ import { OrderingChoiceContent } from '../components/ordering/OrderingChoiceCont
 import { SortableOrderingList } from '../components/ordering/SortableOrderingList';
 import { McOptionButtonContent } from '../components/question/McOptionButtonContent';
 import { TestModeBanner } from '../components/test/TestModeBanner';
+import { QuizScheduleBanner } from '../components/timing/QuizScheduleBanner';
+import { QuestionTimerBar } from '../components/timing/QuestionTimerBar';
 
 const HIGHLIGHT_MS = 5000;
 
@@ -507,9 +509,21 @@ export function TeamPage() {
       {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
       {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
 
+      <QuizScheduleBanner room={room} />
+
       <div className="quiz-page-content space-y-4">
           {activeQuestionOpen ? (
             <Card elevated className="border-2 border-violet-400/50 ring-2 ring-violet-200/40 p-4 sm:p-5 min-w-0">
+              {activeQuestion &&
+                room.activeQuestionTimers[activeQuestion.id] && (
+                  <div className="mb-4">
+                    <QuestionTimerBar
+                      endsAt={room.activeQuestionTimers[activeQuestion.id].endsAt}
+                      openedAt={room.activeQuestionTimers[activeQuestion.id].openedAt}
+                      serverNow={room.serverNow}
+                    />
+                  </div>
+                )}
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 text-left">
                   <p className="text-xs font-semibold uppercase tracking-wide text-quiz-muted">

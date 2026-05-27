@@ -170,15 +170,15 @@ export function AnagramGame({
   };
 
   return (
-    <div className="mt-4 overflow-hidden rounded-3xl border-2 border-amber-300/40 bg-gradient-to-br from-purple-600/25 via-amber-400/15 to-fuchsia-500/15 p-4 text-center shadow-[0_0_28px_rgba(251,191,36,0.14)]">
-      <p className="text-3xl font-black text-quiz-text">{title || 'Løs anagrammet'}</p>
+    <div className="mt-4 overflow-hidden rounded-3xl border-2 border-violet-300/60 bg-gradient-to-br from-violet-50 via-white to-amber-50 p-4 text-center shadow-md">
+      <p className="quiz-display text-3xl font-bold text-quiz-text">{title || 'Løs anagrammet'}</p>
       {hint?.trim() && (
-        <p className="mx-auto mt-3 max-w-xl rounded-2xl border border-amber-300/35 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-50">
-          Hint: {hint.trim()}
+        <p className="mx-auto mt-3 max-w-xl rounded-2xl border-2 border-amber-300/70 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950">
+          💡 Hint: {hint.trim()}
         </p>
       )}
 
-      <div className="mt-5 rounded-3xl border border-quiz-border/70 bg-quiz-bg/55 px-3 py-5">
+      <div className="mt-5 rounded-3xl border-2 border-violet-200/80 bg-white/95 px-3 py-5 shadow-inner">
         <div className="flex min-w-0 flex-col items-center justify-center gap-2.5">
           {tileRows.map((row) => (
             <div key={row.id} className="flex min-w-0 flex-nowrap justify-center gap-1">
@@ -202,11 +202,11 @@ export function AnagramGame({
                     onPointerUp={endDrag}
                     onPointerCancel={endDrag}
                     onClick={() => clickTile({ wordIndex, tileIndex })}
-                    className={`touch-none select-none rounded-2xl border-2 p-0 font-black shadow-lg transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-75 ${
+                    className={`touch-none select-none rounded-2xl border-2 p-0 font-black shadow-md transition-[transform,box-shadow,background-color,border-color] active:scale-95 disabled:cursor-not-allowed disabled:opacity-75 ${
                       selected
-                        ? 'border-amber-200 bg-amber-300 text-purple-950 ring-4 ring-amber-200/35'
-                        : 'border-amber-200/35 bg-amber-300/20 text-amber-50 hover:bg-amber-300/30'
-                    } ${dragging ? 'relative z-10 -translate-y-7 scale-105' : ''}`}
+                        ? 'border-violet-600 bg-gradient-to-b from-amber-300 to-amber-400 text-violet-950 ring-4 ring-violet-400/35 shadow-lg'
+                        : 'border-violet-300/80 bg-white text-violet-950 hover:border-violet-500 hover:bg-violet-50 hover:shadow-lg'
+                    } ${dragging ? 'relative z-10 -translate-y-7 scale-105 border-violet-600 bg-amber-200 shadow-xl' : ''}`}
                     style={tileStyle}
                     aria-label={`Bokstav ${tile.char}`}
                   >
@@ -225,8 +225,8 @@ export function AnagramGame({
       </div>
 
       {latestAnswer && (
-        <p className="mt-3 rounded-2xl border border-green-400/35 bg-green-400/10 px-4 py-3 text-sm font-semibold text-green-100">
-          Riktig! Svaret er sendt inn automatisk.
+        <p className="mt-3 rounded-2xl border-2 border-emerald-300/80 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900">
+          ✓ Riktig! Svaret er sendt inn automatisk.
         </p>
       )}
     </div>

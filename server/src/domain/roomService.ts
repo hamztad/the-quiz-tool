@@ -37,6 +37,7 @@ export function createRoom(title?: string): RoomRecord {
     gradingAssignments: [],
     peerGrades: [],
     protests: [],
+    activeQuestionTimers: {},
     settings: {
       showLeaderboard: false,
       teamReviewOpen: false,
@@ -44,6 +45,7 @@ export function createRoom(title?: string): RoomRecord {
       allowNewTeams: true,
       finalResultLocked: false,
       testMode: false,
+      teamsLockedOut: false,
     },
     hostToken,
     teamTokens: {},
@@ -325,12 +327,22 @@ export function endTestSession(room: RoomRecord): RoomRecord {
   return next;
 }
 
-export function startQuiz(room: RoomRecord): RoomRecord {
+export function startQuiz(room: RoomRecord, now = Date.now()): RoomRecord {
   if (room.questions.length === 0) {
     throw new Error('Legg til spørsmål før du starter quizen.');
   }
+  if (
+    room.schedule?.enabled &&
+    room.schedule.startsAt &&
+    now < room.schedule.startsAt &&
+    room.schedule.runMode !== 'manual'
+  ) {
+    throw new Error(
+      'Quizen har planlagt start. Vent til nedtellingen er ferdig, eller avbryt tidsplanen.',
+    );
+  }
   const cleared = room.settings.testMode ? endTestSession(room) : room;
-  return { ...cleared, phase: 'live' };
+  return { ...cleared, phase: 'live', liveStartedAt: now };
 }
 
 export function lockFinalResult(room: RoomRecord, now = Date.now()): RoomRecord {
@@ -370,7 +382,11 @@ export function endQuizForTeams(room: RoomRecord): RoomRecord {
   return {
     ...room,
     phase: 'post_quiz',
-    settings: { ...room.settings, showLeaderboard: true },
+    settings: {
+      ...room.settings,
+      showLeaderboard: true,
+      teamsLockedOut: true,
+    },
   };
 }
 
@@ -379,14 +395,16 @@ export function toPublicState(
   role: 'host' | 'secretary',
   viewerTeamId?: string,
 ): PublicRoomState {
+  const withClock = { ...room, serverNow: Date.now() };
   if (role === 'host') {
     return {
-      ...room,
+      ...withClock,
       viewerRole: 'host',
     };
   }
 
   const teamId = viewerTeamId;
+  const roomWithClock = withClock;
   const assignment = room.gradingAssignments.find((g) => g.graderTeamId === teamId);
   const ownAnsweredQuestionIds = new Set(teamId ? (room.answeredByTeam[teamId] ?? []) : []);
   const teamReviewOpen = room.settings.teamReviewOpen === true;
@@ -473,7 +491,7 @@ export function toPublicState(
   });
 
   return {
-    ...room,
+    ...roomWithClock,
     questions,
     leaderboard: leaderboardVisible
       ? room.settings.finalResultLocked && room.finalLeaderboardSnapshot

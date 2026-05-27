@@ -10,6 +10,7 @@ import {
   type Question,
   validateAnagramAnswerText,
   validateMathExpressionConfig,
+  normalizeQuestionTimerConfig,
 } from '@quiz-tool/shared';
 import { generateId } from './id';
 
@@ -244,5 +245,6 @@ export function normalizeQuestionsForSave(questions: Question[]): Question[] {
       q.type === 'ordering' ? q.orderingDirectionBottom?.trim() || undefined : undefined,
     gameType: q.type === 'game' ? (q.gameType ?? q.game?.gameId) : undefined,
     game: q.type === 'game' ? q.game : undefined,
+    timer: normalizeQuestionTimerConfig(q.timer),
   }));
 }

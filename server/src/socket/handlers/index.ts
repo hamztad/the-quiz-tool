@@ -17,7 +17,8 @@ import { checkRoomAccess } from '../../domain/roomAccess.js';
 import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import { createProtest, mergePeerGradesToScores, upsertScore } from '../../domain/gradingService.js';
 import { startTeamGame, submitGameResult } from '../../domain/gameService.js';
-import { lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
+import { forceReopenQuestion, lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
+import { cancelQuizSchedule, setQuizSchedule } from '../../domain/timing/scheduleService.js';
 import {
   createRoom,
   endQuizForTeams,
@@ -36,7 +37,7 @@ import {
 } from '../../domain/roomService.js';
 import { roomStore } from '../../store/memoryStore.js';
 import { generateId } from '../../utils/id.js';
-import { emitRoomStateToAll, emitRoomStateToSocket } from '../emitRoomState.js';
+import { emitRoomStateToSocket, publishRoomState } from '../emitRoomState.js';
 
 function emitError(socket: Socket, message: string, code = 'ERROR') {
   socket.emit(SERVER_EVENTS.ERROR, { code, message });
@@ -193,7 +194,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
               duplicateBrowser: true,
             };
             socket.emit(SERVER_EVENTS.ROOM_JOINED, joined);
-            emitRoomStateToAll(io, access.room.id);
+            publishRoomState(io, access.room.id);
             ack?.(joined);
             return;
           }
@@ -213,7 +214,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
         const joined = { roomId: access.room.id, teamId, teamToken, teamName: payload.teamName };
         socket.emit(SERVER_EVENTS.ROOM_JOINED, joined);
-        emitRoomStateToAll(io, access.room.id);
+        publishRoomState(io, access.room.id);
         ack?.(joined);
       } catch (e) {
         emitError(socket, e instanceof Error ? e.message : 'Kunne ikke bli med');
@@ -242,7 +243,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
           attachSocket(socket, activeRoom.id, 'host');
           emitRoomStateToSocket(socket, activeRoom.id);
           ack?.({ ok: true, role: 'host' });
-          emitRoomStateToAll(io, activeRoom.id);
+          publishRoomState(io, activeRoom.id);
           return;
         }
 
@@ -259,7 +260,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
           attachSocket(socket, activeRoom.id, 'secretary', teamId);
           emitRoomStateToSocket(socket, activeRoom.id);
           ack?.({ ok: true, role: 'secretary', teamId });
-          emitRoomStateToAll(io, activeRoom.id);
+          publishRoomState(io, activeRoom.id);
           return;
         }
 
@@ -279,7 +280,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     try {
       roomStore.update(roomId, (r) => removeTeam(r, payload.teamId));
       disconnectRemovedTeam(io, roomId, payload.teamId);
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke fjerne deltaker');
     }
@@ -299,7 +300,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         teamToken = result.teamToken;
         return result.room;
       });
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
       const body = {
         ok: true,
         teamId,
@@ -322,7 +323,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       if (testTeamId) {
         disconnectRemovedTeam(io, roomId, testTeamId);
       }
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
       ack?.({ ok: true });
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke avslutte testmodus');
@@ -337,7 +338,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     if (!room || !room.teams.some((team) => team.id === teamId)) return;
     if (hasOtherConnectedTeamSocket(io, socket, roomId, teamId)) return;
     roomStore.update(roomId, (r) => markTeamSocketDisconnected(r, teamId));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.QUIZ_END, () => {
@@ -351,7 +352,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       return;
     }
     roomStore.update(roomId, (r) => endQuizForTeams(r));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.ROOM_CLOSE, () => {
@@ -364,7 +365,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       return;
     }
     roomStore.update(roomId, (r) => ({ ...r, phase: 'ended' }));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.QUIZ_QUESTIONS_SET, (payload: { questions: Question[] }) => {
@@ -380,7 +381,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       roomStore.update(roomId, (r) =>
         r.phase === 'lobby' ? setQuestions(r, withIds) : updateQuestions(r, withIds),
       );
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke lagre spørsmål');
     }
@@ -392,9 +393,59 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     if (!ensureFinalResultUnlocked(socket, roomId)) return;
     try {
       roomStore.update(roomId, (r) => startQuiz(r));
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke starte quiz');
+    }
+  });
+
+  socket.on(
+    CLIENT_EVENTS.QUIZ_SCHEDULE_SET,
+    (payload: {
+      startDelayMs: number;
+      durationMs?: number;
+      runMode?: 'manual' | 'assisted' | 'automatic';
+      autoOpenFirstQuestion?: boolean;
+    }) => {
+      const roomId = socket.data.roomId as string;
+      if (!requireHost(socket, roomId)) return;
+      if (!ensureFinalResultUnlocked(socket, roomId)) return;
+      try {
+        roomStore.update(roomId, (r) =>
+          setQuizSchedule(r, {
+            startDelayMs: payload.startDelayMs,
+            durationMs: payload.durationMs,
+            runMode: payload.runMode,
+            autoOpenFirstQuestion: payload.autoOpenFirstQuestion,
+          }),
+        );
+        publishRoomState(io, roomId);
+      } catch (e) {
+        emitError(socket, e instanceof Error ? e.message : 'Kunne ikke planlegge quiz');
+      }
+    },
+  );
+
+  socket.on(CLIENT_EVENTS.QUIZ_SCHEDULE_CANCEL, () => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+    try {
+      roomStore.update(roomId, (r) => cancelQuizSchedule(r));
+      publishRoomState(io, roomId);
+    } catch (e) {
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke avbryte tidsplan');
+    }
+  });
+
+  socket.on(CLIENT_EVENTS.QUESTION_FORCE_REOPEN, (payload: { questionId: string }) => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
+    try {
+      roomStore.update(roomId, (r) => forceReopenQuestion(r, payload.questionId));
+      publishRoomState(io, roomId);
+    } catch (e) {
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke tvinge åpne spørsmål');
     }
   });
 
@@ -403,14 +454,14 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     if (!requireHost(socket, roomId)) return;
     if (!ensureFinalResultUnlocked(socket, roomId)) return;
     roomStore.update(roomId, (r) => openQuestion(r, payload.questionId));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.QUESTION_LOCK, (payload: { questionId: string }) => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
     roomStore.update(roomId, (r) => lockQuestion(r, payload.questionId));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.QUESTION_UNLOCK, (payload: { questionId: string }) => {
@@ -418,7 +469,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     if (!requireHost(socket, roomId)) return;
     if (!ensureFinalResultUnlocked(socket, roomId)) return;
     roomStore.update(roomId, (r) => openQuestion(r, payload.questionId));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.ROUND_LOCK, (payload: { questionIds: string[] }) => {
@@ -426,7 +477,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     if (!requireHost(socket, roomId)) return;
     if (!ensureFinalResultUnlocked(socket, roomId)) return;
     roomStore.update(roomId, (r) => lockRound(r, payload.questionIds));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.ANSWER_SUBMIT, (payload: { questionId: string; value: string }) => {
@@ -435,7 +486,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     if (!requireSecretary(socket, roomId)) return;
     try {
       roomStore.update(roomId, (r) => submitOrUpdateAnswer(r, teamId, payload.questionId, payload.value, false));
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke sende svar');
     }
@@ -447,7 +498,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     if (!requireSecretary(socket, roomId)) return;
     try {
       roomStore.update(roomId, (r) => submitOrUpdateAnswer(r, teamId, payload.questionId, payload.value, true));
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke oppdatere svar');
     }
@@ -461,7 +512,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       if (!requireSecretary(socket, roomId)) return;
       try {
         roomStore.update(roomId, (r) => startTeamGame(r, teamId, payload.questionId));
-        emitRoomStateToAll(io, roomId);
+        publishRoomState(io, roomId);
       } catch (e) {
         emitError(socket, e instanceof Error ? e.message : 'Kunne ikke starte spillet');
       }
@@ -478,7 +529,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         roomStore.update(roomId, (r) =>
           submitGameResult(r, teamId, payload.questionId, payload.payload),
         );
-        emitRoomStateToAll(io, roomId);
+        publishRoomState(io, roomId);
       } catch (e) {
         emitError(socket, e instanceof Error ? e.message : 'Kunne ikke sende spillresultat');
       }
@@ -509,7 +560,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       peerGrades: [],
       settings: { ...r.settings, teamReviewOpen: false },
     }));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.GRADING_END, () => {
@@ -520,7 +571,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       const scores = mergePeerGradesToScores(r);
       return { ...r, phase: 'live', scores, gradingAssignments: [] };
     });
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(
@@ -574,7 +625,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
           ],
         };
       });
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
     },
   );
 
@@ -629,7 +680,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke sende protest');
       return;
     }
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(
@@ -661,7 +712,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
         return { ...r, protests, scores };
       });
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
     },
   );
 
@@ -687,7 +738,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
           }),
         };
       });
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
     },
   );
 
@@ -700,7 +751,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       phase: payload.visible ? 'leaderboard' : r.phase === 'leaderboard' ? 'live' : r.phase,
       settings: { ...r.settings, showLeaderboard: payload.visible },
     }));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.FINAL_RESULT_LOCK, () => {
@@ -708,7 +759,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     if (!requireHost(socket, roomId)) return;
     try {
       roomStore.update(roomId, (r) => lockFinalResult(r));
-      emitRoomStateToAll(io, roomId);
+      publishRoomState(io, roomId);
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke låse sluttresultat');
     }
@@ -718,7 +769,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
     roomStore.update(roomId, (r) => unlockFinalResult(r));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.TEAM_REVIEW_TOGGLE, (payload: { open: boolean }) => {
@@ -729,7 +780,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       ...r,
       settings: { ...r.settings, teamReviewOpen: payload.open },
     }));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.ANSWER_KEY_TOGGLE, (payload: { open: boolean }) => {
@@ -740,7 +791,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       ...r,
       settings: { ...r.settings, answerKeyOpen: payload.open },
     }));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 
   socket.on(CLIENT_EVENTS.TEAM_JOIN_TOGGLE, (payload: { allowNewTeams: boolean }) => {
@@ -751,6 +802,6 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       ...r,
       settings: { ...r.settings, allowNewTeams: payload.allowNewTeams },
     }));
-    emitRoomStateToAll(io, roomId);
+    publishRoomState(io, roomId);
   });
 }

@@ -3,11 +3,13 @@ import { validateAnagramAnswerText } from '../games/modules/anagram.js';
 import { isValidDropBallConfig } from '../games/modules/dropBall.js';
 import { validateMathExpressionConfig } from '../games/modules/mathExpression.js';
 import { isMediaAttachment } from '../media/mediaAttachment.js';
+import { isValidQuestionTimerConfig, normalizeQuestionTimerConfig } from '../timing/timerConfig.js';
 import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
 import type { Question, QuestionType } from '../types/room.js';
 
 export const QUIZ_FILE_FORMAT = 'the-quiz-tool-quiz' as const;
-export const QUIZ_FILE_VERSION = 1 as const;
+export const QUIZ_FILE_VERSION = 2 as const;
+export const QUIZ_FILE_VERSION_LEGACY = 1 as const;
 export const QUIZ_FILE_DEFAULT_NAME = 'the-quiz-tool-quiz.json';
 
 export interface QuizFileExport {
@@ -132,6 +134,7 @@ function isQuestion(value: unknown): value is Question {
   if (!isQuestionType(value.type)) return false;
   if (!Array.isArray(value.lines) || !value.lines.every(isQuestionLine)) return false;
   if (typeof value.maxPoints !== 'number') return false;
+  if (value.timer !== undefined && !isValidQuestionTimerConfig(value.timer)) return false;
   if (value.type !== 'game' && value.game !== undefined) return false;
   if (value.type !== 'game' && value.gameType !== undefined) return false;
 
@@ -224,7 +227,7 @@ export function parseQuizFile(raw: unknown): { ok: true; data: QuizFileExport } 
     return { ok: false, error: 'Filen ser ikke ut som en Quiz Tool-eksport.' };
   }
 
-  if (raw.version !== QUIZ_FILE_VERSION) {
+  if (raw.version !== QUIZ_FILE_VERSION && raw.version !== QUIZ_FILE_VERSION_LEGACY) {
     return { ok: false, error: 'Ustøttet versjon av quizfilen.' };
   }
 
@@ -260,7 +263,11 @@ export function parseQuizFile(raw: unknown): { ok: true; data: QuizFileExport } 
       ...(typeof raw.title === 'string' ? { title: raw.title } : {}),
       ...(typeof raw.createdAt === 'string' ? { createdAt: raw.createdAt } : {}),
       exportedAt: raw.exportedAt,
-      questions: raw.questions as Question[],
+      questions: (raw.questions as Question[]).map((q, i) => ({
+        ...q,
+        order: i,
+        timer: normalizeQuestionTimerConfig(q.timer),
+      })),
     },
   };
 }

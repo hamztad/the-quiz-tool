@@ -73,6 +73,9 @@ export function startTeamGame(
   if (room.settings.finalResultLocked) {
     throw new Error('Endelig resultat er låst.');
   }
+  if (room.settings.teamsLockedOut) {
+    throw new Error('Quizen er avsluttet for deltakere.');
+  }
 
   if (room.questionStatus[questionId] !== 'open') {
     throw new Error('Spillet er ikke åpent.');
@@ -113,6 +116,9 @@ export function submitGameResult(
   }
   if (room.settings.finalResultLocked) {
     throw new Error('Endelig resultat er låst.');
+  }
+  if (room.settings.teamsLockedOut) {
+    throw new Error('Quizen er avsluttet for deltakere.');
   }
 
   if (room.questionStatus[questionId] !== 'open') {
