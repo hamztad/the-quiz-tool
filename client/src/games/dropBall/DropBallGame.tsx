@@ -715,7 +715,7 @@ export function DropBallGame({
 
   return (
     <div className="mt-4 overflow-hidden rounded-3xl border-2 border-violet-300/40 bg-gradient-to-br from-violet-600/35 via-fuchsia-500/20 to-blue-500/20 p-4 text-center shadow-[0_0_32px_rgba(168,85,247,0.22)] sm:p-5">
-      <p className="text-2xl font-black uppercase tracking-[0.12em] text-fuchsia-100 sm:text-3xl">
+      <p className="text-2xl font-black uppercase tracking-[0.12em] text-fuchsia-900 sm:text-3xl">
         Drop the Ball
       </p>
       <p className="mt-2 text-sm font-semibold text-quiz-text">
@@ -724,7 +724,7 @@ export function DropBallGame({
       <button
         type="button"
         onClick={toggleMusic}
-        className="mt-4 rounded-full border border-cyan-200/40 bg-cyan-200/10 px-4 py-2 text-sm font-black text-cyan-50 shadow-[0_0_18px_rgba(125,211,252,0.18)] hover:border-cyan-100/70"
+        className="mt-4 rounded-full border border-cyan-300/50 bg-cyan-200/35 px-4 py-2 text-sm font-black text-cyan-900 shadow-[0_0_18px_rgba(125,211,252,0.18)] hover:border-cyan-400/70"
         aria-pressed={musicEnabled}
       >
         {musicEnabled ? 'Musikk på - slå av' : 'Musikk av - slå på'}
@@ -737,20 +737,20 @@ export function DropBallGame({
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-yellow-300/45 bg-yellow-300/15 px-4 py-3">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-100">Beste</p>
-          <p className="mt-1 text-2xl font-black tabular-nums text-yellow-50">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-900">Beste</p>
+          <p className="mt-1 text-2xl font-black tabular-nums text-yellow-950">
             {bestScore === null ? '—' : formatDropBallScore(bestScore)}
           </p>
         </div>
         <div className="rounded-2xl border border-fuchsia-300/35 bg-fuchsia-300/10 px-4 py-3">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-fuchsia-100">Brett</p>
-          <p className="mt-1 text-2xl font-black tabular-nums text-fuchsia-50">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-fuchsia-900">Brett</p>
+          <p className="mt-1 text-2xl font-black tabular-nums text-fuchsia-950">
             {Math.min(normalBoardsPlayed + 1, config.totalRounds)}/{config.totalRounds}
           </p>
         </div>
         <div className="rounded-2xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-3">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100">Total</p>
-          <p className="mt-1 text-2xl font-black tabular-nums text-emerald-50">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-900">Total</p>
+          <p className="mt-1 text-2xl font-black tabular-nums text-emerald-950">
             {formatDropBallScore(displayedTotal)}
           </p>
         </div>
@@ -823,27 +823,27 @@ export function DropBallGame({
             <div className="mt-3 space-y-3">
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="rounded-2xl border border-blue-300/30 bg-blue-300/10 px-3 py-2">
-                  <p className="text-xs font-bold text-blue-100">Lufttid</p>
-                  <p className="text-xl font-black tabular-nums text-blue-50">{snapshot.airTimeMs} ms</p>
+                  <p className="text-xs font-bold text-blue-900">Lufttid</p>
+                  <p className="text-xl font-black tabular-nums text-blue-950">{snapshot.airTimeMs} ms</p>
                 </div>
                 <div className="rounded-2xl border border-fuchsia-300/30 bg-fuchsia-300/10 px-3 py-2">
-                  <p className="text-xs font-bold text-fuchsia-100">Hindre</p>
-                  <p className="text-xl font-black tabular-nums text-fuchsia-50">
+                  <p className="text-xs font-bold text-fuchsia-900">Hindre</p>
+                  <p className="text-xl font-black tabular-nums text-fuchsia-950">
                     {snapshot.obstacleHits}/{config.obstacleCount}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-3 py-2">
-                  <p className="text-xs font-bold text-yellow-100">Mynter</p>
-                  <p className="text-xl font-black tabular-nums text-yellow-50">
+                  <p className="text-xs font-bold text-yellow-900">Mynter</p>
+                  <p className="text-xl font-black tabular-nums text-yellow-950">
                     {snapshot.coinValues.length}/{config.coinValues.length}
                   </p>
                 </div>
               </div>
               <div className="rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-left">
-                <p className="text-xs font-black uppercase tracking-wide text-yellow-100">
+                <p className="text-xs font-black uppercase tracking-wide text-yellow-900">
                   Bonuser
                 </p>
-                <div className="mt-2 grid gap-2 text-sm font-semibold text-yellow-50 sm:grid-cols-2">
+                <div className="mt-2 grid gap-2 text-sm font-semibold text-yellow-950 sm:grid-cols-2">
                   <p>Mynter: {config.coinValues.map((value) => `${value / 1000}k`).join(' + ')}</p>
                   <p>Alle mynter: +{config.allCoinsBonus.toLocaleString('nb-NO')} poeng</p>
                   <p>Alle hindre: +{config.allObstaclesBonus.toLocaleString('nb-NO')} poeng</p>
@@ -851,7 +851,7 @@ export function DropBallGame({
                 </div>
               </div>
               {snapshot.latestMessage && (
-                <p className="rounded-2xl border border-cyan-300/35 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-50" role="status" aria-live="polite">
+                <p className="rounded-2xl border border-cyan-400/45 bg-cyan-200/35 px-4 py-3 text-sm font-bold text-cyan-900" role="status" aria-live="polite">
                   {snapshot.latestMessage}
                 </p>
               )}
@@ -862,8 +862,8 @@ export function DropBallGame({
 
       {phase === 'finished' && (
         <div className="mt-4 rounded-2xl border-2 border-green-400/50 bg-green-400/15 px-4 py-4">
-          <p className="text-xl font-black text-green-50">Forsøket er sendt inn!</p>
-          <p className="mt-1 text-sm font-semibold text-green-100">
+          <p className="text-xl font-black text-green-900">Forsøket er sendt inn!</p>
+          <p className="mt-1 text-sm font-semibold text-green-900">
             {formatDropBallScore(completedScore)}. {isNewBest ? 'Dette er beste forsøk.' : 'Beste forsøk teller fortsatt.'}
           </p>
         </div>

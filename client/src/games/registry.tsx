@@ -125,7 +125,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
 
   return (
     <div className="mt-3 rounded-xl border border-blue-500/25 bg-blue-500/5 p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">
+      <p className="text-xs font-semibold uppercase tracking-wide text-blue-900">
         Spillstatus
       </p>
       <p className="mt-1 text-xs text-quiz-muted">
@@ -165,7 +165,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
               >
                 <span className="shrink-0 font-bold tabular-nums">#{entry.rank}</span>
                 <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Deltaker'}</span>
-                <span className="shrink-0 font-semibold text-fuchsia-100">
+                <span className="shrink-0 font-semibold text-fuchsia-900">
                   {entry.score} poeng
                 </span>
               </li>
@@ -184,7 +184,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
               >
                 <span className="shrink-0 font-bold tabular-nums">#{entry.rank}</span>
                 <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Deltaker'}</span>
-                <span className="shrink-0 font-semibold text-sky-100">
+                <span className="shrink-0 font-semibold text-sky-900">
                   {formatEmojiHuntMs(entry.totalMs)}
                 </span>
               </li>
@@ -203,7 +203,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
               >
                 <span className="shrink-0 font-bold tabular-nums">#{entry.rank}</span>
                 <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Deltaker'}</span>
-                <span className="shrink-0 font-semibold text-emerald-100">
+                <span className="shrink-0 font-semibold text-emerald-900">
                   {formatDropBallScore(entry.score)}
                 </span>
               </li>
@@ -514,25 +514,25 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
       <div className="mx-auto mb-3 flex h-24 w-24 items-center justify-center rounded-full border-2 border-yellow-300/40 bg-yellow-300/15 text-7xl shadow-[0_0_32px_rgba(250,204,21,0.18)]">
         <span aria-hidden>⏱️</span>
       </div>
-      <p className="text-sm font-bold uppercase tracking-[0.2em] text-fuchsia-200">
+      <p className="text-sm font-bold uppercase tracking-[0.2em] text-fuchsia-900">
         Stopp klokka
       </p>
       <p className="mt-2 text-base font-semibold text-quiz-text">
         Stopp så nær målet som mulig
       </p>
-      <p className="mt-2 inline-flex rounded-full border border-yellow-300/35 bg-yellow-300/10 px-4 py-2 text-2xl font-black text-yellow-100">
+      <p className="mt-2 inline-flex rounded-full border border-yellow-400/40 bg-yellow-200/40 px-4 py-2 text-2xl font-black text-yellow-900">
         Mål: {formatTimerMs(targetMs)}
       </p>
 
       {bestSubmission && bestDiffMs !== null && (
         <div className="mt-5 rounded-2xl border-2 border-green-400/60 bg-green-400/15 px-4 py-4 shadow-[0_0_24px_rgba(34,197,94,0.16)]">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-green-200">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-green-900">
             Bestetid så langt
           </p>
-          <p className="mt-1 text-4xl font-black tabular-nums text-green-50">
+          <p className="mt-1 text-4xl font-black tabular-nums text-green-900">
             {formatTimerMs(bestSubmission.payload.elapsedMs)}
           </p>
-          <p className="mt-1 text-sm font-semibold text-green-100">
+          <p className="mt-1 text-sm font-semibold text-green-900">
             {bestDiffMs} ms fra målet
           </p>
         </div>
@@ -541,27 +541,27 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
       <div className="my-6 rounded-3xl border border-blue-300/35 bg-quiz-bg/70 px-4 py-6 shadow-inner">
         {!start && latestSubmission && submittedElapsed !== null && diffMs !== null ? (
           <div role="status" aria-live="polite">
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-fuchsia-200">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-fuchsia-900">
               Siste forsøk
             </p>
             <p className="mt-2 text-4xl font-black tabular-nums text-quiz-text">
               {formatTimerMs(submittedElapsed)}
             </p>
-            <p className="mt-3 rounded-xl border border-fuchsia-400/25 bg-fuchsia-400/10 px-3 py-2 text-sm font-medium text-fuchsia-100">
+            <p className="mt-3 rounded-xl border border-fuchsia-400/35 bg-fuchsia-200/35 px-3 py-2 text-sm font-medium text-fuchsia-900">
               Dere bommet med {diffMs} ms. {timerFeedback(diffMs)}
             </p>
           </div>
         ) : start ? (
           <div role="status" aria-live="polite">
             <p className="text-3xl font-black text-quiz-text">Tidtakeren går...</p>
-            <p className="mt-3 rounded-xl border border-blue-300/30 bg-blue-300/10 px-3 py-2 text-sm font-semibold text-blue-100">
+            <p className="mt-3 rounded-xl border border-blue-300/45 bg-blue-200/40 px-3 py-2 text-sm font-semibold text-blue-900">
               Tiden er skjult. Trykk stopp når dere tror målet er nådd.
             </p>
           </div>
         ) : (
           <div>
             <p className="text-3xl font-black text-quiz-text">Klar?</p>
-            <p className="mt-3 rounded-xl border border-yellow-300/25 bg-yellow-300/10 px-3 py-2 text-sm font-semibold text-yellow-100">
+            <p className="mt-3 rounded-xl border border-yellow-400/40 bg-yellow-200/40 px-3 py-2 text-sm font-semibold text-yellow-900">
               Trykk Start når dere er klare. Stoppknappen vises etterpå.
             </p>
           </div>
@@ -580,7 +580,7 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
       ) : (
         <div className="space-y-3">
           {latestSubmission && (
-            <p className="rounded-2xl border border-green-400/40 bg-green-400/10 px-4 py-3 text-sm font-bold text-green-100">
+            <p className="rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-bold text-green-900">
               Forsøket er lagret. Prøv igjen for å slå bestetiden før quizmaster låser.
             </p>
           )}

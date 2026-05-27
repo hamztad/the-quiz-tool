@@ -74,7 +74,7 @@ function MathSingleView({
     <div className="mt-4 rounded-3xl border-2 border-sky-300/40 bg-gradient-to-br from-blue-500/20 via-sky-400/15 to-purple-500/15 p-4 text-center shadow-[0_0_28px_rgba(125,211,252,0.14)]">
       <p className="text-2xl font-black text-quiz-text">{title || 'Løs regnestykket'}</p>
       <div className="my-5 rounded-3xl border-2 border-sky-300/45 bg-sky-300/15 px-4 py-5">
-        <p className="break-words text-4xl font-black text-sky-50 sm:text-5xl">
+        <p className="break-words text-4xl font-black text-sky-900 sm:text-5xl">
           {config.expression}
         </p>
       </div>
@@ -93,7 +93,7 @@ function MathSingleView({
         />
       </label>
       {latestAnswer && (
-        <p className="mt-3 rounded-2xl border border-green-400/35 bg-green-400/10 px-4 py-3 text-sm font-semibold text-green-100">
+        <p className="mt-3 rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-semibold text-green-900">
           Svar sendt: {latestAnswer}
         </p>
       )}
@@ -184,12 +184,12 @@ function MathRaceView({
       <p className="text-2xl font-black text-quiz-text">{title || 'Regnerace'}</p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-2xl border border-sky-300/35 bg-sky-300/10 px-3 py-2">
-          <p className="text-xs font-bold uppercase text-sky-100">Tid</p>
-          <p className="text-lg font-black text-sky-50">{formatMs(displayedMs)}</p>
+          <p className="text-xs font-bold uppercase text-sky-900">Tid</p>
+          <p className="text-lg font-black text-sky-950">{formatMs(displayedMs)}</p>
         </div>
         <div className="rounded-2xl border border-amber-300/35 bg-amber-300/10 px-3 py-2">
-          <p className="text-xs font-bold uppercase text-amber-100">Feil</p>
-          <p className="text-lg font-black text-amber-50">{result?.penalties ?? penalties}</p>
+          <p className="text-xs font-bold uppercase text-amber-900">Feil</p>
+          <p className="text-lg font-black text-amber-950">{result?.penalties ?? penalties}</p>
         </div>
       </div>
 
@@ -210,7 +210,7 @@ function MathRaceView({
             {index + 1} av {config.expressions.length}
           </p>
           <div className="my-4 rounded-3xl border-2 border-indigo-300/45 bg-indigo-300/15 px-4 py-5">
-            <p className="break-words text-4xl font-black text-indigo-50 sm:text-5xl">
+            <p className="break-words text-4xl font-black text-indigo-900 sm:text-5xl">
               {expression}
             </p>
           </div>
@@ -248,7 +248,7 @@ function MathRaceView({
             </div>
           )}
           {message && (
-            <p className="mt-3 rounded-2xl border border-amber-300/35 bg-amber-300/10 px-4 py-2 text-sm font-bold text-amber-100">
+            <p className="mt-3 rounded-2xl border border-amber-400/45 bg-amber-200/40 px-4 py-2 text-sm font-bold text-amber-900">
               {message}
             </p>
           )}
@@ -256,7 +256,7 @@ function MathRaceView({
       )}
 
       {completed && result && (
-        <p className="mt-5 rounded-2xl border border-green-400/35 bg-green-400/10 px-4 py-3 text-sm font-semibold text-green-100">
+        <p className="mt-5 rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-semibold text-green-900">
           Fullført på {formatMs(result.totalMs)}.
         </p>
       )}

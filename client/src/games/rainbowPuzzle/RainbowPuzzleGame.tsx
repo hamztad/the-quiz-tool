@@ -99,7 +99,7 @@ export function RainbowPuzzleGame({ disabled = false, bestScore, onComplete }: R
 
   return (
     <div className="mt-4 overflow-hidden rounded-3xl border-2 border-fuchsia-400/40 bg-gradient-to-br from-purple-700/35 via-fuchsia-500/20 to-cyan-400/15 p-4 text-center shadow-[0_0_32px_rgba(217,70,239,0.18)] sm:p-5">
-      <p className="text-2xl font-black uppercase tracking-[0.12em] text-fuchsia-100 sm:text-3xl">
+      <p className="text-2xl font-black uppercase tracking-[0.12em] text-fuchsia-900 sm:text-3xl">
         Rainbow Puzzle
       </p>
       <p className="mt-2 text-sm font-semibold text-quiz-text">
@@ -112,7 +112,7 @@ export function RainbowPuzzleGame({ disabled = false, bestScore, onComplete }: R
       </div>
 
       {isNewBest && score > 0 && !completed && (
-        <p className="mt-3 rounded-2xl border border-green-400/35 bg-green-400/10 px-4 py-2 text-sm font-bold text-green-100">
+        <p className="mt-3 rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-2 text-sm font-bold text-green-900">
           Ny bestescore er innen rekkevidde!
         </p>
       )}
@@ -131,16 +131,16 @@ export function RainbowPuzzleGame({ disabled = false, bestScore, onComplete }: R
       </div>
 
       <div className="mx-auto mt-4 max-w-[22rem] rounded-3xl border-2 border-yellow-300/45 bg-yellow-300/15 px-5 py-4 shadow-[0_0_24px_rgba(250,204,21,0.12)]">
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-100">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-900">
           Nåværende poengsum
         </p>
-        <p className="mt-1 text-5xl font-black tabular-nums text-yellow-50">{score}</p>
+        <p className="mt-1 text-5xl font-black tabular-nums text-yellow-950">{score}</p>
       </div>
 
       {completed && (
         <div className="mt-5 rounded-2xl border-2 border-green-400/50 bg-green-400/15 px-4 py-4">
-          <p className="text-xl font-black text-green-50">Brettet er fullført!</p>
-          <p className="mt-1 text-sm font-semibold text-green-100">
+          <p className="text-xl font-black text-green-900">Brettet er fullført!</p>
+          <p className="mt-1 text-sm font-semibold text-green-900">
             {score} poeng er sendt inn. {bestScore === null || score >= bestScore ? 'Dette er beste forsøk.' : 'Beste forsøk teller fortsatt.'}
           </p>
         </div>
