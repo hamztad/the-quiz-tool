@@ -1,36 +1,17 @@
 import {
-  MAX_SCHEDULE_DELAY_MS,
-  MAX_SCHEDULE_DURATION_MS,
-  MIN_SCHEDULE_DELAY_MS,
-  buildArmedSchedule,
+  armQuizSchedule,
   getFirstQuestionId,
-  type QuizRunMode,
+  validateScheduleInput,
   type QuizSchedule,
+  type SetScheduleInput,
 } from '@quiz-tool/shared';
 import type { RoomRecord } from '../../store/RoomStore.js';
 import { endQuizForTeams, startQuiz } from '../roomService.js';
 import { lockRound, openQuestion } from '../questionService.js';
 import { clearAllQuestionTimers } from './questionTimerService.js';
 
-export interface SetScheduleInput {
-  startDelayMs: number;
-  durationMs?: number;
-  runMode?: QuizRunMode;
-  autoOpenFirstQuestion?: boolean;
-}
-
-export function validateScheduleInput(input: SetScheduleInput): string | null {
-  if (input.startDelayMs < MIN_SCHEDULE_DELAY_MS || input.startDelayMs > MAX_SCHEDULE_DELAY_MS) {
-    return 'Startforsinkelse må være mellom 0 og 24 timer.';
-  }
-  if (
-    input.durationMs !== undefined &&
-    (input.durationMs < 0 || input.durationMs > MAX_SCHEDULE_DURATION_MS)
-  ) {
-    return 'Varighet må være mellom 0 og 24 timer.';
-  }
-  return null;
-}
+export type { SetScheduleInput };
+export { validateScheduleInput };
 
 export function setQuizSchedule(
   room: RoomRecord,
@@ -43,22 +24,9 @@ export function setQuizSchedule(
   if (room.questions.length === 0) {
     throw new Error('Legg til spørsmål før du planlegger start.');
   }
-  const error = validateScheduleInput(input);
-  if (error) throw new Error(error);
 
   const generation = (room.schedule?.generation ?? 0) + 1;
-  const runMode = input.runMode ?? 'assisted';
-  const schedule = buildArmedSchedule(
-    {
-      startDelayMs: input.startDelayMs,
-      durationMs: input.durationMs,
-      runMode,
-      autoOpenFirstQuestion:
-        input.autoOpenFirstQuestion ?? (runMode === 'assisted'),
-    },
-    now,
-    generation,
-  );
+  const schedule = armQuizSchedule(input, now, generation);
 
   return { ...room, schedule };
 }

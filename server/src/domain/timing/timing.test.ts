@@ -81,6 +81,20 @@ describe('quiz schedule', () => {
     expect(room.questionStatus.q1).toBe('open');
   });
 
+  it('arms schedule from absolute startsAt', () => {
+    let room = createRoom();
+    room = { ...room, questions: [sampleQuestion()] };
+    const now = 10_000;
+    const startsAt = now + 2 * 60 * 60_000;
+    room = setQuizSchedule(
+      room,
+      { startsAt, durationMs: 30 * 60_000, runMode: 'manual' },
+      now,
+    );
+    expect(room.schedule?.startsAt).toBe(startsAt);
+    expect(room.schedule?.endsAt).toBe(startsAt + 30 * 60_000);
+  });
+
   it('ends quiz at schedule end', () => {
     let room = createRoom();
     room = {

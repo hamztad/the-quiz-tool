@@ -1,4 +1,5 @@
 import type { PublicRoomState } from '@quiz-tool/shared';
+import { formatScheduleClock } from '@quiz-tool/shared';
 import { formatCountdown, useSyncedCountdown } from '../../hooks/useSyncedCountdown';
 import { useRoomTimers } from '../../hooks/useRoomTimers';
 
@@ -22,7 +23,7 @@ export function QuizScheduleBanner({ room }: QuizScheduleBannerProps) {
           {formatCountdown(startCountdown.remaining)}
         </p>
         <p className="mt-2 text-sm text-quiz-muted">
-          Vent her — spørsmålene åpnes når quizen er i gang.
+          Starter {formatScheduleClock(quizStartsAt)} · vent her til quizen er i gang.
         </p>
       </div>
     );
@@ -32,7 +33,14 @@ export function QuizScheduleBanner({ room }: QuizScheduleBannerProps) {
     return (
       <div className="mb-4 rounded-2xl border-2 border-amber-300/60 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-bold text-amber-900">Quiz slutter om</span>
+          <div className="text-left">
+            <span className="text-sm font-bold text-amber-900 block">Quiz slutter om</span>
+            {quizEndsAt && (
+              <span className="text-xs text-amber-800/80">
+                {formatScheduleClock(quizEndsAt)}
+              </span>
+            )}
+          </div>
           <span className="quiz-display text-2xl font-bold tabular-nums text-amber-900">
             {formatCountdown(endCountdown.remaining)}
           </span>

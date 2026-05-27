@@ -114,15 +114,22 @@ export function buildArmedSchedule(
   },
   now: number,
   generation: number,
+  explicitStartsAt?: number,
+  explicitEndsAt?: number,
 ): QuizSchedule {
-  const startsAt = now + input.startDelayMs;
+  const startsAt = explicitStartsAt ?? now + input.startDelayMs;
+  const endsAt =
+    explicitEndsAt !== undefined
+      ? explicitEndsAt
+      : input.durationMs && input.durationMs > 0
+        ? startsAt + input.durationMs
+        : undefined;
   return {
     enabled: true,
     generation,
     armedAt: now,
     startsAt,
-    endsAt:
-      input.durationMs && input.durationMs > 0 ? startsAt + input.durationMs : undefined,
+    endsAt,
     startDelayMs: input.startDelayMs,
     durationMs: input.durationMs,
     autoOpenFirstQuestion: input.autoOpenFirstQuestion ?? false,

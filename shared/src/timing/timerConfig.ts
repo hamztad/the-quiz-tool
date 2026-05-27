@@ -8,10 +8,13 @@ export const TIMER_PRESET_MS: Record<NonNullable<QuestionTimerConfig['preset']>,
 };
 
 export const MIN_QUESTION_TIMER_MS = 5_000;
-export const MAX_QUESTION_TIMER_MS = 60 * 60_000;
+/** Per-question countdown (custom mode). */
+export const MAX_QUESTION_TIMER_MS = 24 * 60 * 60_000;
 
 export const MIN_SCHEDULE_DELAY_MS = 0;
-export const MAX_SCHEDULE_DELAY_MS = 24 * 60 * 60_000;
+/** How far ahead quiz start may be planned (relative or absolute). */
+export const MAX_SCHEDULE_DELAY_MS = 3 * 24 * 60 * 60_000;
+/** Max quiz length after start. */
 export const MAX_SCHEDULE_DURATION_MS = 24 * 60 * 60_000;
 
 export function resolveQuestionTimerDurationMs(

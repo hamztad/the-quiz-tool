@@ -402,8 +402,10 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
   socket.on(
     CLIENT_EVENTS.QUIZ_SCHEDULE_SET,
     (payload: {
-      startDelayMs: number;
+      startDelayMs?: number;
       durationMs?: number;
+      startsAt?: number;
+      endsAt?: number;
       runMode?: 'manual' | 'assisted' | 'automatic';
       autoOpenFirstQuestion?: boolean;
     }) => {
@@ -411,14 +413,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       if (!requireHost(socket, roomId)) return;
       if (!ensureFinalResultUnlocked(socket, roomId)) return;
       try {
-        roomStore.update(roomId, (r) =>
-          setQuizSchedule(r, {
-            startDelayMs: payload.startDelayMs,
-            durationMs: payload.durationMs,
-            runMode: payload.runMode,
-            autoOpenFirstQuestion: payload.autoOpenFirstQuestion,
-          }),
-        );
+        roomStore.update(roomId, (r) => setQuizSchedule(r, payload));
         publishRoomState(io, roomId);
       } catch (e) {
         emitError(socket, e instanceof Error ? e.message : 'Kunne ikke planlegge quiz');
