@@ -117,7 +117,7 @@ export function QuizBackupPanel({
       <div className="rounded-2xl border-2 border-quiz-accent/40 bg-quiz-accent/10 p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
         <p className="text-base font-bold text-quiz-text mb-1">Importer quizfil</p>
         <p className="text-sm text-quiz-muted mb-4 break-words">
-          Velg en JSON-fil fra The Quiz Tool. Etter import kan du redigere og bruke endringene i aktiv quiz.
+          Velg en JSON-fil fra Gruiz. Etter import kan du redigere og bruke endringene i aktiv quiz.
         </p>
         <Button
           type="button"

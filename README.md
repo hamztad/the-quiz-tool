@@ -1,4 +1,4 @@
-# The Quiz Tool
+# Gruiz
 
 Moderne live pubquiz-plattform — mobilvennlig, quizmaster-styrt, med peer-retting for åpne spørsmål.
 

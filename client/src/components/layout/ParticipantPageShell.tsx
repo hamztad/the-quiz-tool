@@ -11,7 +11,7 @@ interface ParticipantPageShellProps {
 /** Layout for participant-only pages (join, no host/admin chrome). */
 export function ParticipantPageShell({ children, title, subtitle, emoji }: ParticipantPageShellProps) {
   return (
-    <PageShell title={title} subtitle={subtitle} emoji={emoji}>
+    <PageShell title={title} subtitle={subtitle} emoji={emoji} showBrand="compact">
       <div className="mx-auto w-full min-w-0 max-w-md overflow-x-hidden box-border">{children}</div>
     </PageShell>
   );

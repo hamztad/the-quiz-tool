@@ -84,7 +84,7 @@ export function HostLobbyPage() {
 
   if (loading || !room) {
     return (
-      <PageShell title="Presenter quiz" subtitle="Kobler til quizrom…">
+      <PageShell showBrand="compact" title="Presenter quiz" subtitle="Kobler til quizrom…">
         <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
       </PageShell>
     );
@@ -146,6 +146,7 @@ export function HostLobbyPage() {
 
   return (
     <PageShell
+      showBrand="compact"
       title={inviteOnly ? 'Invitasjon til deltakere' : 'Presenter quiz'}
       emoji="🎤"
       wide

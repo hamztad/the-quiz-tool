@@ -132,7 +132,7 @@ export function PeerGradingQuestionCard({
         <div
           className="grid grid-cols-2 gap-2 sm:grid-cols-3"
           role="group"
-          aria-label={`Poeng for spørsmål, 0 til ${q.maxPoints}`}
+          aria-label={`Poeng for oppgave, 0 til ${q.maxPoints}`}
         >
           {scoreOptions.map((p) => {
             const isSelected = isGraded && registeredPoints === p;

@@ -142,7 +142,7 @@ export function Leaderboard(props: LeaderboardProps) {
               </div>
               {hostInteractive && props.showAnswerStats && (
                 <p className="mt-1.5 text-xs text-quiz-muted tabular-nums">
-                  {answeredCount} besvarte spørsmål
+                  {answeredCount} besvarte oppgaver
                 </p>
               )}
             </li>

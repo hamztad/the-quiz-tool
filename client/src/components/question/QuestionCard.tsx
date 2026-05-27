@@ -11,6 +11,7 @@ import { Card } from '../ui/Card';
 import { HostQuestionStatusBadge } from '../host/HostQuestionStatusBadge';
 import type { HostQuestionDisplayStatus } from '../../lib/questionDisplayStatus';
 import { hostStatusLabels } from '../../lib/questionDisplayStatus';
+import { formatOppgaveLabel } from '../../lib/participantCopy';
 import { getTeamQuestionBadge } from '../../lib/teamAnswerDisplay';
 import { getQuestionTypeTheme } from '../../lib/questionTypeTheme';
 import { QuestionBody } from './QuestionBody';
@@ -88,12 +89,12 @@ export function QuestionCard({
       />
       <div className="flex flex-col gap-2 mb-3 pt-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <span className="text-sm font-bold text-quiz-muted shrink-0">
-          {viewMode === 'team' ? `Spørsmål ${question.order + 1}` : `#${question.order + 1}`}
+          {viewMode === 'team' ? formatOppgaveLabel(question.order + 1) : `#${question.order + 1}`}
         </span>
         <div
           className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full min-w-0 sm:w-auto sm:justify-end"
           role="group"
-          aria-label="Spørsmålsstatus"
+          aria-label="Oppgavestatus"
         >
           {hostDisplayStatus && <HostQuestionStatusBadge status={hostDisplayStatus} />}
           {showResponseBadge && <Badge variant={badgeVariant}>{badgeLabel}</Badge>}
@@ -120,12 +121,12 @@ export function QuestionCard({
       )}
       {viewMode === 'team' && teamEditableHint && (
         <p className="text-xs text-quiz-muted mb-3 -mt-1 leading-relaxed">
-          Klikk for å endre svaret før spørsmålet låses.
+          Klikk for å endre svaret før oppgaven låses.
         </p>
       )}
       {viewMode === 'team' && !teamRevealed ? (
         <p className="text-sm text-quiz-muted italic leading-relaxed">
-          Skjules til quizmaster åpner spørsmålet
+          Skjules til quizmaster åpner oppgaven
         </p>
       ) : (
         <QuestionBody question={question} showHint={viewMode !== 'team' || teamRevealed} />

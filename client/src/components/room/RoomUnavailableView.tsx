@@ -3,6 +3,7 @@ import {
   getRoomUnavailableContent,
   type RoomUnavailableReason,
 } from '../../lib/roomUnavailable';
+import { GruizMark } from '../brand/GruizMark';
 import { PageShell } from '../layout/PageShell';
 import { Button } from '../ui/Button';
 
@@ -28,6 +29,7 @@ export function RoomUnavailableView({ reason }: RoomUnavailableViewProps) {
   return (
     <PageShell>
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-2 py-10 text-center">
+        <GruizMark size="md" className="mb-8 items-center" />
         <RoomUnavailableIcon variant={icon} />
         <h1 className="mt-6 text-2xl font-bold tracking-tight text-quiz-text sm:text-3xl max-w-md">
           {title}

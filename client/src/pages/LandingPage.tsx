@@ -15,9 +15,8 @@ export function LandingPage() {
 
   return (
     <PageShell
-      title="The Quiz Tool"
+      showBrand="hero"
       subtitle="Live quiz-show for quizmaster og deltakere — spill sammen på sekunder"
-      emoji="✨"
       wide
     >
       <div className="w-full min-w-0 max-w-full space-y-5 sm:space-y-6">

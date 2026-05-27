@@ -116,7 +116,7 @@ export function HostDashboardPage() {
 
   if (loading || !room) {
     return (
-      <PageShell title="Quizmaster" subtitle="Kobler til quizrom…">
+      <PageShell showBrand="compact" title="Quizmaster" subtitle="Kobler til quizrom…">
         <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
       </PageShell>
     );
@@ -124,7 +124,7 @@ export function HostDashboardPage() {
 
   if (room.phase === 'lobby') {
     return (
-      <PageShell title="Kjør quiz" subtitle="Kobler til…">
+      <PageShell showBrand="compact" title="Kjør quiz" subtitle="Kobler til…">
         <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
       </PageShell>
     );
@@ -230,6 +230,7 @@ export function HostDashboardPage() {
 
   return (
     <PageShell
+      showBrand="compact"
       title={isPostQuiz ? 'Etter quiz' : 'Kjør quiz'}
       emoji="🎮"
       subtitle={`Romkode ${room.joinCode} · ${phaseLabel(room.phase)}`}

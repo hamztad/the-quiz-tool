@@ -373,7 +373,7 @@ export function HostEditPage() {
 
   if (loading || !room) {
     return (
-      <PageShell title="Bygg quiz" subtitle="Kobler til quizrom…">
+      <PageShell showBrand="compact" title="Bygg quiz" subtitle="Kobler til quizrom…">
         <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
       </PageShell>
     );
@@ -594,7 +594,7 @@ export function HostEditPage() {
   const showEditFooter = draftQuestions.length > 0;
 
   return (
-    <PageShell title="Bygg quiz" emoji="✨" subtitle={pageSubtitle} wide>
+    <PageShell showBrand="compact" title="Bygg quiz" emoji="✨" subtitle={pageSubtitle} wide>
       {!focusEntry && <HostPhaseIndicator active="build" links={phaseLinks} />}
 
       <div className={focusEntry ? 'mb-3 flex flex-wrap items-center justify-between gap-2' : 'mb-6'}>

@@ -9,6 +9,7 @@ import {
   shuffleOrderingItems,
   type Question,
 } from '@quiz-tool/shared';
+import { GruizMark } from '../components/brand/GruizMark';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
 import { PeerGradingView } from '../components/grading/PeerGradingView';
 import { TeamAnswerKeyView } from '../components/team/TeamAnswerKeyView';
@@ -56,7 +57,10 @@ function WinnerCertificate({
       <p className="text-4xl" aria-hidden>
         🏆
       </p>
-      <p className="mt-2 text-xs font-black uppercase tracking-[0.25em] text-amber-800">Vinner av quizen</p>
+      <div className="mb-3 flex justify-center">
+        <GruizMark size="sm" />
+      </div>
+      <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-800">Vinner av quizen</p>
       <h2 className="quiz-display mt-3 text-3xl font-bold text-quiz-text break-words [overflow-wrap:anywhere] sm:text-4xl">
         {teamName}
       </h2>
@@ -110,7 +114,7 @@ function ReviewAnswersCta({ to }: { to: string }) {
         <div className="min-w-0">
           <p className="text-base font-bold text-quiz-text">Egne svar og poeng er klare</p>
           <p className="mt-1 text-sm text-quiz-muted">
-            Se fasit, poeng og send protest på enkeltspørsmål.
+            Se fasit, poeng og send protest på enkeltoppgaver.
           </p>
         </div>
         <span className="box-border inline-flex max-w-full min-w-0 items-center justify-center rounded-xl bg-quiz-accent px-6 py-4 text-center text-lg font-medium text-white transition-colors hover:opacity-90">
@@ -132,7 +136,7 @@ function AnswerKeyCta({ to }: { to: string }) {
         <div className="min-w-0">
           <p className="text-base font-bold text-quiz-text">Quizmaster har delt fasit</p>
           <p className="mt-1 text-sm text-quiz-muted">
-            Se alle spørsmål, riktige svar og maks poeng.
+            Se alle oppgaver, riktige svar og maks poeng.
           </p>
         </div>
         <span className="box-border inline-flex max-w-full min-w-0 items-center justify-center rounded-xl bg-green-600 px-6 py-4 text-center text-lg font-medium text-white transition-colors hover:opacity-90">
@@ -229,7 +233,7 @@ export function TeamPage() {
 
   if (reconnectFailed) {
     return (
-      <PageShell title="Deltaker" subtitle="Kunne ikke koble til igjen">
+      <PageShell showBrand="compact" title="Deltaker" subtitle="Kunne ikke koble til igjen">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
             Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt quizmaster.
@@ -250,7 +254,7 @@ export function TeamPage() {
 
   if (noSession) {
     return (
-      <PageShell title="Deltaker" subtitle="Ingen deltakerøkt funnet">
+      <PageShell showBrand="compact" title="Deltaker" subtitle="Ingen deltakerøkt funnet">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
             Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt quizmaster.
@@ -268,6 +272,7 @@ export function TeamPage() {
   if (reconnecting || !room) {
     return (
       <PageShell
+        showBrand="compact"
         title="Deltaker"
         subtitle={connected ? 'Kobler til deltakeren igjen…' : 'Kobler til server…'}
       >
@@ -365,7 +370,7 @@ export function TeamPage() {
         teamName={finalPlacement.entry.teamName}
         score={finalPlacement.entry.totalPoints}
         lockedAt={finalLockedAt}
-        quizTitle={`Quiz ${room.joinCode}`}
+        quizTitle={`Gruiz · ${room.joinCode}`}
       />
     ) : (
       <FinalPlacementCard
@@ -405,7 +410,7 @@ export function TeamPage() {
 
   if (room.phase === 'post_quiz') {
     return (
-      <PageShell title={myTeam?.name ?? 'Deltaker'} subtitle="Quizen er avsluttet">
+      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Quizen er avsluttet">
         {finalResultContent}
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
@@ -426,14 +431,14 @@ export function TeamPage() {
 
   if (room.phase === 'grading' && !assignment) {
     return (
-      <PageShell title={myTeam?.name ?? 'Deltaker'} subtitle="Retterunde">
+      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Retterunde">
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
             Retterunde krever minst to deltakere. Quizmaster må ha minst to deltakere og åpne
-            spørsmål for at peer-retting skal starte.
+            oppgaver for at peer-retting skal starte.
           </p>
         </Card>
       </PageShell>
@@ -456,7 +461,7 @@ export function TeamPage() {
 
   if (room.phase === 'leaderboard' || room.settings.showLeaderboard) {
     return (
-      <PageShell title={myTeam?.name ?? 'Deltaker'} subtitle="Leaderboard">
+      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Leaderboard">
         {!connected && (
           <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
             Kobler til igjen… Dine innsendte svar er lagret på serveren.
@@ -484,7 +489,7 @@ export function TeamPage() {
   }
 
   return (
-    <PageShell title={myTeam?.name ?? 'Deltaker'} subtitle={`Fase: ${room.phase}`}>
+    <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle={`Fase: ${room.phase}`}>
       {room.settings.testMode && roomId && (
         <TestModeBanner hostDashboardHref={`/host/${roomId}`} />
       )}
@@ -616,7 +621,7 @@ export function TeamPage() {
           ) : (
             <>
               <p className="text-sm text-quiz-muted">
-                {room.questions.length} spørsmål i quizen. Trykk på et åpent spørsmål for å sende
+                {room.questions.length} oppgaver i quizen. Trykk på en åpen oppgave for å sende
                 svar — du kommer tilbake til listen automatisk.
               </p>
               {room.questions.map((q) => {

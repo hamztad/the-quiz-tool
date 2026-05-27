@@ -16,6 +16,7 @@ import { Badge } from '../ui/Badge';
 import { OrderingComparison } from '../ordering/OrderingComparison';
 import { useSocket } from '../../hooks/useSocket';
 import { getQuestionFasitText } from '../../lib/hostAnswerKey';
+import { formatOppgaveLabel } from '../../lib/participantCopy';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
 import {
   getTeamQuestionScore,
@@ -145,7 +146,7 @@ export function TeamResultsReviewView({
   };
 
   return (
-    <PageShell title={teamName} subtitle="Egne svar og poeng">
+    <PageShell showBrand="compact" title={teamName} subtitle="Egne svar og poeng">
       {onBack && (
         <div className="mb-4">
           <Button type="button" variant="secondary" size="sm" onClick={onBack}>
@@ -176,7 +177,7 @@ export function TeamResultsReviewView({
 
       {answeredQuestions.length === 0 ? (
         <Card className="p-5 text-center">
-          <p className="text-sm text-quiz-muted">Ingen besvarte spørsmål ennå.</p>
+          <p className="text-sm text-quiz-muted">Ingen besvarte oppgaver ennå.</p>
         </Card>
       ) : (
         <div className="quiz-page-content space-y-5 pb-6">
@@ -221,7 +222,7 @@ export function TeamResultsReviewView({
               <Card key={question.id} className="space-y-4 p-4 sm:p-5 min-w-0 max-w-full">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-quiz-muted">
-                    Spørsmål {index + 1}
+                    {formatOppgaveLabel(index + 1)}
                   </span>
                   <Badge variant={question.type === 'mc' || question.type === 'ordering' || question.type === 'game' ? 'open' : 'submitted'}>
                     {question.type === 'mc'
@@ -317,7 +318,7 @@ export function TeamResultsReviewView({
                     </p>
                   ) : score.points === null ? (
                     <p className="text-sm text-quiz-muted">
-                      Protest kan sendes når spørsmålet er poengsatt.
+                      Protest kan sendes når oppgaven er poengsatt.
                     </p>
                   ) : null}
 

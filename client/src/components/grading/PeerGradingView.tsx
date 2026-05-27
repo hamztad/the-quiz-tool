@@ -71,7 +71,7 @@ export function PeerGradingView({
   const allDone = total > 0 && graded >= total;
 
   return (
-    <PageShell title={teamName} subtitle={`Retter: ${targetTeam?.name ?? '…'}`}>
+    <PageShell showBrand="compact" title={teamName} subtitle={`Retter: ${targetTeam?.name ?? '…'}`}>
       {error && (
         <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 quiz-user-text">
           {error}

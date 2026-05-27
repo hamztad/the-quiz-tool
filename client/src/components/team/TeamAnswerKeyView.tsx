@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { getQuestionFasitText } from '../../lib/hostAnswerKey';
+import { formatOppgaveLabel } from '../../lib/participantCopy';
 
 interface TeamAnswerKeyViewProps {
   room: PublicRoomState;
@@ -14,7 +15,7 @@ interface TeamAnswerKeyViewProps {
 
 export function TeamAnswerKeyView({ room, teamName, onBack }: TeamAnswerKeyViewProps) {
   return (
-    <PageShell title={teamName} subtitle="Fasit">
+    <PageShell showBrand="compact" title={teamName} subtitle="Fasit">
       <div className="mb-4">
         <Button type="button" variant="secondary" size="sm" onClick={onBack}>
           Tilbake
@@ -35,7 +36,7 @@ export function TeamAnswerKeyView({ room, teamName, onBack }: TeamAnswerKeyViewP
             <Card key={question.id} className="space-y-4 p-4 sm:p-5 min-w-0 max-w-full">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-quiz-muted">
-                  Spørsmål {index + 1}
+                  {formatOppgaveLabel(index + 1)}
                 </span>
                 <Badge variant={question.type === 'mc' || question.type === 'ordering' || question.type === 'game' ? 'open' : 'submitted'}>
                   {question.type === 'mc'
@@ -50,7 +51,7 @@ export function TeamAnswerKeyView({ room, teamName, onBack }: TeamAnswerKeyViewP
 
               <section className="min-w-0">
                 <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-quiz-muted">
-                  Spørsmål
+                  Oppgavetekst
                 </h3>
                 <QuestionBody question={question} showHint={false} />
               </section>

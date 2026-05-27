@@ -39,6 +39,7 @@ export function HostLandingPage() {
 
   return (
     <PageShell
+      showBrand="compact"
       title="Quizmaster"
       subtitle="Kontrollrommet for live quiz — bygg, presenter og kjør showet"
       emoji="🎤"
@@ -70,7 +71,7 @@ export function HostLandingPage() {
         />
         <HostSetupCard
           title="Importer quizfil"
-          description="Last opp en JSON-backup fra The Quiz Tool."
+          description="Last opp en JSON-backup fra Gruiz."
           icon="📦"
           tone="orange"
           onClick={() => createQuiz('import')}
