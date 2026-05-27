@@ -40,14 +40,14 @@ export function HostLandingPage() {
   return (
     <PageShell
       title="Quizmaster"
-      subtitle="Først lager du quizen — deretter inviterer du lag og kjører live"
+      subtitle="Først lager du quizen — deretter inviterer du deltakere og kjører live"
     >
       <HostPhaseIndicator active="build" />
 
       <div className="w-full min-w-0 max-w-full space-y-4">
         <p className="text-sm text-quiz-muted leading-relaxed break-words">
           Velg hvordan du vil bygge quizen. QR-kode og romkode vises først når du er klar til å
-          presentere for lagene.
+          presentere for deltakerne.
         </p>
 
         <HostSetupCard
@@ -107,7 +107,7 @@ export function HostLandingPage() {
         )}
 
         <p className="text-center text-xs text-quiz-muted pt-2">
-          Skal du delta som lag?{' '}
+          Skal du delta som deltaker?{' '}
           <Link to="/join" className="text-quiz-muted hover:text-quiz-accent underline-offset-2 hover:underline">
             Deltakerportal
           </Link>

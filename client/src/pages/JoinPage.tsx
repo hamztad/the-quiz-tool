@@ -107,10 +107,12 @@ export function JoinPage() {
         return;
       }
       if (e.code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {
-        setError('Quizmaster har stengt for nye lag. Hvis du allerede er med, bruk Fortsett-knappen.');
+        setError(
+          'Quizmaster har stengt for nye deltakere. Hvis du allerede er med, bruk Fortsett-knappen.',
+        );
         return;
       }
-      setError('Kunne ikke bli med. Sjekk romkoden og lagnavnet, eller be om en ny invitasjon.');
+      setError('Kunne ikke bli med. Sjekk romkoden og deltakernavnet, eller be om en ny invitasjon.');
     });
 
     socket.emit(
@@ -134,7 +136,7 @@ export function JoinPage() {
         if (res && 'ok' in res && res.ok === false) {
           setLoading(false);
           if (res.code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {
-            setError('Quizmaster har stengt for nye lag.');
+            setError('Quizmaster har stengt for nye deltakere.');
           }
           return;
         }
@@ -148,8 +150,8 @@ export function JoinPage() {
       title="Bli med i quizen"
       subtitle={
         hasPresetCode
-          ? 'Skriv lagnavn — du er koblet til riktig rom'
-          : 'Skriv romkode og lagnavn for å bli med'
+          ? 'Skriv deltakernavn — du er koblet til riktig rom'
+          : 'Skriv romkode og deltakernavn for å bli med'
       }
     >
       <div className="flex w-full min-w-0 max-w-full flex-col items-center space-y-6">
@@ -173,14 +175,15 @@ export function JoinPage() {
           <div className="w-full rounded-3xl border-2 border-quiz-accent/45 bg-quiz-accent/10 p-5 text-center shadow-lg">
             <p className="text-sm font-semibold text-quiz-muted">Du er allerede med i denne quizen som</p>
             <p className="mt-2 text-2xl font-black text-quiz-text break-words [overflow-wrap:anywhere]">
-              {storedTeamSession?.teamName ?? 'laget ditt'}
+              {storedTeamSession?.teamName ?? 'deltakeren din'}
             </p>
             <p className="mt-3 text-sm text-quiz-muted leading-relaxed">
-              Fortsett her for å unngå dobbelt lag. Svar, poeng og spillforsøk blir hentet tilbake.
+              Fortsett her for å unngå dobbelt deltaker. Svar, poeng og spillforsøk blir hentet
+              tilbake.
             </p>
             <div className="mt-5 space-y-2">
               <Button type="button" size="lg" className="w-full min-h-[52px]" onClick={continueExistingTeam}>
-                Fortsett som eksisterende lag
+                Fortsett som eksisterende deltaker
               </Button>
               <Button
                 type="button"
@@ -191,7 +194,7 @@ export function JoinPage() {
                   setForceNewTeam(false);
                 }}
               >
-                Bytt lag
+                Bytt deltaker
               </Button>
               <Button
                 type="button"
@@ -202,7 +205,7 @@ export function JoinPage() {
                   setForceNewTeam(true);
                 }}
               >
-                Opprett nytt lag likevel
+                Opprett ny deltaker likevel
               </Button>
             </div>
           </div>
@@ -210,14 +213,14 @@ export function JoinPage() {
           <>
         {storedTeamSession && storedSessionMatchesRoom && overrideExistingSession && (
           <div className="w-full rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
-            Denne enheten deltar allerede i quizen. Fortsett eksisterende lag hvis du ikke bevisst
-            lager et ekstra lag.
+            Denne enheten deltar allerede i quizen. Fortsett eksisterende deltaker hvis du ikke
+            bevisst lager en ekstra deltaker.
           </div>
         )}
 
         <div className="w-full space-y-2">
           <label htmlFor="team-name" className="text-sm font-semibold text-quiz-text block">
-            Lagnavn
+            Deltakernavn
           </label>
           <Input
             id="team-name"
@@ -264,7 +267,7 @@ export function JoinPage() {
         )}
 
         <Button size="lg" className="w-full min-h-[52px] text-lg" onClick={join} disabled={!connected || loading}>
-          {loading ? 'Kobler til…' : forceNewTeam ? 'Opprett nytt lag' : 'Bli med i quiz'}
+          {loading ? 'Kobler til…' : forceNewTeam ? 'Opprett ny deltaker' : 'Bli med i quiz'}
         </Button>
           </>
         )}

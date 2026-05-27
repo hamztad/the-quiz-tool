@@ -4,6 +4,8 @@ import {
   canStartPeerGrading,
   canCreateNewTeam,
   CLIENT_EVENTS,
+  NB,
+  RESERVED_TEST_PARTICIPANT_NAME,
   getOpenQuestionIds,
   hasActiveProtest,
   ROOM_ERROR_CODES,
@@ -27,6 +29,8 @@ import {
   removeTeam,
   setQuestions,
   startQuiz,
+  startTestSession,
+  endTestSession,
   unlockFinalResult,
   updateQuestions,
 } from '../../domain/roomService.js';
@@ -44,8 +48,8 @@ function emitRoomAccessError(socket: Socket, code: string) {
     [ROOM_ERROR_CODES.ROOM_ENDED]: 'Quizen er avsluttet.',
     [ROOM_ERROR_CODES.ROOM_EXPIRED]: 'Rommet har utløpt.',
     [ROOM_ERROR_CODES.JOIN_CODE_INVALID]: 'Ugyldig join-kode.',
-    [ROOM_ERROR_CODES.SESSION_INVALID]: 'Kunne ikke koble til laget igjen. Bli med på nytt med romkode og lagnavn.',
-    [ROOM_ERROR_CODES.TEAM_JOIN_LOCKED]: 'Quizmaster har stengt for nye lag.',
+    [ROOM_ERROR_CODES.SESSION_INVALID]: NB.sessionInvalid,
+    [ROOM_ERROR_CODES.TEAM_JOIN_LOCKED]: NB.joinLocked,
   };
   emitError(socket, messages[code] ?? 'Rommet er ikke tilgjengelig.', code);
 }
@@ -60,7 +64,7 @@ function requireHost(socket: Socket, roomId: string): boolean {
 
 function requireSecretary(socket: Socket, roomId: string): boolean {
   if (socket.data.role !== 'secretary' || socket.data.roomId !== roomId) {
-    emitError(socket, 'Kun lagsekretær kan utføre denne handlingen.');
+    emitError(socket, NB.onlyParticipantRole);
     return false;
   }
   return true;
@@ -94,7 +98,7 @@ function disconnectRemovedTeam(io: Server, roomId: string, teamId: string) {
     ) {
       emitError(
         teamSocket,
-        'Quizmaster har fjernet laget fra quizen.',
+        NB.participantRemoved,
         ROOM_ERROR_CODES.TEAM_REMOVED,
       );
       teamSocket.leave(roomId);
@@ -277,7 +281,51 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       disconnectRemovedTeam(io, roomId, payload.teamId);
       emitRoomStateToAll(io, roomId);
     } catch (e) {
-      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke fjerne lag');
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke fjerne deltaker');
+    }
+  });
+
+  socket.on(CLIENT_EVENTS.TEST_SESSION_START, (_payload: Record<string, never>, ack?: (res: unknown) => void) => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
+
+    try {
+      let teamId = '';
+      let teamToken = '';
+      roomStore.update(roomId, (r) => {
+        const result = startTestSession(r);
+        teamId = result.teamId;
+        teamToken = result.teamToken;
+        return result.room;
+      });
+      emitRoomStateToAll(io, roomId);
+      const body = {
+        ok: true,
+        teamId,
+        teamToken,
+        teamName: RESERVED_TEST_PARTICIPANT_NAME,
+      };
+      ack?.(body);
+    } catch (e) {
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke starte testmodus');
+    }
+  });
+
+  socket.on(CLIENT_EVENTS.TEST_SESSION_END, (_payload: Record<string, never>, ack?: (res: unknown) => void) => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+
+    try {
+      const testTeamId = roomStore.get(roomId)?.settings.testTeamId;
+      roomStore.update(roomId, (r) => endTestSession(r));
+      if (testTeamId) {
+        disconnectRemovedTeam(io, roomId, testTeamId);
+      }
+      emitRoomStateToAll(io, roomId);
+      ack?.({ ok: true });
+    } catch (e) {
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke avslutte testmodus');
     }
   });
 
@@ -491,7 +539,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
       const assignment = room.gradingAssignments.find((a) => a.graderTeamId === graderTeamId);
       if (!assignment || assignment.targetTeamId !== payload.targetTeamId) {
-        emitError(socket, 'Du kan ikke rette dette laget.');
+        emitError(socket, NB.cannotGradeThisParticipant);
         return;
       }
       if (!assignment.questionIds.includes(payload.questionId)) {

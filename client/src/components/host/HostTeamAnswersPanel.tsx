@@ -197,7 +197,7 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                         Protest
                       </p>
                       <p className="text-sm text-quiz-text mt-1 break-words [overflow-wrap:anywhere]">
-                        {protest.message?.trim() || 'Lag har sendt protest på denne oppgaven.'}
+                        {protest.message?.trim() || 'Deltaker har sendt protest på denne oppgaven.'}
                       </p>
                     </section>
                   )}

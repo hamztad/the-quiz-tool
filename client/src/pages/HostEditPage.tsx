@@ -31,6 +31,9 @@ import {
   readHostDraftSession,
   writeHostDraftSession,
 } from '../lib/hostDraftSession';
+import { HostTestModeControls } from '../components/host/HostTestModeControls';
+import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
+import { clearTeamSession } from '../lib/tokens';
 
 const HIGHLIGHT_MS = 4500;
 const REPLACE_CONFIRM_WORD = 'ERSTAT';
@@ -61,6 +64,7 @@ export function HostEditPage() {
   const [importText, setImportText] = useState('');
   const [dirty, setDirty] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [testBusy, setTestBusy] = useState<'start' | 'end' | null>(null);
   const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
   const [exportedHash, setExportedHash] = useState<string>('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -307,6 +311,28 @@ export function HostEditPage() {
     savedCount > 0 &&
     isSynced &&
     incompleteCount === 0;
+
+  const handleStartTest = async () => {
+    if (!roomId || !room) return;
+    setTestBusy('start');
+    const result = await emitTestSessionStart(socket, roomId, room.joinCode);
+    setTestBusy(null);
+    if (result.ok) {
+      navigate(`/team/${roomId}`);
+      return;
+    }
+    setSaveMessage('Kunne ikke starte testmodus.');
+  };
+
+  const handleEndTest = async () => {
+    if (!roomId) return;
+    setTestBusy('end');
+    const ok = await emitTestSessionEnd(socket);
+    setTestBusy(null);
+    if (ok) {
+      clearTeamSession();
+    }
+  };
 
   const goToPresent = () => {
     if (!roomId) return;
@@ -615,6 +641,24 @@ export function HostEditPage() {
       ) : (
         <>
           <div className="mb-6">{syncStatusBanner}</div>
+          {room && (
+            <div className="mb-6">
+              <HostTestModeControls
+                room={room}
+                roomId={roomId}
+                canStartTest={canPresent}
+                startDisabledReason={
+                  !canPresent
+                    ? 'Bruk endringene og fullfør alle spørsmål før du prøver quizen.'
+                    : undefined
+                }
+                starting={testBusy === 'start'}
+                ending={testBusy === 'end'}
+                onStartTest={() => void handleStartTest()}
+                onEndTest={() => void handleEndTest()}
+              />
+            </div>
+          )}
           <div className="mb-6">{backupPanel}</div>
           {modeTabs}
           {mainEditorContent}

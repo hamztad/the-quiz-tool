@@ -25,6 +25,7 @@ import { useSocket } from '../hooks/useSocket';
 import { formatTeamAnswerDisplay } from '../lib/teamAnswerDisplay';
 import { TeamGameView } from '../games/registry';
 import { SortableOrderingList } from '../components/ordering/SortableOrderingList';
+import { TestModeBanner } from '../components/test/TestModeBanner';
 
 const HIGHLIGHT_MS = 5000;
 
@@ -221,10 +222,10 @@ export function TeamPage() {
 
   if (reconnectFailed) {
     return (
-      <PageShell title="Lag" subtitle="Kunne ikke koble til igjen">
+      <PageShell title="Deltaker" subtitle="Kunne ikke koble til igjen">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Vi fant ikke lagøkten din. Bli med på nytt eller kontakt quizmaster.
+            Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt quizmaster.
           </p>
           <Link to="/join">
             <Button size="lg" className="w-full max-w-xs">
@@ -242,10 +243,10 @@ export function TeamPage() {
 
   if (noSession) {
     return (
-      <PageShell title="Lag" subtitle="Ingen lag-session funnet">
+      <PageShell title="Deltaker" subtitle="Ingen deltakerøkt funnet">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Vi fant ikke lagøkten din. Bli med på nytt eller kontakt quizmaster.
+            Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt quizmaster.
           </p>
           <Link to="/join">
             <Button size="lg" className="w-full max-w-xs">
@@ -260,13 +261,13 @@ export function TeamPage() {
   if (reconnecting || !room) {
     return (
       <PageShell
-        title="Lag"
-        subtitle={connected ? 'Kobler til laget igjen…' : 'Kobler til server…'}
+        title="Deltaker"
+        subtitle={connected ? 'Kobler til deltakeren igjen…' : 'Kobler til server…'}
       >
         <div className="py-12 text-center space-y-3 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
             {connected
-              ? 'Henter quiz og lagdata. Innsendte svar ligger trygt på serveren.'
+              ? 'Henter quiz og deltakerdata. Innsendte svar ligger trygt på serveren.'
               : 'Venter på nettverkstilkobling…'}
           </p>
           {operationalError && (
@@ -372,7 +373,7 @@ export function TeamPage() {
       <TeamResultsReviewView
         room={room}
         teamId={teamId}
-        teamName={myTeam?.name ?? 'Lag'}
+        teamName={myTeam?.name ?? 'Deltaker'}
         onBack={closeOwnReview}
         backLabel={room.phase === 'grading' && assignment ? 'Tilbake til retterunde' : 'Tilbake'}
       />
@@ -383,7 +384,7 @@ export function TeamPage() {
     return (
       <TeamAnswerKeyView
         room={room}
-        teamName={myTeam?.name ?? 'Lag'}
+        teamName={myTeam?.name ?? 'Deltaker'}
         onBack={() => {
           setSearchParams((current) => {
             const next = new URLSearchParams(current);
@@ -397,7 +398,7 @@ export function TeamPage() {
 
   if (room.phase === 'post_quiz') {
     return (
-      <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Quizen er avsluttet">
+      <PageShell title={myTeam?.name ?? 'Deltaker'} subtitle="Quizen er avsluttet">
         {finalResultContent}
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
@@ -418,14 +419,14 @@ export function TeamPage() {
 
   if (room.phase === 'grading' && !assignment) {
     return (
-      <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Retterunde">
+      <PageShell title={myTeam?.name ?? 'Deltaker'} subtitle="Retterunde">
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Retterunde krever minst to lag. Quizmaster må ha minst to lag og åpne spørsmål for at
-            peer-retting skal starte.
+            Retterunde krever minst to deltakere. Quizmaster må ha minst to deltakere og åpne
+            spørsmål for at peer-retting skal starte.
           </p>
         </Card>
       </PageShell>
@@ -438,7 +439,7 @@ export function TeamPage() {
         room={room}
         assignment={assignment}
         graderTeamId={teamId!}
-        teamName={myTeam?.name ?? 'Lag'}
+        teamName={myTeam?.name ?? 'Deltaker'}
         error={operationalError}
         reviewHref={canReviewOwn ? reviewHref : undefined}
         answerKeyHref={canSeeAnswerKey ? answerKeyHref : undefined}
@@ -448,7 +449,7 @@ export function TeamPage() {
 
   if (room.phase === 'leaderboard' || room.settings.showLeaderboard) {
     return (
-      <PageShell title={myTeam?.name ?? 'Lag'} subtitle="Leaderboard">
+      <PageShell title={myTeam?.name ?? 'Deltaker'} subtitle="Leaderboard">
         {!connected && (
           <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
             Kobler til igjen… Dine innsendte svar er lagret på serveren.
@@ -456,7 +457,7 @@ export function TeamPage() {
         )}
         {showRestoredMessage && (
           <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
-            Du er koblet tilbake til laget ditt.
+            Du er koblet tilbake til deltakeren din.
           </div>
         )}
         {operationalError && (
@@ -476,7 +477,10 @@ export function TeamPage() {
   }
 
   return (
-    <PageShell title={myTeam?.name ?? 'Lag'} subtitle={`Fase: ${room.phase}`}>
+    <PageShell title={myTeam?.name ?? 'Deltaker'} subtitle={`Fase: ${room.phase}`}>
+      {room.settings.testMode && roomId && (
+        <TestModeBanner hostDashboardHref={`/host/${roomId}`} />
+      )}
       {!connected && (
         <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
           Kobler til igjen… Dine innsendte svar er lagret på serveren.
@@ -484,7 +488,7 @@ export function TeamPage() {
       )}
         {showRestoredMessage && (
           <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
-            Du er koblet tilbake til laget ditt.
+            Du er koblet tilbake til deltakeren din.
           </div>
         )}
       {operationalError && (
@@ -637,7 +641,7 @@ export function TeamPage() {
                                   <span className="shrink-0 font-bold">#{result.rank}</span>
                                 )}
                                 <span className="min-w-0 flex-1 break-words">
-                                  {team?.name ?? 'Lag'}
+                                  {team?.name ?? 'Deltaker'}
                                 </span>
                                 <span className="shrink-0 text-quiz-muted">
                                   {result.displayValue}

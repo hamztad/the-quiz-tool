@@ -60,6 +60,8 @@ export type QuestionStatus = 'locked' | 'open';
 export interface Team {
   id: string;
   name: string;
+  /** Automatisk testdeltaker opprettet av quizmaster i testmodus. */
+  isTest?: boolean;
 }
 
 export interface TeamPresence {
@@ -119,6 +121,9 @@ export interface RoomSettings {
   answerKeyOpen: boolean;
   allowNewTeams: boolean;
   finalResultLocked: boolean;
+  /** Quizmaster kjører prøvegjennomgang med én testdeltaker. */
+  testMode: boolean;
+  testTeamId?: string;
 }
 
 export interface FinalLeaderboardSnapshot {

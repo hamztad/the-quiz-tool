@@ -34,6 +34,9 @@ import {
   quizContentHash,
   readHostDraftSession,
 } from '../lib/hostDraftSession';
+import { HostTestModeControls } from '../components/host/HostTestModeControls';
+import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
+import { clearTeamSession } from '../lib/tokens';
 
 function phaseLabel(phase: PublicRoomState['phase']): string {
   switch (phase) {
@@ -67,6 +70,7 @@ export function HostDashboardPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [showFinalLockConfirm, setShowFinalLockConfirm] = useState(false);
+  const [testBusy, setTestBusy] = useState<'start' | 'end' | null>(null);
   const [exportedHash, setExportedHash] = useState('');
   const activeQuestions = room?.questions ?? [];
   const activeQuestionsHash = quizContentHash(activeQuestions);
@@ -201,6 +205,28 @@ export function HostDashboardPage() {
     emit(CLIENT_EVENTS.FINAL_RESULT_LOCK);
   };
 
+  const incompleteCount = room.questions.filter(isQuestionIncomplete).length;
+  const canStartTest = room.questions.length > 0 && incompleteCount === 0;
+
+  const handleStartTest = async () => {
+    if (!roomId) return;
+    setTestBusy('start');
+    const result = await emitTestSessionStart(socket, roomId, room.joinCode);
+    setTestBusy(null);
+    if (result.ok) {
+      window.open(`/team/${roomId}`, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleEndTest = async () => {
+    setTestBusy('end');
+    const ok = await emitTestSessionEnd(socket);
+    setTestBusy(null);
+    if (ok) {
+      clearTeamSession();
+    }
+  };
+
   return (
     <PageShell
       title={isPostQuiz ? 'Etter quiz' : 'Kjør quiz'}
@@ -221,6 +247,21 @@ export function HostDashboardPage() {
       {operationalError && (
         <p className="text-red-400 mb-4 quiz-user-text">{operationalError}</p>
       )}
+
+      <div className="mb-6">
+        <HostTestModeControls
+          room={room}
+          roomId={roomId}
+          canStartTest={canStartTest}
+          startDisabledReason={
+            incompleteCount > 0 ? 'Fullfør alle spørsmål før du prøver quizen.' : undefined
+          }
+          starting={testBusy === 'start'}
+          ending={testBusy === 'end'}
+          onStartTest={() => void handleStartTest()}
+          onEndTest={() => void handleEndTest()}
+        />
+      </div>
 
       <div className="space-y-6 min-w-0 max-w-full">
           {showLeaderboardControls(room.phase) && (
@@ -271,7 +312,7 @@ export function HostDashboardPage() {
                     })
                   }
                 >
-                  {room.settings.teamReviewOpen ? 'Lukk gjennomgang' : 'Åpne gjennomgang for lag'}
+                  {room.settings.teamReviewOpen ? 'Lukk gjennomgang' : 'Åpne gjennomgang for deltakere'}
                 </Button>
               )}
               <Button
@@ -284,14 +325,14 @@ export function HostDashboardPage() {
                   })
                 }
               >
-                {room.settings.answerKeyOpen ? 'Skjul fasit for lag' : 'Vis fasit for lag'}
+                {room.settings.answerKeyOpen ? 'Skjul fasit for deltakere' : 'Vis fasit for deltakere'}
               </Button>
             </div>
           )}
 
           {room.settings.teamReviewOpen && (
             <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
-              Lagene kan nå se egne svar og poeng.
+              Deltakerne kan nå se egne svar og poeng.
             </p>
           )}
 
@@ -374,13 +415,13 @@ export function HostDashboardPage() {
                 })
               }
             >
-              {room.settings.allowNewTeams ? 'Steng for nye lag' : 'Åpne for nye lag'}
+              {room.settings.allowNewTeams ? 'Steng for nye deltakere' : 'Åpne for nye deltakere'}
             </Button>
           </div>
 
           {!room.settings.allowNewTeams && (
             <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
-              Nye lag er stengt. Eksisterende lag kan fortsatt koble til igjen.
+              Nye deltakere er stengt. Eksisterende deltakere kan fortsatt koble til igjen.
             </p>
           )}
 
@@ -408,7 +449,7 @@ export function HostDashboardPage() {
           {!teamsSeeLeaderboard && room.phase === 'live' && (
             <p className="text-xs text-quiz-muted break-words">
               Deltakerne ser ikke leaderboard ennå — trykk «Vis leaderboard» når du vil vise
-              poengstillingen til lagene.
+              poengstillingen til deltakerne.
             </p>
           )}
 
@@ -519,7 +560,7 @@ export function HostDashboardPage() {
                           </p>
                         )}
                         <p className="text-xs text-quiz-muted mt-3 mb-2">
-                          {answeredCount}/{room.teams.length} lag har svart
+                          {answeredCount}/{room.teams.length} deltakere har svart
                         </p>
                         {q.type === 'game' && <HostGameResults room={room} question={q} />}
                         {room.phase === 'live' && (() => {

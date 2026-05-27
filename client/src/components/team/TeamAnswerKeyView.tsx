@@ -22,7 +22,7 @@ export function TeamAnswerKeyView({ room, teamName, onBack }: TeamAnswerKeyViewP
       </div>
 
       <p className="mb-5 text-sm text-quiz-muted">
-        Offisiell fasit fra quizmaster. Her vises ikke andre lags svar.
+        Offisiell fasit fra quizmaster. Her vises ikke andre deltakeres svar.
       </p>
 
       <div className="quiz-page-content space-y-5 pb-6">

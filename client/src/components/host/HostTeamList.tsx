@@ -25,8 +25,8 @@ export function HostTeamList({
       <h2 className="font-semibold">Deltakere ({room.teams.length})</h2>
       <p className="text-xs text-quiz-muted mt-1 mb-3">
         {canOpenTeam
-          ? 'Trykk på lagnavn for besvarelser og poeng. × kaster ut lag som har forlatt.'
-          : 'Trykk × for å kaste ut et lag som har forlatt eller ikke skal være med.'}
+          ? 'Trykk på deltakernavn for besvarelser og poeng. × kaster ut deltakere som har forlatt.'
+          : 'Trykk × for å kaste ut en deltaker som har forlatt eller ikke skal være med.'}
       </p>
       <ul className="space-y-2">
         {room.teams.map((team) => {

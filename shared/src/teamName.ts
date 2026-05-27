@@ -1,3 +1,5 @@
+import { NB, RESERVED_TEST_PARTICIPANT_NAME } from './copy/nbParticipant.js';
+
 export const MIN_TEAM_NAME_LENGTH = 1;
 /** Reasonable upper bound — validated on submit, not while typing. */
 export const MAX_TEAM_NAME_LENGTH = 50;
@@ -11,18 +13,28 @@ export function trimTeamName(raw: string): string {
   return raw.trim();
 }
 
-export function validateTeamName(raw: string): TeamNameValidationResult {
+export function validateTeamName(
+  raw: string,
+  options?: { allowReservedTestName?: boolean },
+): TeamNameValidationResult {
   const name = trimTeamName(raw);
 
   if (name.length < MIN_TEAM_NAME_LENGTH) {
-    return { ok: false, message: 'Skriv inn et lagnavn.' };
+    return { ok: false, message: NB.participantNameRequired };
   }
 
   if (name.length > MAX_TEAM_NAME_LENGTH) {
     return {
       ok: false,
-      message: `Lagnavnet er for langt (maks ${MAX_TEAM_NAME_LENGTH} tegn).`,
+      message: NB.participantNameTooLong(MAX_TEAM_NAME_LENGTH),
     };
+  }
+
+  if (
+    !options?.allowReservedTestName &&
+    name.localeCompare(RESERVED_TEST_PARTICIPANT_NAME, 'nb', { sensitivity: 'accent' }) === 0
+  ) {
+    return { ok: false, message: NB.reservedTestName };
   }
 
   return { ok: true, name };

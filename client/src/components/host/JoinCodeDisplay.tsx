@@ -19,7 +19,7 @@ export function JoinCodeDisplay({ joinCode, joinUrl }: JoinCodeDisplayProps) {
           />
         </div>
         <div className="w-full min-w-0 text-center">
-          <p className="text-sm text-quiz-muted mb-1">Romkode for lag</p>
+          <p className="text-sm text-quiz-muted mb-1">Romkode for deltakere</p>
           <p className="text-2xl sm:text-3xl font-bold tracking-wide text-quiz-accent break-words [overflow-wrap:anywhere] px-1">
             {joinCode}
           </p>

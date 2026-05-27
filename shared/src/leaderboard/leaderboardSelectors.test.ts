@@ -54,6 +54,7 @@ describe('computeLeaderboardFromScores', () => {
         answerKeyOpen: false,
         allowNewTeams: false,
         finalResultLocked: true,
+        testMode: false,
       },
       finalLeaderboardSnapshot: snapshot,
     };
@@ -75,6 +76,7 @@ describe('computeLeaderboardFromScores', () => {
         answerKeyOpen: false,
         allowNewTeams: true,
         finalResultLocked: false,
+        testMode: false,
       },
       finalLeaderboardSnapshot: buildFinalLeaderboardSnapshot(teams, [{ teamId: 'team-b', points: 9 }]),
     };

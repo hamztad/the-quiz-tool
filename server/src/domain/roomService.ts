@@ -1,6 +1,12 @@
 import type { PublicRoomState, Question, RoomState } from '@quiz-tool/shared';
 import { isQuestionRevealedToTeam, redactQuestionForTeam } from '@quiz-tool/shared';
-import { MAX_TEAMS, validateQuestionsForSave, validateTeamName } from '@quiz-tool/shared';
+import {
+  MAX_TEAMS,
+  NB,
+  RESERVED_TEST_PARTICIPANT_NAME,
+  validateQuestionsForSave,
+  validateTeamName,
+} from '@quiz-tool/shared';
 import { createConnectedTeamPresence, markTeamConnected, markTeamDisconnected } from '@quiz-tool/shared';
 import { buildFinalLeaderboardSnapshot } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
@@ -37,6 +43,7 @@ export function createRoom(title?: string): RoomRecord {
       answerKeyOpen: false,
       allowNewTeams: true,
       finalResultLocked: false,
+      testMode: false,
     },
     hostToken,
     teamTokens: {},
@@ -51,13 +58,15 @@ export function createRoom(title?: string): RoomRecord {
 export function joinTeam(
   room: RoomRecord,
   teamName: string,
-  options: { browserToken?: string; now?: number } = {},
+  options: { browserToken?: string; now?: number; isTest?: boolean } = {},
 ): { room: RoomRecord; teamId: string; teamToken: string } {
   if (room.teams.length >= MAX_TEAMS) {
-    throw new Error('Maks antall lag er nådd.');
+    throw new Error(NB.maxParticipantsReached);
   }
 
-  const nameResult = validateTeamName(teamName);
+  const nameResult = validateTeamName(teamName, {
+    allowReservedTestName: options.isTest === true,
+  });
   if (!nameResult.ok) {
     throw new Error(nameResult.message);
   }
@@ -69,7 +78,7 @@ export function joinTeam(
 
   const updated: RoomRecord = {
     ...room,
-    teams: [...room.teams, { id: teamId, name: trimmed }],
+    teams: [...room.teams, { id: teamId, name: trimmed, ...(options.isTest ? { isTest: true } : {}) }],
     teamPresence: { ...room.teamPresence, [teamId]: createConnectedTeamPresence(teamId, now) },
     answeredByTeam: { ...room.answeredByTeam, [teamId]: [] },
     teamTokens: { ...room.teamTokens, [teamId]: teamToken },
@@ -212,7 +221,7 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
 export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
   const teams = room.teams.filter((t) => t.id !== teamId);
   if (teams.length === room.teams.length) {
-    throw new Error('Lag finnes ikke.');
+    throw new Error(NB.participantNotFound);
   }
 
   const teamTokens = { ...room.teamTokens };
@@ -253,11 +262,75 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
   };
 }
 
+export function startTestSession(
+  room: RoomRecord,
+): { room: RoomRecord; teamId: string; teamToken: string } {
+  if (room.questions.length === 0) {
+    throw new Error('Legg til spørsmål før du prøver quizen.');
+  }
+
+  const existingTestId =
+    room.settings.testTeamId ?? room.teams.find((team) => team.isTest)?.id;
+  if (existingTestId) {
+    const token = room.teamTokens[existingTestId];
+    if (token) {
+      return {
+        room: {
+          ...room,
+          settings: { ...room.settings, testMode: true, testTeamId: existingTestId },
+        },
+        teamId: existingTestId,
+        teamToken: token,
+      };
+    }
+  }
+
+  const joined = joinTeam(room, RESERVED_TEST_PARTICIPANT_NAME, { isTest: true });
+  return {
+    room: {
+      ...joined.room,
+      settings: {
+        ...joined.room.settings,
+        testMode: true,
+        testTeamId: joined.teamId,
+      },
+    },
+    teamId: joined.teamId,
+    teamToken: joined.teamToken,
+  };
+}
+
+export function endTestSession(room: RoomRecord): RoomRecord {
+  const testTeamId =
+    room.settings.testTeamId ?? room.teams.find((team) => team.isTest)?.id;
+  if (!testTeamId) {
+    return {
+      ...room,
+      settings: { ...room.settings, testMode: false, testTeamId: undefined },
+    };
+  }
+
+  let next = removeTeam(room, testTeamId);
+  next = {
+    ...next,
+    settings: { ...next.settings, testMode: false, testTeamId: undefined },
+  };
+
+  const onlyTestWasPlaying =
+    next.teams.length === 0 && next.phase !== 'lobby' && next.phase !== 'ended';
+  if (onlyTestWasPlaying) {
+    next = { ...next, phase: 'lobby' };
+  }
+
+  return next;
+}
+
 export function startQuiz(room: RoomRecord): RoomRecord {
   if (room.questions.length === 0) {
     throw new Error('Legg til spørsmål før du starter quizen.');
   }
-  return { ...room, phase: 'live' };
+  const cleared = room.settings.testMode ? endTestSession(room) : room;
+  return { ...cleared, phase: 'live' };
 }
 
 export function lockFinalResult(room: RoomRecord, now = Date.now()): RoomRecord {

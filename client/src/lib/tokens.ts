@@ -14,6 +14,7 @@ export interface TeamSession {
   browserToken?: string;
   teamName?: string;
   joinCode?: string;
+  isTestParticipant?: boolean;
 }
 
 function generateBrowserToken(): string {

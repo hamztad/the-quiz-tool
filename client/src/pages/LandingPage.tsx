@@ -14,7 +14,7 @@ export function LandingPage() {
   };
 
   return (
-    <PageShell title="The Quiz Tool" subtitle="Live pubquiz for quizmaster og lag">
+    <PageShell title="The Quiz Tool" subtitle="Live pubquiz for quizmaster og deltakere">
       <div className="w-full min-w-0 max-w-full space-y-4">
         <Link
           to="/host"
@@ -22,7 +22,7 @@ export function LandingPage() {
         >
           <p className="text-lg font-bold text-quiz-text break-words">Quizmaster</p>
           <p className="mt-1 text-sm text-quiz-muted break-words">
-            Lag quizen, inviter lag og kjør live — steg for steg.
+            Lag quizen, inviter deltakere og kjør live — steg for steg.
           </p>
           <span className="mt-3 block text-sm font-medium text-quiz-accent break-words">
             Gå til quizmaster →
@@ -33,7 +33,7 @@ export function LandingPage() {
           <div>
             <p className="text-lg font-bold text-quiz-text">Deltaker</p>
             <p className="mt-1 text-sm text-quiz-muted">
-              Skann QR-koden eller skriv inn romkode og lagnavn.
+              Skann QR-koden eller skriv inn romkode og deltakernavn.
             </p>
           </div>
           <div className="w-full min-w-0 max-w-full">

@@ -61,7 +61,7 @@ function ProtestCard({ protest, room }: { protest: Protest; room: PublicRoomStat
   return (
     <article className="rounded-xl border border-quiz-border/70 bg-quiz-surface-elevated/40 p-4 space-y-3 min-w-0">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-quiz-text">{team?.name ?? 'Lag'}</span>
+        <span className="font-semibold text-quiz-text">{team?.name ?? 'Deltaker'}</span>
         <Badge variant={statusVariant(protest.status)}>{statusLabel(protest.status)}</Badge>
       </div>
 

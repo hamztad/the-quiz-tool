@@ -13,6 +13,10 @@ import { quizContentHash, readHostDraftSession, markHostDraftExported } from '..
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
+import { HostTestModeControls } from '../components/host/HostTestModeControls';
+import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
+import { clearTeamSession } from '../lib/tokens';
+import { isQuestionIncomplete } from '../lib/questionFactory';
 
 export function HostLobbyPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -21,6 +25,7 @@ export function HostLobbyPage() {
   const inviteFromLive = searchParams.get('invite') === '1';
   const { socket, connected } = useSocket();
   const [exportedHash, setExportedHash] = useState('');
+  const [testBusy, setTestBusy] = useState<'start' | 'end' | null>(null);
   const { room, unavailable, loading, noSession, operationalError } = useRoomGate(
     roomId,
     'host',
@@ -86,6 +91,27 @@ export function HostLobbyPage() {
   const joinUrl = buildParticipantJoinUrl(room.joinCode);
   const canStart = room.questions.length > 0 && room.phase === 'lobby';
   const inviteOnly = room.phase !== 'lobby';
+  const incompleteCount = room.questions.filter(isQuestionIncomplete).length;
+  const canStartTest = room.questions.length > 0 && incompleteCount === 0;
+
+  const handleStartTest = async () => {
+    if (!roomId) return;
+    setTestBusy('start');
+    const result = await emitTestSessionStart(socket, roomId, room.joinCode);
+    setTestBusy(null);
+    if (result.ok) {
+      navigate(`/team/${roomId}`);
+    }
+  };
+
+  const handleEndTest = async () => {
+    setTestBusy('end');
+    const ok = await emitTestSessionEnd(socket);
+    setTestBusy(null);
+    if (ok) {
+      clearTeamSession();
+    }
+  };
 
   const startQuiz = () => {
     socket.emit(CLIENT_EVENTS.QUIZ_START);
@@ -103,7 +129,7 @@ export function HostLobbyPage() {
   const removeTeamFromQuiz = (teamId: string, teamName: string) => {
     if (
       !window.confirm(
-        `Kaste ut «${teamName}»?\n\nLagets svar og poeng fjernes hvis quizen allerede er i gang.`,
+        `Kaste ut «${teamName}»?\n\nDeltakerens svar og poeng fjernes hvis quizen allerede er i gang.`,
       )
     ) {
       return;
@@ -113,11 +139,11 @@ export function HostLobbyPage() {
 
   return (
     <PageShell
-      title={inviteOnly ? 'Invitasjon til lag' : 'Presenter quiz'}
+      title={inviteOnly ? 'Invitasjon til deltakere' : 'Presenter quiz'}
       subtitle={
         inviteOnly
-          ? 'QR-kode og romkode for lag som skal bli med'
-          : 'Inviter lag med QR-kode eller romkode — start når alle er klare'
+          ? 'QR-kode og romkode for deltakere som skal bli med'
+          : 'Inviter deltakere med QR-kode eller romkode — start når alle er klare'
       }
     >
       <HostPhaseIndicator
@@ -140,12 +166,29 @@ export function HostLobbyPage() {
       <div className="w-full min-w-0 max-w-full space-y-6">
         <JoinCodeDisplay joinCode={room.joinCode} joinUrl={joinUrl} />
 
+        {!inviteOnly && (
+          <HostTestModeControls
+            room={room}
+            roomId={roomId}
+            canStartTest={canStartTest}
+            startDisabledReason={
+              incompleteCount > 0
+                ? 'Fullfør alle spørsmål i editoren før du prøver quizen.'
+                : undefined
+            }
+            starting={testBusy === 'start'}
+            ending={testBusy === 'end'}
+            onStartTest={() => void handleStartTest()}
+            onEndTest={() => void handleEndTest()}
+          />
+        )}
+
         <div className="rounded-2xl border border-quiz-border bg-quiz-surface-elevated/40 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-bold text-quiz-text">Tillat nye lag</p>
+              <p className="text-sm font-bold text-quiz-text">Tillat nye deltakere</p>
               <p className="mt-1 text-xs text-quiz-muted">
-                Reconnect til eksisterende lag fungerer fortsatt når nye lag er stengt.
+                Reconnect til eksisterende deltakere fungerer fortsatt når nye deltakere er stengt.
               </p>
             </div>
             <Button
@@ -157,12 +200,12 @@ export function HostLobbyPage() {
                 })
               }
             >
-              {room.settings.allowNewTeams ? 'Steng for nye lag' : 'Åpne for nye lag'}
+              {room.settings.allowNewTeams ? 'Steng for nye deltakere' : 'Åpne for nye deltakere'}
             </Button>
           </div>
           {!room.settings.allowNewTeams && (
             <p className="mt-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-100">
-              Nye lag er stengt. Lag som allerede er med kan koble til igjen.
+              Nye deltakere er stengt. Deltakere som allerede er med kan koble til igjen.
             </p>
           )}
         </div>

@@ -30,11 +30,11 @@ npm run dev
 ## Flyt
 
 1. **Quizmaster:** Gå til `/host` og opprett quiz → del QR-kode (peker til `/join/:kode`)
-2. **Lag:** Skann QR eller gå til `/join` — kun lagnavn og romkode, ingen admin-funksjoner
+2. **Deltaker:** Skann QR eller gå til `/join` — kun deltakernavn og romkode, ingen admin-funksjoner
 3. **Quizmaster:** Rediger spørsmål (hurtigimport eller skjema) → Start quiz
-4. **Åpne/lås** spørsmål manuelt; lag svarer og kan redigere til låsing
+4. **Åpne/lås** spørsmål manuelt; deltakere svarer og kan redigere til låsing
 5. **MC** rettes automatisk ved innsending
-6. **Retterunde:** Lag retter hverandres åpne svar; protester håndteres av quizmaster
+6. **Retterunde:** Deltakere retter hverandres åpne svar; protester håndteres av quizmaster
 7. **Leaderboard** vises når quizmaster slår det på
 
 ## Hurtigimport
@@ -62,16 +62,17 @@ Saturn
 ## Manuell testplan
 
 - [ ] Opprett rom som host; join-kode og QR vises
-- [ ] Bli med med to lag via join-kode
+- [ ] Bli med med to deltakere via join-kode
 - [ ] Importer quiz via hurtigimport; forhåndsvis og lagre
-- [ ] Start quiz; åpne spørsmål; lag sender og oppdaterer svar
+- [ ] Start quiz; åpne spørsmål; deltaker sender og oppdaterer svar
 - [ ] Lås spørsmål; bekreft at redigering blokkeres
 - [ ] MC: riktig svar gir poeng på leaderboard
-- [ ] Start retterunde; lag A retter lag B sine åpne svar
+- [ ] Start retterunde; deltaker A retter deltaker B sine åpne svar
 - [ ] Send protest; host godkjenner/avviser
 - [ ] Host overstyrer poeng
 - [ ] Vis/skjul leaderboard
-- [ ] Refresh side som host og lag; reconnect fungerer
+- [ ] Refresh side som host og deltaker; reconnect fungerer
+- [ ] Prøv quizen (testmodus) med én testdeltaker; avslutt test før ekte deltakere
 
 ## Fremtidig utvidelse
 

@@ -27,6 +27,8 @@ export const CLIENT_EVENTS = {
   ANSWER_KEY_TOGGLE: 'answerKey:toggle',
   TEAM_JOIN_TOGGLE: 'teamJoin:toggle',
   TEAM_REMOVE: 'team:remove',
+  TEST_SESSION_START: 'testSession:start',
+  TEST_SESSION_END: 'testSession:end',
 } as const;
 
 export const SERVER_EVENTS = {

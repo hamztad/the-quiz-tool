@@ -27,8 +27,8 @@ const ROOM_UNAVAILABLE_COPY: Record<RoomUnavailableReason, RoomUnavailableConten
     icon: 'unavailable',
   },
   removed: {
-    title: 'Laget er fjernet',
-    description: 'Quizmaster har fjernet laget fra quizen.',
+    title: 'Deltakeren er fjernet',
+    description: 'Quizmaster har fjernet deltakeren fra quizen.',
     icon: 'unavailable',
   },
 };

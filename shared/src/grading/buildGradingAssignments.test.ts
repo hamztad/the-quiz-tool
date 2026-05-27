@@ -121,7 +121,8 @@ describe('canStartPeerGrading', () => {
   it('disallows one team', () => {
     expect(canStartPeerGrading(1, 1)).toEqual({
       ok: false,
-      message: 'Retterunde krever minst to lag. Med ett lag er peer-retting deaktivert.',
+      message:
+        'Retterunde krever minst to deltakere. Med én deltaker er peer-retting deaktivert.',
     });
   });
 
