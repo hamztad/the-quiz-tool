@@ -67,13 +67,13 @@ export function LandingPage() {
 
             <div className="mt-5 w-full min-w-0">
               <label htmlFor="landing-join-code" className="text-sm font-semibold text-quiz-text mb-1.5 block">
-                Romkode (valgfritt)
+                Romkode
               </label>
               <Input
                 id="landing-join-code"
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="GLAD-TACO"
+                placeholder="Skriv romkode her"
                 maxLength={32}
                 className="text-center tracking-widest font-bold text-lg"
                 onKeyDown={(e) => {

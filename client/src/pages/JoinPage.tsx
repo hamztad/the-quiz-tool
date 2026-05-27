@@ -10,6 +10,7 @@ import {
 import { ParticipantPageShell } from '../components/layout/ParticipantPageShell';
 import { isRoomUnavailableError, type RoomUnavailableReason } from '../lib/roomUnavailable';
 import { normalizeJoinCode } from '../lib/joinUrls';
+import { formatParticipantNameInput, suggestParticipantName } from '../lib/participantNameSuggestions';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useSocket } from '../hooks/useSocket';
@@ -220,41 +221,50 @@ export function JoinPage() {
         )}
 
         <div className="w-full space-y-2">
-          <label htmlFor="team-name" className="text-sm font-semibold text-quiz-text block">
+          <label htmlFor="team-name" className="text-sm font-semibold text-quiz-text block text-center sm:text-left">
             Deltakernavn
           </label>
-          <Input
-            id="team-name"
-            ref={teamNameRef}
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-              placeholder="F.eks. Bobla"
-            autoComplete="off"
-            spellCheck={false}
-            className="min-h-[52px] text-lg"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') join();
-            }}
-          />
+          <div className="flex w-full min-w-0 gap-2 items-stretch">
+            <Input
+              id="team-name"
+              ref={teamNameRef}
+              value={teamName}
+              onChange={(e) => setTeamName(formatParticipantNameInput(e.target.value))}
+              placeholder="Skriv navnet ditt"
+              autoComplete="off"
+              spellCheck={false}
+              className="min-h-[52px] flex-1 text-center text-lg tracking-wide"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') join();
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="shrink-0 min-h-[52px] min-w-[52px] px-3 text-xl"
+              onClick={() => setTeamName(suggestParticipantName())}
+              title="Foreslå et tilfeldig deltakernavn"
+              aria-label="Foreslå et tilfeldig deltakernavn"
+            >
+              🎲
+            </Button>
+          </div>
         </div>
 
         {!hasPresetCode && (
           <div className="w-full space-y-2">
-            <label htmlFor="join-code" className="text-sm font-semibold text-quiz-text block">
+            <label htmlFor="join-code" className="text-sm font-semibold text-quiz-text block text-center sm:text-left">
               Romkode
             </label>
             <Input
               id="join-code"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="GLAD-TACO eller GLAD TACO"
+              placeholder="Skriv romkode her"
               maxLength={32}
               autoComplete="off"
-              className="min-h-[52px] text-center text-lg tracking-wide font-bold"
+              className="min-h-[52px] text-center text-lg tracking-widest font-bold uppercase"
             />
-            <p className="text-xs text-quiz-muted text-center">
-              Mellomrom og bindestrek spiller ingen rolle.
-            </p>
           </div>
         )}
 
