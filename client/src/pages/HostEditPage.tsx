@@ -594,7 +594,7 @@ export function HostEditPage() {
   const showEditFooter = draftQuestions.length > 0;
 
   return (
-    <PageShell title="Bygg quiz" subtitle={pageSubtitle}>
+    <PageShell title="Bygg quiz" emoji="✨" subtitle={pageSubtitle} wide>
       {!focusEntry && <HostPhaseIndicator active="build" links={phaseLinks} />}
 
       <div className={focusEntry ? 'mb-3 flex flex-wrap items-center justify-between gap-2' : 'mb-6'}>
@@ -674,14 +674,14 @@ export function HostEditPage() {
       )}
 
       {showEditFooter && (
-        <div className="fixed inset-x-0 bottom-0 z-20 w-full max-w-full min-w-0 overflow-x-hidden border-t border-quiz-border bg-quiz-bg/95 backdrop-blur-md pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="fixed inset-x-0 bottom-0 z-20 w-full max-w-full min-w-0 overflow-x-hidden border-t-2 border-violet-200/60 bg-white/90 backdrop-blur-xl shadow-[0_-8px_32px_-8px_rgba(124,58,237,0.2)] pb-[env(safe-area-inset-bottom,0px)]">
           <div className="mx-auto w-full min-w-0 max-w-full box-border px-4 py-4 md:max-w-4xl">
             <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col gap-3 md:max-w-none sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm min-w-0 flex-1 break-words">
               {dirty ? (
-                <span className="text-yellow-300 font-medium">Endringer er ikke brukt ennå</span>
+                <span className="text-amber-700 font-bold">⚠️ Endringer er ikke brukt ennå</span>
               ) : (
-                <span className="text-green-400">Aktiv quiz er oppdatert</span>
+                <span className="text-emerald-700 font-bold">✓ Aktiv quiz er oppdatert</span>
               )}
               {saveMessage && (
                 <span
@@ -694,15 +694,16 @@ export function HostEditPage() {
             <div className="flex flex-col gap-2 w-full sm:w-auto sm:shrink-0 sm:items-end">
               <Button
                 type="button"
+                variant="cta"
                 className="w-full sm:w-auto"
                 onClick={() => persistQuestions(draftQuestions)}
                 disabled={!dirty}
               >
-                Bruk endringer
+                ✨ Bruk endringer
               </Button>
               {canPresent && (
-                <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={goToPresent}>
-                  Presenter quiz
+                <Button type="button" variant="gold" className="w-full sm:w-auto" onClick={goToPresent}>
+                  🎤 Presenter quiz
                 </Button>
               )}
               <Button

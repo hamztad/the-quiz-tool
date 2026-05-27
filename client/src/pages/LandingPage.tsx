@@ -14,48 +14,93 @@ export function LandingPage() {
   };
 
   return (
-    <PageShell title="The Quiz Tool" subtitle="Live pubquiz for quizmaster og deltakere">
-      <div className="w-full min-w-0 max-w-full space-y-4">
-        <Link
-          to="/host"
-          className="block w-full min-w-0 max-w-full box-border overflow-hidden rounded-2xl border-2 border-quiz-accent/40 bg-quiz-surface-elevated p-5 text-left transition-colors hover:border-quiz-accent hover:bg-quiz-surface"
-        >
-          <p className="text-lg font-bold text-quiz-text break-words">Quizmaster</p>
-          <p className="mt-1 text-sm text-quiz-muted break-words">
-            Lag quizen, inviter deltakere og kjør live — steg for steg.
-          </p>
-          <span className="mt-3 block text-sm font-medium text-quiz-accent break-words">
-            Gå til quizmaster →
-          </span>
-        </Link>
+    <PageShell
+      title="The Quiz Tool"
+      subtitle="Live quiz-show for quizmaster og deltakere — spill sammen på sekunder"
+      emoji="✨"
+      wide
+    >
+      <div className="w-full min-w-0 max-w-full space-y-5 sm:space-y-6">
+        <p className="text-center text-base font-medium text-quiz-muted sm:text-left">
+          Velg din rolle — hva vil du gjøre i dag?
+        </p>
 
-        <div className="w-full min-w-0 max-w-full box-border overflow-hidden rounded-2xl border border-quiz-border bg-quiz-surface-elevated p-5 space-y-4">
-          <div>
-            <p className="text-lg font-bold text-quiz-text">Deltaker</p>
-            <p className="mt-1 text-sm text-quiz-muted">
-              Skann QR-koden eller skriv inn romkode og deltakernavn.
+        <div className="grid w-full min-w-0 gap-5 sm:grid-cols-2 sm:gap-6">
+          <a
+            href="/host"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="quiz-entry-card quiz-entry-card-host quiz-hover-lift group block no-underline"
+            style={{ animationDelay: '0.05s' }}
+          >
+            <span
+              className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-3xl shadow-lg"
+              aria-hidden
+            >
+              🎤
+            </span>
+            <p className="quiz-display text-2xl font-bold text-quiz-text sm:text-3xl">Quizmaster</p>
+            <p className="mt-2 text-base text-quiz-muted leading-relaxed">
+              Lag quizen, inviter deltakere og kjør live — som en ekte gameshow-vert.
             </p>
+            <span className="mt-5 inline-flex items-center gap-2 text-base font-bold text-violet-700 group-hover:gap-3 transition-all">
+              Åpne kontrollrom
+              <span aria-hidden>→</span>
+            </span>
+            <p className="mt-2 text-xs text-quiz-muted">Åpnes i ny fane — du kan bli her som deltaker</p>
+          </a>
+
+          <div
+            className="quiz-entry-card quiz-entry-card-participant"
+            style={{ animationDelay: '0.12s' }}
+          >
+            <span
+              className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-3xl shadow-lg"
+              aria-hidden
+            >
+              👥
+            </span>
+            <p className="quiz-display text-2xl font-bold text-quiz-text sm:text-3xl">Deltaker</p>
+            <p className="mt-2 text-base text-quiz-muted leading-relaxed">
+              Skann QR-koden eller skriv romkode og navn — så er du med i quizen.
+            </p>
+
+            <div className="mt-5 w-full min-w-0">
+              <label htmlFor="landing-join-code" className="text-sm font-semibold text-quiz-text mb-1.5 block">
+                Romkode (valgfritt)
+              </label>
+              <Input
+                id="landing-join-code"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="GLAD-TACO"
+                maxLength={32}
+                className="text-center tracking-widest font-bold text-lg"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') goToJoin();
+                }}
+              />
+            </div>
+            <Button
+              size="lg"
+              variant="success"
+              className="w-full mt-4"
+              onClick={goToJoin}
+            >
+              🚀 Bli med i quizen
+            </Button>
+            <Link
+              to="/join"
+              className="mt-3 block text-center text-sm font-semibold text-cyan-700 hover:text-cyan-900 underline-offset-2 hover:underline"
+            >
+              Eller gå til deltakerportalen →
+            </Link>
           </div>
-          <div className="w-full min-w-0 max-w-full">
-            <label htmlFor="landing-join-code" className="text-sm text-quiz-muted mb-1 block">
-              Romkode (valgfritt)
-            </label>
-            <Input
-              id="landing-join-code"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="GLAD-TACO"
-              maxLength={32}
-              className="text-center tracking-wide font-semibold"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') goToJoin();
-              }}
-            />
-          </div>
-          <Button size="lg" variant="secondary" className="w-full" onClick={goToJoin}>
-            Bli med
-          </Button>
         </div>
+
+        <p className="text-center text-sm text-quiz-muted pt-2">
+          🎮 Spill · 🧠 AI-quiz · 🏆 Leaderboard · 📦 Quizpakke
+        </p>
       </div>
     </PageShell>
   );

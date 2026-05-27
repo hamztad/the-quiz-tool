@@ -40,20 +40,23 @@ export function HostLandingPage() {
   return (
     <PageShell
       title="Quizmaster"
-      subtitle="Først lager du quizen — deretter inviterer du deltakere og kjører live"
+      subtitle="Kontrollrommet for live quiz — bygg, presenter og kjør showet"
+      emoji="🎤"
+      wide
     >
       <HostPhaseIndicator active="build" />
 
       <div className="w-full min-w-0 max-w-full space-y-4">
-        <p className="text-sm text-quiz-muted leading-relaxed break-words">
-          Velg hvordan du vil bygge quizen. QR-kode og romkode vises først når du er klar til å
-          presentere for deltakerne.
+        <p className="rounded-2xl border border-violet-200/50 bg-violet-50/60 px-4 py-3 text-sm sm:text-base text-quiz-muted leading-relaxed break-words">
+          Velg hvordan du vil bygge quizen. QR-kode og romkode vises når du er klar til å invitere
+          deltakerne.
         </p>
 
         <HostSetupCard
           title="Ny quiz i editor"
           description="Legg til spørsmål ett og ett med spørsmålskort."
           icon="✏️"
+          tone="purple"
           onClick={() => createQuiz('editor')}
           disabled={!connected || busy}
         />
@@ -61,27 +64,30 @@ export function HostLandingPage() {
           title="Ny quiz med tekst"
           description="Kopier AI-prompt, lim inn svar — eller skriv quizen direkte som tekst."
           icon="📝"
+          tone="cyan"
           onClick={() => createQuiz('tekst')}
           disabled={!connected || busy}
         />
         <HostSetupCard
           title="Importer quizfil"
           description="Last opp en JSON-backup fra The Quiz Tool."
-          icon="📁"
+          icon="📦"
+          tone="orange"
           onClick={() => createQuiz('import')}
           disabled={!connected || busy}
         />
         <HostSetupCard
           title="Generer med AI"
           description="Velg tema og antall spørsmål — rediger i editoren før du presenterer."
-          icon="✨"
+          icon="🧠"
+          tone="pink"
           onClick={() => createQuiz('ai')}
           disabled={!connected || busy}
         />
 
         {loading && loading !== 'continue' && (
-          <p className="text-sm text-quiz-muted text-center" role="status">
-            Oppretter quizrom…
+          <p className="text-sm text-quiz-muted text-center font-medium" role="status">
+            ✨ Oppretter quizrom…
           </p>
         )}
         {!connected && (
@@ -89,32 +95,37 @@ export function HostLandingPage() {
         )}
 
         {existingSession && (
-          <div className="rounded-2xl border border-quiz-accent/30 bg-quiz-accent/10 p-5 space-y-3">
-            <p className="text-sm font-semibold text-quiz-text">Fortsett påbegynt quiz</p>
-            <p className="text-xs text-quiz-muted break-words">
+          <div className="rounded-2xl border-2 border-violet-300/50 bg-gradient-to-br from-violet-50/90 to-white/95 p-5 space-y-3 shadow-md">
+            <p className="quiz-display text-lg font-bold text-quiz-text">Fortsett påbegynt quiz</p>
+            <p className="text-sm text-quiz-muted break-words">
               Du har en aktiv quizmaster-økt. Fortsett der du slapp.
             </p>
             <Button
               size="lg"
-              variant="secondary"
+              variant="cta"
               className="w-full"
               onClick={continueQuiz}
               disabled={!connected || busy}
             >
-              {loading === 'continue' ? 'Åpner…' : 'Fortsett quiz'}
+              🚀 {loading === 'continue' ? 'Åpner…' : 'Fortsett quiz'}
             </Button>
           </div>
         )}
 
-        <p className="text-center text-xs text-quiz-muted pt-2">
+        <p className="text-center text-sm text-quiz-muted pt-2">
           Skal du delta som deltaker?{' '}
-          <Link to="/join" className="text-quiz-muted hover:text-quiz-accent underline-offset-2 hover:underline">
-            Deltakerportal
+          <Link
+            to="/join"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-cyan-700 hover:text-cyan-900 underline-offset-2 hover:underline"
+          >
+            👥 Deltakerportal (ny fane)
           </Link>
         </p>
 
         <p className="text-center">
-          <Link to="/" className="text-xs text-quiz-muted hover:text-quiz-text">
+          <Link to="/" className="text-sm text-quiz-muted hover:text-violet-700 font-medium">
             ← Tilbake til forsiden
           </Link>
         </p>

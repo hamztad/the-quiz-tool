@@ -21,7 +21,7 @@ export function OrderingChoiceContent({ item, variant }: OrderingChoiceContentPr
   }
 
   return (
-    <div className="flex min-h-[3.25rem] flex-1 items-center gap-3 rounded-xl bg-quiz-bg/50 px-3 py-2">
+    <div className="flex min-h-[3.25rem] flex-1 items-center gap-3 rounded-xl bg-white/80 px-3 py-2 border border-cyan-100/80">
       {item.media && <ChoiceMediaDisplay media={item.media} variant="ordering-card" />}
       <div className="min-w-0 flex-1">
         {showText ? (

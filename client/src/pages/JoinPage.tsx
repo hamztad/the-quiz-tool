@@ -148,31 +148,32 @@ export function JoinPage() {
   return (
     <ParticipantPageShell
       title="Bli med i quizen"
+      emoji="👥"
       subtitle={
         hasPresetCode
           ? 'Skriv deltakernavn — du er koblet til riktig rom'
           : 'Skriv romkode og deltakernavn for å bli med'
       }
     >
-      <div className="flex w-full min-w-0 max-w-full flex-col items-center space-y-6">
+      <div className="flex w-full min-w-0 max-w-full flex-col items-center space-y-6 quiz-animate-in">
         <span
-          className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-quiz-border bg-quiz-surface-elevated text-3xl"
+          className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-4xl shadow-lg"
           aria-hidden
         >
-          👥
+          🚀
         </span>
 
         {hasPresetCode && (
-          <div className="w-full min-w-0 max-w-full box-border overflow-hidden rounded-2xl border-2 border-quiz-accent/40 bg-quiz-accent/10 px-4 py-4 text-center">
-            <p className="text-xs font-semibold uppercase tracking-widest text-quiz-muted">Romkode</p>
-            <p className="mt-2 text-3xl font-bold tracking-wide text-quiz-accent break-all [overflow-wrap:anywhere]">
+          <div className="w-full min-w-0 max-w-full box-border overflow-hidden rounded-2xl border-2 border-cyan-300/60 bg-gradient-to-br from-cyan-50 to-white px-4 py-5 text-center shadow-md">
+            <p className="text-xs font-bold uppercase tracking-widest text-cyan-800">Romkode</p>
+            <p className="quiz-display mt-2 text-3xl sm:text-4xl font-bold tracking-wide text-cyan-900 break-all [overflow-wrap:anywhere]">
               {joinCode}
             </p>
           </div>
         )}
 
         {showExistingTeamPrompt ? (
-          <div className="w-full rounded-3xl border-2 border-quiz-accent/45 bg-quiz-accent/10 p-5 text-center shadow-lg">
+          <div className="w-full rounded-3xl border-2 border-violet-300/60 bg-gradient-to-br from-violet-50 to-fuchsia-50/80 p-6 text-center shadow-lg">
             <p className="text-sm font-semibold text-quiz-muted">Du er allerede med i denne quizen som</p>
             <p className="mt-2 text-2xl font-black text-quiz-text break-words [overflow-wrap:anywhere]">
               {storedTeamSession?.teamName ?? 'deltakeren din'}
@@ -266,8 +267,8 @@ export function JoinPage() {
           </p>
         )}
 
-        <Button size="lg" className="w-full min-h-[52px] text-lg" onClick={join} disabled={!connected || loading}>
-          {loading ? 'Kobler til…' : forceNewTeam ? 'Opprett ny deltaker' : 'Bli med i quiz'}
+        <Button size="lg" variant="success" className="w-full min-h-[56px] text-lg" onClick={join} disabled={!connected || loading}>
+          {loading ? 'Kobler til…' : forceNewTeam ? '✨ Opprett ny deltaker' : '🎮 Bli med i quiz'}
         </Button>
           </>
         )}

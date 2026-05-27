@@ -230,7 +230,9 @@ export function HostDashboardPage() {
   return (
     <PageShell
       title={isPostQuiz ? 'Etter quiz' : 'Kjør quiz'}
+      emoji="🎮"
       subtitle={`Romkode ${room.joinCode} · ${phaseLabel(room.phase)}`}
+      wide
     >
       <HostPhaseIndicator
         active="live"
@@ -278,10 +280,11 @@ export function HostDashboardPage() {
               ) : (
                 <Button
                   size="sm"
+                  variant="gold"
                   className="w-full sm:w-auto"
                   onClick={() => emit(CLIENT_EVENTS.LEADERBOARD_TOGGLE, { visible: true })}
                 >
-                  Vis leaderboard
+                  🏆 Vis leaderboard
                 </Button>
               )}
               {room.phase === 'live' && (

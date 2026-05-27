@@ -1,4 +1,5 @@
 import type { Question } from '@quiz-tool/shared';
+import { getQuestionTypeTheme } from '../../lib/questionTypeTheme';
 
 interface QuestionBodyProps {
   question: Question;
@@ -7,26 +8,33 @@ interface QuestionBodyProps {
 
 export function QuestionBody({ question, showHint = true }: QuestionBodyProps) {
   const lineClass = 'break-words [overflow-wrap:anywhere]';
+  const typeTheme = getQuestionTypeTheme(question);
+
   return (
-    <div className="min-w-0 max-w-full space-y-2">
+    <div className="min-w-0 max-w-full space-y-3">
+      <p className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
+        <span aria-hidden>{typeTheme.emoji}</span> {typeTheme.label}
+      </p>
       {question.lines.map((line, i) => (
         <p
           key={i}
           className={
             line.style === 'title'
-              ? `text-xl font-bold leading-snug ${lineClass}`
-              : `text-base font-normal text-quiz-muted ${lineClass}`
+              ? `quiz-display text-2xl sm:text-3xl font-bold leading-snug text-quiz-text ${lineClass}`
+              : `text-base sm:text-lg font-medium text-quiz-muted leading-relaxed ${lineClass}`
           }
         >
           {line.text}
         </p>
       ))}
       {showHint && question.hint && (
-        <p className={`text-sm text-quiz-muted italic ${lineClass}`}>Hint: {question.hint}</p>
+        <p className={`text-sm sm:text-base text-violet-700/90 italic font-medium ${lineClass}`}>
+          💡 Hint: {question.hint}
+        </p>
       )}
       {question.type === 'ordering' &&
         (question.orderingDirectionTop || question.orderingDirectionBottom) && (
-          <div className="mt-2 rounded-2xl border border-quiz-accent/35 bg-quiz-accent/10 px-3 py-2 text-sm font-bold text-quiz-text">
+          <div className="mt-2 rounded-2xl border-2 border-cyan-200/70 bg-gradient-to-r from-cyan-50 to-teal-50 px-4 py-3 text-sm sm:text-base font-bold text-cyan-900">
             {question.orderingDirectionTop || 'Øverst'} →{' '}
             {question.orderingDirectionBottom || 'Nederst'}
           </div>
@@ -37,27 +45,8 @@ export function QuestionBody({ question, showHint = true }: QuestionBodyProps) {
             <img
               src={m.url}
               alt={m.alt ?? ''}
-              className="max-h-64 max-w-full rounded-xl object-contain"
+              className="max-h-64 max-w-full rounded-2xl object-contain shadow-md ring-2 ring-white/80"
             />
-            {m.source === 'pixabay' && (
-              <figcaption className="mt-1 text-xs text-quiz-muted break-words">
-                Bilde fra Pixabay
-                {m.photographer ? ` · ${m.photographer}` : ''}
-                {m.pageUrl ? (
-                  <>
-                    {' · '}
-                    <a
-                      href={m.pageUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-quiz-accent hover:underline"
-                    >
-                      Kilde
-                    </a>
-                  </>
-                ) : null}
-              </figcaption>
-            )}
           </figure>
         ) : null,
       )}

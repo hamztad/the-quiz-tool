@@ -140,6 +140,8 @@ export function HostLobbyPage() {
   return (
     <PageShell
       title={inviteOnly ? 'Invitasjon til deltakere' : 'Presenter quiz'}
+      emoji="🎤"
+      wide
       subtitle={
         inviteOnly
           ? 'QR-kode og romkode for deltakere som skal bli med'
@@ -220,11 +222,12 @@ export function HostLobbyPage() {
           {canStart && (
             <Button
               size="lg"
-              className="w-full"
+              variant="cta"
+              className="w-full text-xl"
               onClick={startQuiz}
               disabled={!connected}
             >
-              Start quiz
+              🚀 Start quiz
             </Button>
           )}
           <Button size="lg" variant="secondary" className="w-full" onClick={leavePresent}>

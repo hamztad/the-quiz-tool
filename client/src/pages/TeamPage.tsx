@@ -50,24 +50,27 @@ function WinnerCertificate({
     : new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium' }).format(new Date());
 
   return (
-    <section className="mb-5 overflow-hidden rounded-3xl border-2 border-yellow-300/60 bg-gradient-to-br from-yellow-300/25 via-quiz-accent/20 to-quiz-surface p-5 text-center shadow-xl sm:p-7">
-      <p className="text-xs font-black uppercase tracking-[0.25em] text-yellow-200">Vinner av quizen</p>
-      <h2 className="mt-3 text-3xl font-black text-quiz-text break-words [overflow-wrap:anywhere] sm:text-4xl">
+    <section className="mb-5 overflow-hidden rounded-3xl border-2 border-amber-300/70 bg-gradient-to-br from-amber-100 via-yellow-50 to-violet-100 p-6 text-center shadow-xl sm:p-8 quiz-animate-in">
+      <p className="text-4xl" aria-hidden>
+        🏆
+      </p>
+      <p className="mt-2 text-xs font-black uppercase tracking-[0.25em] text-amber-800">Vinner av quizen</p>
+      <h2 className="quiz-display mt-3 text-3xl font-bold text-quiz-text break-words [overflow-wrap:anywhere] sm:text-4xl">
         {teamName}
       </h2>
       <div className="mx-auto mt-5 grid max-w-sm grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-yellow-300/40 bg-yellow-300/10 px-3 py-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-yellow-100">Plassering</p>
-          <p className="mt-1 text-2xl font-black text-yellow-100">1. plass</p>
+        <div className="rounded-2xl border-2 border-amber-300/60 bg-white/80 px-3 py-3 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-800">Plassering</p>
+          <p className="mt-1 text-2xl font-black text-amber-900">🥇 1. plass</p>
         </div>
-        <div className="rounded-2xl border border-quiz-accent/40 bg-quiz-accent/10 px-3 py-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-quiz-muted">Poeng</p>
-          <p className="mt-1 text-2xl font-black text-quiz-accent">{score} p</p>
+        <div className="rounded-2xl border-2 border-violet-300/50 bg-white/80 px-3 py-3 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-violet-800">Poeng</p>
+          <p className="mt-1 text-2xl font-black text-violet-700">{score} p</p>
         </div>
       </div>
-      <p className="mt-5 text-sm font-medium text-quiz-text">{quizTitle}</p>
+      <p className="mt-5 text-sm font-semibold text-quiz-text">{quizTitle}</p>
       <p className="mt-1 text-xs text-quiz-muted">{dateText}</p>
-      <p className="mt-5 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-quiz-text">
+      <p className="mt-5 rounded-2xl border border-amber-200/80 bg-white/70 px-4 py-3 text-sm text-quiz-text">
         Gratulerer! Dette er den offisielle vinnerplakaten etter at quizmaster låste
         sluttresultatet.
       </p>
@@ -83,8 +86,8 @@ function FinalPlacementCard({
   score: number;
 }) {
   return (
-    <Card className="mb-5 border-2 border-green-500/40 bg-green-500/10 p-5 text-center">
-      <p className="text-sm font-semibold text-green-200">Endelig plassering</p>
+    <Card className="mb-5 border-2 border-emerald-300/60 bg-gradient-to-br from-emerald-50 to-teal-50/80 p-5 text-center">
+      <p className="text-sm font-bold text-emerald-800">🏁 Endelig plassering</p>
       <p className="mt-2 text-3xl font-black text-quiz-text">{placement}. plass</p>
       <p className="mt-1 text-sm text-quiz-muted">{score} poeng</p>
       <p className="mt-3 text-sm text-quiz-text">
@@ -506,7 +509,7 @@ export function TeamPage() {
 
       <div className="quiz-page-content space-y-4">
           {activeQuestionOpen ? (
-            <Card className="border-2 border-quiz-active p-3 sm:p-4 min-w-0">
+            <Card elevated className="border-2 border-violet-400/50 ring-2 ring-violet-200/40 p-4 sm:p-5 min-w-0">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 text-left">
                   <p className="text-xs font-semibold uppercase tracking-wide text-quiz-muted">
@@ -547,8 +550,8 @@ export function TeamPage() {
                 />
               ) : activeQuestion.type === 'ordering' ? (
                 <div className="mt-4 space-y-3">
-                  <div className="rounded-2xl border border-quiz-accent/35 bg-quiz-accent/10 px-4 py-3">
-                    <p className="text-sm font-bold text-quiz-text">Dra kortene i riktig rekkefølge</p>
+                  <div className="rounded-2xl border-2 border-cyan-200/70 bg-gradient-to-r from-cyan-50 to-teal-50 px-4 py-3">
+                    <p className="text-sm font-bold text-cyan-900">🧩 Dra kortene i riktig rekkefølge</p>
                     <p className="mt-1 text-xs text-quiz-muted">
                       {activeQuestion.orderingDirectionTop || 'Øverst'} →{' '}
                       {activeQuestion.orderingDirectionBottom || 'Nederst'}
@@ -573,10 +576,10 @@ export function TeamPage() {
                       key={opt.id}
                       type="button"
                       onClick={() => updateActiveAnswer(opt.id)}
-                      className={`box-border flex w-full min-w-0 max-w-full flex-col items-stretch justify-center rounded-xl border px-3 py-3 text-left min-h-[3.25rem] transition-colors quiz-user-text sm:min-h-[4.5rem] ${
+                      className={`quiz-hover-lift box-border flex w-full min-w-0 max-w-full flex-col items-stretch justify-center rounded-2xl border-2 px-3 py-3 text-left min-h-[3.5rem] transition-all quiz-user-text sm:min-h-[4.75rem] ${
                         answerText === opt.id
-                          ? 'border-quiz-accent bg-quiz-accent/20'
-                          : 'border-quiz-border bg-quiz-surface-elevated'
+                          ? 'border-violet-500 bg-gradient-to-br from-violet-100 to-fuchsia-50 shadow-md ring-2 ring-violet-300/40'
+                          : 'border-indigo-200/80 bg-white/95 hover:border-violet-300'
                       }`}
                     >
                       <McOptionButtonContent option={opt} />
@@ -586,11 +589,13 @@ export function TeamPage() {
               )}
               {activeQuestion.type !== 'game' && (
                 <Button
+                  variant="cta"
+                  size="lg"
                   className="w-full mt-4"
                   onClick={() => submitAnswer(activeQuestion)}
                   disabled={!answerText.trim()}
                 >
-                  Send svar
+                  ✨ Send svar
                 </Button>
               )}
             </Card>

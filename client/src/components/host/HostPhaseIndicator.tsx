@@ -8,38 +8,36 @@ interface HostPhaseIndicatorProps {
   links?: Partial<Record<HostUiPhase, string>>;
 }
 
-const steps: { id: HostUiPhase; label: string }[] = [
-  { id: 'build', label: 'Lag quiz' },
-  { id: 'present', label: 'Presenter' },
-  { id: 'live', label: 'Kjør quiz' },
+const steps: { id: HostUiPhase; label: string; emoji: string }[] = [
+  { id: 'build', label: 'Lag quiz', emoji: '✨' },
+  { id: 'present', label: 'Presenter', emoji: '🎤' },
+  { id: 'live', label: 'Kjør quiz', emoji: '🚀' },
 ];
 
 function StepContent({
   step,
-  index,
   current,
   done,
 }: {
   step: (typeof steps)[number];
-  index: number;
   current: boolean;
   done: boolean;
 }) {
   return (
     <>
       <span
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-sm ${
           current
-            ? 'bg-quiz-accent text-white'
+            ? 'bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white ring-2 ring-violet-300/60'
             : done
-              ? 'bg-green-500/20 text-green-400'
-              : 'bg-quiz-surface-elevated text-quiz-muted border border-quiz-border'
+              ? 'bg-emerald-100 text-emerald-800 ring-2 ring-emerald-300/60'
+              : 'bg-white/90 text-quiz-muted border-2 border-indigo-200/70'
         }`}
       >
-        {done ? '✓' : index + 1}
+        {done ? '✓' : step.emoji}
       </span>
       <span
-        className={`hidden min-w-0 truncate text-xs font-medium sm:block ${
+        className={`hidden min-w-0 truncate text-sm font-bold sm:block ${
           current ? 'text-quiz-text' : 'text-quiz-muted'
         }`}
       >
@@ -49,15 +47,17 @@ function StepContent({
   );
 }
 
-/** Compact nav during live quiz — no decorative timeline that looks clickable. */
 function HostLivePhaseNav({ presentHref }: { presentHref?: string }) {
   return (
     <nav
-      className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm min-w-0"
+      className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl border border-violet-200/60 bg-white/70 px-4 py-3 text-sm min-w-0 shadow-sm"
       aria-label="Quizmaster-faser"
     >
+      <span className="text-2xl" aria-hidden>
+        🚀
+      </span>
       <span className="text-quiz-muted">Fase:</span>
-      <span className="font-semibold text-quiz-text" aria-current="step">
+      <span className="font-bold text-violet-800" aria-current="step">
         Kjør quiz
       </span>
       {presentHref && (
@@ -67,9 +67,9 @@ function HostLivePhaseNav({ presentHref }: { presentHref?: string }) {
           </span>
           <Link
             to={presentHref}
-            className="text-quiz-accent font-medium hover:underline underline-offset-2"
+            className="font-bold text-violet-700 hover:text-violet-900 hover:underline underline-offset-2"
           >
-            Presenter / invitasjon
+            🎤 Presenter / invitasjon
           </Link>
         </>
       )}
@@ -86,7 +86,7 @@ export function HostPhaseIndicator({ active, links }: HostPhaseIndicatorProps) {
 
   return (
     <nav
-      className="mb-6 w-full min-w-0 max-w-full"
+      className="mb-6 w-full min-w-0 max-w-full rounded-2xl border border-indigo-200/50 bg-white/60 p-3 shadow-sm backdrop-blur-sm"
       aria-label="Quizmaster-faser"
     >
       <ol className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden sm:gap-2">
@@ -101,32 +101,22 @@ export function HostPhaseIndicator({ active, links }: HostPhaseIndicatorProps) {
               {isLink ? (
                 <Link
                   to={href!}
-                  className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2 rounded-lg hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
+                  className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2 rounded-xl p-1 quiz-hover-lift focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500"
                 >
-                  <StepContent
-                    step={step}
-                    index={index}
-                    current={current}
-                    done={done}
-                  />
+                  <StepContent step={step} current={current} done={done} />
                 </Link>
               ) : (
                 <span
-                  className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2 cursor-default"
+                  className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2 cursor-default p-1"
                   aria-current={current ? 'step' : undefined}
                 >
-                  <StepContent
-                    step={step}
-                    index={index}
-                    current={current}
-                    done={done}
-                  />
+                  <StepContent step={step} current={current} done={done} />
                 </span>
               )}
               {index < steps.length - 1 && (
                 <span
-                  className={`mx-0.5 h-px min-w-[8px] flex-1 sm:mx-1 ${
-                    done ? 'bg-green-500/40' : 'bg-quiz-border'
+                  className={`mx-0.5 h-1 min-w-[8px] flex-1 rounded-full sm:mx-1 ${
+                    done ? 'bg-emerald-400/70' : 'bg-indigo-200/80'
                   }`}
                   aria-hidden
                 />
