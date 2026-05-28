@@ -3,6 +3,7 @@ import { createDefaultAnagramConfig } from './modules/anagram.js';
 import { createDefaultDropBallConfig } from './modules/dropBall.js';
 import { createDefaultEmojiHuntConfig } from './modules/emojiHunt.js';
 import { createDefaultMathExpressionConfig } from './modules/mathExpression.js';
+import { createDefaultRevealImageConfig } from './modules/revealImage.js';
 import { createDefaultRainbowPuzzleConfig } from './modules/rainbowPuzzle.js';
 import { createDefaultTimerChallengeConfig } from './modules/timerChallenge.js';
 
@@ -31,6 +32,12 @@ export const builtInGames: BuiltInGameDefinition[] = [
     label: 'Drop the Ball',
     description: 'Slipp ballen, samle mynter og fjern hindre for høyest score.',
     createDefaultConfig: createDefaultDropBallConfig,
+  },
+  {
+    id: 'revealImage',
+    label: 'Avslør bildet',
+    description: 'Åpne ruter i bildet og gjett motivet med færrest mulig avsløringer.',
+    createDefaultConfig: createDefaultRevealImageConfig,
   },
   {
     id: 'rainbowPuzzle',

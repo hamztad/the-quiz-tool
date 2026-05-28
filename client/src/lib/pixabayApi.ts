@@ -1,6 +1,7 @@
 import type { HostSession } from './tokens';
 
-export type ImageProvider = 'pixabay' | 'wikimedia';
+export type SearchImageProvider = 'pixabay' | 'wikimedia';
+export type ImageProvider = SearchImageProvider | 'upload';
 
 export interface ImageSearchResult {
   id: string;
@@ -30,9 +31,19 @@ interface ImageSearchError {
   message: string;
 }
 
+interface UploadImageSuccess {
+  ok: true;
+  result: ImageSearchResult;
+}
+
+interface UploadImageError {
+  ok: false;
+  message: string;
+}
+
 export async function searchImageProvider(
   session: HostSession,
-  provider: ImageProvider,
+  provider: SearchImageProvider,
   query: string,
   language: 'nb' | 'en',
   page = 1,
@@ -71,4 +82,29 @@ export async function searchPixabayImages(
   page = 1,
 ): Promise<ImageSearchSuccess> {
   return searchImageProvider(session, 'pixabay', query, language, page);
+}
+
+export async function uploadPrivateImage(
+  session: HostSession,
+  file: File,
+  confirmOwnership: boolean,
+): Promise<ImageSearchResult> {
+  const body = new FormData();
+  body.set('roomId', session.roomId);
+  body.set('confirmOwnership', confirmOwnership ? 'true' : 'false');
+  body.set('image', file);
+
+  const res = await fetch('/api/ai/upload-image', {
+    method: 'POST',
+    headers: {
+      'X-Host-Token': session.hostToken,
+    },
+    body,
+  });
+
+  const data = (await res.json()) as UploadImageSuccess | UploadImageError;
+  if (!res.ok || !data.ok) {
+    throw new Error(!data.ok ? data.message : 'Kunne ikke laste opp bildet.');
+  }
+  return data.result;
 }

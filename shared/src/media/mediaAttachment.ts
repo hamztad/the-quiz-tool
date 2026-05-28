@@ -7,7 +7,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function isMediaAttachment(value: unknown): value is MediaAttachment {
   if (!isRecord(value)) return false;
   const validSource =
-    value.source === undefined || value.source === 'pixabay' || value.source === 'wikimedia';
+    value.source === undefined ||
+    value.source === 'pixabay' ||
+    value.source === 'wikimedia' ||
+    value.source === 'upload';
   const validOptionalStrings =
     (value.alt === undefined || typeof value.alt === 'string') &&
     (value.previewUrl === undefined || typeof value.previewUrl === 'string') &&

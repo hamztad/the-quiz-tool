@@ -1,4 +1,5 @@
 import type { RoomRecord } from '../store/RoomStore.js';
+import { isRevealImageAnswerCorrect } from '@quiz-tool/shared';
 import { calculateGameQuestionResults, calculateGameResultsForQuestions, startGameRound } from './gameService.js';
 import { armQuestionTimer, clearQuestionTimer } from './timing/questionTimerService.js';
 
@@ -28,10 +29,41 @@ export function openQuestion(
   }
   assertCanOpenQuestion(room, options);
 
+  // Reveal image is single-attempt per opening. Manual reopen clears attempt state and score.
+  const isRevealImage = question.type === 'game' && question.game?.gameId === 'revealImage';
+  const wasPreviouslyActivated = room.questionsActivated[questionId] === true;
+  const shouldResetRevealImage = isRevealImage && wasPreviouslyActivated;
+
+  const resetAnsweredByTeam = shouldResetRevealImage
+    ? Object.fromEntries(
+        Object.entries(room.answeredByTeam).map(([teamId, questionIds]) => [
+          teamId,
+          questionIds.filter((id) => id !== questionId),
+        ]),
+      )
+    : room.answeredByTeam;
+
+  const baseRoom: RoomRecord = shouldResetRevealImage
+    ? {
+        ...room,
+        gameSubmissions: room.gameSubmissions.filter(
+          (submission) =>
+            !(submission.questionId === questionId && submission.gameId === 'revealImage'),
+        ),
+        gameResults: room.gameResults.filter(
+          (result) => !(result.questionId === questionId && result.gameId === 'revealImage'),
+        ),
+        scores: room.scores.filter(
+          (score) => !(score.questionId === questionId && score.source === 'game'),
+        ),
+        answeredByTeam: resetAnsweredByTeam,
+      }
+    : room;
+
   let opened: RoomRecord = {
-    ...room,
-    questionStatus: { ...room.questionStatus, [questionId]: 'open' as const },
-    questionsActivated: { ...room.questionsActivated, [questionId]: true },
+    ...baseRoom,
+    questionStatus: { ...baseRoom.questionStatus, [questionId]: 'open' as const },
+    questionsActivated: { ...baseRoom.questionsActivated, [questionId]: true },
   };
   opened = startGameRound(opened, questionId);
   opened = armQuestionTimer(opened, question);
@@ -69,5 +101,25 @@ export function forceReopenQuestion(room: RoomRecord, questionId: string): RoomR
     { ...room, settings: { ...room.settings, teamsLockedOut: false } },
     questionId,
     { allowWhenTeamsLockedOut: true },
+  );
+}
+
+export function hasTeamSolvedRevealImage(
+  room: RoomRecord,
+  questionId: string,
+  teamId: string,
+): boolean {
+  const question = room.questions.find((q) => q.id === questionId);
+  const config = question?.type === 'game' && question.game?.gameId === 'revealImage'
+    ? question.game
+    : null;
+  if (!config) return false;
+  return room.gameSubmissions.some(
+    (submission) =>
+      submission.questionId === questionId &&
+      submission.teamId === teamId &&
+      submission.gameId === 'revealImage' &&
+      submission.payload.gameId === 'revealImage' &&
+      isRevealImageAnswerCorrect(submission.payload.answer, config),
   );
 }

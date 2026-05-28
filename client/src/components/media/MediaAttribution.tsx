@@ -7,7 +7,12 @@ interface MediaAttributionProps {
 
 export function MediaAttribution({ media, className = '' }: MediaAttributionProps) {
   const creator = media.photographer || media.creator;
-  const sourceLabel = media.source === 'wikimedia' ? 'Wikimedia Commons' : 'Kilde';
+  const sourceLabel =
+    media.source === 'wikimedia'
+      ? 'Wikimedia Commons'
+      : media.source === 'upload'
+        ? 'Privat opplasting'
+        : 'Kilde';
 
   if (!creator && !media.license && !media.pageUrl) return null;
 

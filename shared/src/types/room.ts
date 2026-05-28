@@ -21,10 +21,10 @@ export interface QuestionLine {
 
 export interface MediaAttachment {
   type: 'image';
-  /** Remote image URL selected through backend image provider search. */
+  /** Remote image URL selected through backend image provider search/upload. */
   url: string;
   alt?: string;
-  source?: 'pixabay' | 'wikimedia';
+  source?: 'pixabay' | 'wikimedia' | 'upload';
   title?: string;
   creator?: string;
   license?: string;

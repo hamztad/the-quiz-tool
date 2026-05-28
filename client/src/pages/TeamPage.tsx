@@ -660,7 +660,8 @@ export function TeamPage() {
               {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
                 activeQuestion.game?.gameId !== 'emojiHunt' &&
                 activeQuestion.game?.gameId !== 'dropBall' &&
-                activeQuestion.game?.gameId !== 'anagram' && (
+                activeQuestion.game?.gameId !== 'anagram' &&
+                activeQuestion.game?.gameId !== 'revealImage' && (
                 <QuestionBody question={activeQuestion} />
               )}
               {activeQuestion.type === 'game' ? (

@@ -36,6 +36,9 @@ export function getQuestionFasitText(question: Question): string | null {
       }
       return `Regnerace: ${question.game.expressions.join(' · ')}`;
     }
+    if (question.game?.gameId === 'revealImage') {
+      return `Avslør bildet: ${question.game.correctAnswer || '—'} · ${question.game.gridSize}x${question.game.gridSize} ruter`;
+    }
     return 'Spillresultat beregnes automatisk.';
   }
   if (question.type === 'ordering') {

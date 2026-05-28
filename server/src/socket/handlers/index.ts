@@ -21,7 +21,13 @@ import { runAiGradingBatch, runIncrementalAiGrade } from '../../domain/runAiGrad
 import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import { canStartAiGrading, collectOpenAnswerGradeJobs } from '@quiz-tool/shared';
 import { startTeamGame, submitGameResult } from '../../domain/gameService.js';
-import { forceReopenQuestion, lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
+import {
+  forceReopenQuestion,
+  hasTeamSolvedRevealImage,
+  lockQuestion,
+  lockRound,
+  openQuestion,
+} from '../../domain/questionService.js';
 import { cancelQuizSchedule, setQuizSchedule } from '../../domain/timing/scheduleService.js';
 import {
   createRoom,
@@ -565,6 +571,15 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       const teamId = socket.data.teamId as string;
       if (!requireSecretary(socket, roomId)) return;
       try {
+        const room = roomStore.get(roomId);
+        if (
+          room &&
+          payload.payload.gameId === 'revealImage' &&
+          hasTeamSolvedRevealImage(room, payload.questionId, teamId)
+        ) {
+          emitError(socket, 'Forsøket er allerede låst etter riktig svar.');
+          return;
+        }
         roomStore.update(roomId, (r) =>
           submitGameResult(r, teamId, payload.questionId, payload.payload),
         );

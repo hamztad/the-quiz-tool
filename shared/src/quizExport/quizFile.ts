@@ -2,6 +2,7 @@ import type { GameQuestionConfig } from '../games/types.js';
 import { validateAnagramAnswerText } from '../games/modules/anagram.js';
 import { isValidDropBallConfig } from '../games/modules/dropBall.js';
 import { validateMathExpressionConfig } from '../games/modules/mathExpression.js';
+import { sanitizeRevealImageChoices } from '../games/modules/revealImage.js';
 import { isMediaAttachment } from '../media/mediaAttachment.js';
 import { isValidQuestionTimerConfig, normalizeQuestionTimerConfig } from '../timing/timerConfig.js';
 import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
@@ -124,6 +125,23 @@ function isGameQuestionConfig(value: unknown): value is GameQuestionConfig {
     return validateMathExpressionConfig(
       value as unknown as GameQuestionConfig & { gameId: 'mathExpression' },
     ).ok;
+  }
+  if (value.gameId === 'revealImage') {
+    return (
+      (value.gridSize === 4 || value.gridSize === 5 || value.gridSize === 6) &&
+      typeof value.correctAnswer === 'string' &&
+      value.correctAnswer.trim().length > 0 &&
+      Array.isArray(value.acceptedAnswers) &&
+      value.acceptedAnswers.every((answer) => typeof answer === 'string') &&
+      typeof value.choiceMultiplier === 'number' &&
+      typeof value.minCorrectScore === 'number' &&
+      value.rankingMode === 'highest' &&
+      value.resultKind === 'directScore' &&
+      value.pointMode === 'directScoreToPoints' &&
+      (value.choices === undefined ||
+        sanitizeRevealImageChoices(value.choices as { id: string; text: string; isCorrect: boolean }[]) !==
+          undefined)
+    );
   }
   return false;
 }

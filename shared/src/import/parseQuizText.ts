@@ -2,6 +2,7 @@ import type { McOption, Question, QuestionLine } from '../types/room.js';
 import { DEFAULT_MAX_POINTS } from '../constants/events.js';
 import { validateAnagramAnswerText } from '../games/modules/anagram.js';
 import { validateMathExpressionConfig } from '../games/modules/mathExpression.js';
+import { sanitizeRevealImageChoices } from '../games/modules/revealImage.js';
 import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
 
 export interface ParseResult {
@@ -141,7 +142,7 @@ export function parseQuizText(raw: string): ParseResult {
 export function validateQuestionsForSave(
   questions: Pick<
     Question,
-    'type' | 'acceptedAnswers' | 'options' | 'lines' | 'game' | 'orderingItems' | 'orderingCorrectOrder'
+    'type' | 'acceptedAnswers' | 'options' | 'lines' | 'game' | 'orderingItems' | 'orderingCorrectOrder' | 'media'
   >[],
 ): string[] {
   const errors: string[] = [];
@@ -178,6 +179,17 @@ export function validateQuestionsForSave(
         errors.push(`Spørsmål ${i + 1}: anagram mangler gyldig svar.`);
       } else if (q.game.gameId === 'mathExpression' && !validateMathExpressionConfig(q.game).ok) {
         errors.push(`Spørsmål ${i + 1}: regnestykke har ugyldig oppsett.`);
+      } else if (q.game.gameId === 'revealImage') {
+        if (!q.game.correctAnswer.trim()) {
+          errors.push(`Spørsmål ${i + 1}: avslør bildet mangler riktig svar.`);
+        }
+        if (q.media?.some((m) => m.type === 'image' && m.url.trim()) !== true) {
+          errors.push(`Spørsmål ${i + 1}: avslør bildet mangler bilde.`);
+        }
+        const choices = sanitizeRevealImageChoices(q.game.choices);
+        if (q.game.choices && !choices) {
+          errors.push(`Spørsmål ${i + 1}: avslør bildet trenger 3-5 unike alternativer hvis alternativer brukes.`);
+        }
       }
       if (q.options !== undefined || q.acceptedAnswers !== undefined) {
         errors.push(`Spørsmål ${i + 1}: spillspørsmål kan ikke ha vanlig fasit eller MC-alternativer.`);

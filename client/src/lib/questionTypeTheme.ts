@@ -46,6 +46,7 @@ const gameEmoji: Partial<Record<string, string>> = {
   emojiHunt: '🔍',
   rainbowPuzzle: '🌈',
   timerChallenge: '⏱️',
+  revealImage: '🖼️',
 };
 
 export function getQuestionTypeTheme(

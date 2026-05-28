@@ -38,6 +38,9 @@ function formatGameSubmissionForHost(question: Question, submission: GameSubmiss
       ? submission.payload.answer.trim() || null
       : `${(submission.payload.totalMs / 1000).toFixed(2)} sekunder`;
   }
+  if (submission.payload.gameId === 'revealImage') {
+    return `${submission.payload.answer} · ${submission.payload.openedTiles}/${submission.payload.totalTiles} ruter · ${submission.payload.usedChoices ? 'alternativer' : 'fritekst'}`;
+  }
   return null;
 }
 

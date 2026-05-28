@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import multer from 'multer';
 import {
   clampAiQuestionCount,
   type AiGenerateQuizRequest,
@@ -10,8 +11,10 @@ import {
 import { roomStore } from '../store/memoryStore.js';
 import { AiQuizGenerateError, generateQuizWithOpenAI } from '../services/openaiQuizGenerate.js';
 import {
+  getUploadedImageMetadata,
   providerResultToMedia,
   searchImagesByProvider,
+  storeUploadedImage,
   type ImageProviderId,
 } from '../services/imageProviders/index.js';
 
@@ -19,6 +22,7 @@ const DIFFICULTIES = new Set<AiQuizDifficulty>(['easy', 'medium', 'hard']);
 const STYLES = new Set<AiQuizQuestionStyle>(['open', 'mc', 'mixed', 'quizPackage']);
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_TRANSLATE_MODEL = 'gpt-4o-mini';
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1_000_000 } });
 
 interface OpenAiTranslateResponse {
   choices?: Array<{
@@ -120,7 +124,8 @@ function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
     (b.includePixabayImages === undefined || typeof b.includePixabayImages === 'boolean') &&
     (b.imageProvider === undefined ||
       b.imageProvider === 'pixabay' ||
-      b.imageProvider === 'wikimedia') &&
+      b.imageProvider === 'wikimedia' ||
+      b.imageProvider === 'upload') &&
     varietyOk
   );
 }
@@ -228,6 +233,90 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
   await handleImageSearch(req, res, 'pixabay');
 });
 
+aiQuizRouter.post('/upload-image', (req, res) => {
+  upload.single('image')(req, res, async (uploadError) => {
+    if (uploadError) {
+      res.status(400).json({
+        ok: false,
+        code: 'UPLOAD_FAILED',
+        message:
+          uploadError instanceof Error && uploadError.message.includes('File too large')
+            ? 'Image must be smaller than 1 MB.'
+            : 'Kunne ikke laste opp bilde. Sjekk filtype og størrelse.',
+      });
+      return;
+    }
+
+    const roomId = typeof req.body?.roomId === 'string' ? req.body.roomId : '';
+    const hostToken = req.header('x-host-token') || '';
+    const confirmOwnership = req.body?.confirmOwnership === 'true';
+    const file = req.file;
+
+    if (!roomId || !file) {
+      res.status(400).json({
+        ok: false,
+        code: 'INVALID_REQUEST',
+        message: 'Velg et bilde før opplasting.',
+      });
+      return;
+    }
+
+    try {
+      const stored = await storeUploadedImage({
+        roomId,
+        hostToken,
+        fileBuffer: file.buffer,
+        mimeType: file.mimetype,
+        originalFilename: file.originalname,
+        confirmOwnership,
+        requestIp: req.ip,
+      });
+
+      res.json({
+        ok: true,
+        result: {
+          id: stored.imageId,
+          title: stored.filename,
+          tags: 'Privat opplasting',
+          previewUrl: stored.thumbUrlPath,
+          imageUrl: stored.imageUrlPath,
+          pageUrl: '',
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Kunne ikke laste opp bilde.';
+      const status = message.includes('quizmaster-tilgang')
+        ? 403
+        : message.includes('smaller than 1 MB') || message.includes('tillatt')
+          ? 400
+          : 500;
+      res.status(status).json({
+        ok: false,
+        code: 'UPLOAD_FAILED',
+        message,
+      });
+    }
+  });
+});
+
+aiQuizRouter.get('/uploaded-images/:imageId', async (req, res) => {
+  const imageId = String(req.params.imageId || '').trim();
+  if (!imageId) {
+    res.status(404).end();
+    return;
+  }
+  const meta = await getUploadedImageMetadata(imageId);
+  if (!meta) {
+    res.status(404).end();
+    return;
+  }
+
+  const useThumb = req.query.thumb === '1';
+  res.setHeader('Content-Type', meta.mimeType);
+  res.setHeader('Cache-Control', 'private, max-age=600');
+  res.sendFile(useThumb ? meta.thumbPath : meta.imagePath);
+});
+
 aiQuizRouter.post('/generate-quiz', async (req, res) => {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
@@ -297,6 +386,14 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
     const shouldAttachImages = Boolean(includePixabayImages);
     const provider: ImageProviderId = (imageProvider as AiImageProvider | undefined) ?? 'pixabay';
     if (shouldAttachImages) {
+      if (provider === 'upload') {
+        res.status(400).json({
+          ok: false,
+          code: 'INVALID_PROVIDER',
+          message: 'Privat opplasting brukes manuelt i editoren, ikke i automatisk AI-bildesøk.',
+        });
+        return;
+      }
       questions = await attachProviderImagesToQuestions(
         questions,
         provider,

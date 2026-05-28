@@ -22,7 +22,7 @@ export const AI_QUIZ_CUSTOM_THEME = 'Egendefinert tema' as const;
 export type AiQuizDifficulty = 'easy' | 'medium' | 'hard';
 
 export type AiQuizQuestionStyle = 'open' | 'mc' | 'mixed' | 'quizPackage';
-export type AiImageProvider = 'pixabay' | 'wikimedia';
+export type AiImageProvider = 'pixabay' | 'wikimedia' | 'upload';
 
 export interface AiGenerateQuizRequest {
   roomId: string;

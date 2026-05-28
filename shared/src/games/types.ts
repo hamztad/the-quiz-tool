@@ -5,7 +5,8 @@ export type GameId =
   | 'anagram'
   | 'mathExpression'
   | 'mathRace'
-  | 'dropBall';
+  | 'dropBall'
+  | 'revealImage';
 
 export type RankingMode = 'highest' | 'lowest';
 
@@ -117,6 +118,27 @@ export interface DropBallConfig extends GameQuestionConfigBase {
   pointMode: 'rankedBands';
 }
 
+export type RevealImageGridSize = 4 | 5 | 6;
+
+export interface RevealImageChoiceOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface RevealImageConfig extends GameQuestionConfigBase {
+  gameId: 'revealImage';
+  gridSize: RevealImageGridSize;
+  correctAnswer: string;
+  acceptedAnswers: string[];
+  choices?: RevealImageChoiceOption[];
+  choiceMultiplier: number;
+  minCorrectScore: number;
+  rankingMode: 'highest';
+  resultKind: 'directScore';
+  pointMode: 'directScoreToPoints';
+}
+
 export type GameQuestionConfig =
   | TimerChallengeConfig
   | RainbowPuzzleConfig
@@ -124,7 +146,8 @@ export type GameQuestionConfig =
   | AnagramGameConfig
   | MathExpressionConfig
   | MathRaceGameConfig
-  | DropBallConfig;
+  | DropBallConfig
+  | RevealImageConfig;
 
 export interface GameRound {
   questionId: string;
@@ -213,6 +236,15 @@ export interface DropBallSubmissionPayload {
   rounds?: DropBallRoundResult[];
 }
 
+export interface RevealImageSubmissionPayload {
+  gameId: 'revealImage';
+  answer: string;
+  openedTiles: number;
+  totalTiles: number;
+  usedChoices: boolean;
+  source: 'text' | 'choice';
+}
+
 export type GameSubmissionPayload =
   | TimerChallengeSubmissionPayload
   | RainbowPuzzleSubmissionPayload
@@ -220,7 +252,8 @@ export type GameSubmissionPayload =
   | AnagramSubmissionPayload
   | MathExpressionSubmissionPayload
   | MathRaceSubmissionPayload
-  | DropBallSubmissionPayload;
+  | DropBallSubmissionPayload
+  | RevealImageSubmissionPayload;
 
 export interface GameSubmission {
   questionId: string;

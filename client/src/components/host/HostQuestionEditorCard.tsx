@@ -10,6 +10,7 @@ import type {
   McOption,
   OrderingItem,
   Question,
+  RevealImageConfig,
   TimerChallengeConfig,
 } from '@quiz-tool/shared';
 import {
@@ -227,7 +228,7 @@ export function HostQuestionEditorCard({
           ) : question.type === 'ordering' ? (
             <OrderingQuestionEditor question={question} onChange={onChange} roomId={roomId} />
           ) : (
-            <GameQuestionEditor question={question} onChange={onChange} />
+            <GameQuestionEditor question={question} onChange={onChange} roomId={roomId} />
           )}
 
           <details
@@ -394,10 +395,163 @@ function OpenAnswersEditor({
 function GameQuestionEditor({
   question,
   onChange,
+  roomId,
 }: {
   question: Question;
   onChange: (q: Question) => void;
+  roomId?: string;
 }) {
+  if (question.game?.gameId === 'revealImage') {
+    const config = question.game;
+    const image = question.media?.find((m) => m.type === 'image');
+    const choices = config.choices ?? [];
+    const updateGame = (next: RevealImageConfig) => {
+      onChange({
+        ...question,
+        gameType: 'revealImage',
+        game: next,
+      });
+    };
+    const setChoiceText = (id: string, text: string) => {
+      updateGame({
+        ...config,
+        choices: choices.map((choice) => (choice.id === id ? { ...choice, text } : choice)),
+      });
+    };
+    const setChoiceCorrect = (id: string) => {
+      updateGame({
+        ...config,
+        choices: choices.map((choice) => ({ ...choice, isCorrect: choice.id === id })),
+      });
+    };
+    const addChoice = () => {
+      if (choices.length >= 5) return;
+      updateGame({
+        ...config,
+        choices: [...choices, { id: generateId('choice'), text: '', isCorrect: choices.length === 0 }],
+      });
+    };
+    const removeChoice = (id: string) => {
+      if (choices.length <= 3) return;
+      const next = choices.filter((choice) => choice.id !== id);
+      const hasCorrect = next.some((choice) => choice.isCorrect);
+      updateGame({
+        ...config,
+        choices: hasCorrect ? next : next.map((choice, index) => ({ ...choice, isCorrect: index === 0 })),
+      });
+    };
+
+    return (
+      <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
+        <div>
+          <p className="text-xs font-semibold text-indigo-200">Spill: Avslør bildet</p>
+          <p className="mt-1 text-xs text-quiz-muted">Åpne ruter og gjett bildet med færrest mulig avsløringer.</p>
+        </div>
+        <PixabayImagePicker
+          roomId={roomId}
+          media={image}
+          onMediaChange={(media) => onChange({ ...question, media: media ? [media] : undefined })}
+          label="Spillbilde"
+          hint="Støtter Pixabay, Wikimedia og privat opplasting."
+        />
+        <label className="block min-w-0">
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Riktig svar</span>
+          <Input
+            value={config.correctAnswer}
+            onChange={(event) => updateGame({ ...config, correctAnswer: event.target.value })}
+            placeholder="F.eks. Kong Harald"
+          />
+        </label>
+        <label className="block min-w-0">
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Alternative godkjente svar (kommaseparert)</span>
+          <Input
+            value={config.acceptedAnswers.join(', ')}
+            onChange={(event) =>
+              updateGame({
+                ...config,
+                acceptedAnswers: event.target.value
+                  .split(',')
+                  .map((part) => part.trim())
+                  .filter(Boolean),
+              })
+            }
+            placeholder="Harald V, Kongen"
+          />
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-quiz-muted">Rutenett</span>
+            <select
+              value={config.gridSize}
+              onChange={(event) => updateGame({ ...config, gridSize: Number(event.target.value) as 4 | 5 | 6 })}
+              className="box-border w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text min-h-[44px]"
+            >
+              <option value={4}>4x4</option>
+              <option value={5}>5x5</option>
+              <option value={6}>6x6</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-quiz-muted">Maks poeng</span>
+            <Input
+              type="number"
+              min={1}
+              value={question.maxPoints}
+              onChange={(event) => onChange({ ...question, maxPoints: Math.max(1, Number(event.target.value)) })}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-quiz-muted">Alternativ-multiplikator</span>
+            <Input
+              type="number"
+              min={0.1}
+              max={1}
+              step={0.05}
+              value={config.choiceMultiplier}
+              onChange={(event) => updateGame({ ...config, choiceMultiplier: Math.min(1, Math.max(0.1, Number(event.target.value))) })}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-quiz-muted">Minimum poeng ved riktig</span>
+            <Input
+              type="number"
+              min={0}
+              value={config.minCorrectScore}
+              onChange={(event) => updateGame({ ...config, minCorrectScore: Math.max(0, Number(event.target.value)) })}
+            />
+          </label>
+        </div>
+        <div className="rounded-lg border border-quiz-border/70 bg-quiz-bg/40 p-2">
+          <p className="mb-2 text-xs font-semibold text-quiz-text">Alternativer (3-5, valgfritt)</p>
+          <div className="space-y-2">
+            {choices.map((choice, index) => (
+              <div key={choice.id} className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setChoiceCorrect(choice.id)}
+                  className={`h-9 w-9 shrink-0 rounded-full border-2 text-xs font-bold ${choice.isCorrect ? 'border-green-500 bg-green-500/20 text-green-900' : 'border-quiz-border text-quiz-muted'}`}
+                >
+                  {choice.isCorrect ? '✓' : index + 1}
+                </button>
+                <Input
+                  value={choice.text}
+                  onChange={(event) => setChoiceText(choice.id, event.target.value)}
+                  placeholder={`Alternativ ${index + 1}`}
+                />
+                <Button type="button" variant="ghost" size="sm" onClick={() => removeChoice(choice.id)} disabled={choices.length <= 3}>
+                  ×
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={addChoice} disabled={choices.length >= 5}>
+            + Alternativ
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (question.game?.gameId === 'rainbowPuzzle') {
     const updateGame = (pointBands: GamePointBand[]) => {
       onChange({

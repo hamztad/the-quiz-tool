@@ -4,11 +4,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { aiQuizRouter } from './routes/aiQuiz.js';
+import { initUploadCleanup } from './services/imageProviders/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function createApp() {
   const app = express();
+  initUploadCleanup();
 
   app.use(
     cors({

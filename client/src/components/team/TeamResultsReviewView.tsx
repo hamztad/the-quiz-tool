@@ -92,6 +92,9 @@ function formatOwnGameSubmission(question: Question, submission: GameSubmission 
   if (question.game?.gameId === 'dropBall' && submission.payload.gameId === 'dropBall') {
     return `${submission.payload.score} poeng`;
   }
+  if (question.game?.gameId === 'revealImage' && submission.payload.gameId === 'revealImage') {
+    return `${submission.payload.answer} · ${submission.payload.openedTiles}/${submission.payload.totalTiles} ruter · ${submission.payload.usedChoices ? 'alternativer' : 'fritekst'}`;
+  }
   return null;
 }
 

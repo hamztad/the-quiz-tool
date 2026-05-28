@@ -1,6 +1,6 @@
 import type { MediaAttachment } from '@quiz-tool/shared';
 
-export type ImageProviderId = 'pixabay' | 'wikimedia';
+export type ImageProviderId = 'pixabay' | 'wikimedia' | 'upload';
 
 export interface ProviderSearchResult {
   id: string;

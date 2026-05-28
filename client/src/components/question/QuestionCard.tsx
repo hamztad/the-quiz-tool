@@ -226,6 +226,8 @@ export function QuestionCard({
                       ? question.game.mode === 'single'
                         ? `Regnestykke: ${question.game.expression}`
                         : `Regnerace: ${question.game.expressions.length} regnestykker`
+                      : question.game.gameId === 'revealImage'
+                        ? `Avslør bildet: ${question.game.gridSize}x${question.game.gridSize} ruter · svar ${question.game.correctAnswer || '—'}`
               : 'Innebygd spill'}
           </p>
         </div>

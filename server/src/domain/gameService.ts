@@ -5,6 +5,7 @@ import {
   sanitizeDropBallRounds,
   buildEmojiHuntResults,
   buildMathExpressionResults,
+  buildRevealImageResults,
   buildRainbowPuzzleResults,
   buildTimerChallengeResults,
   gameResultsToScoreEntries,
@@ -13,6 +14,7 @@ import {
   isDropBallSubmissionPayload,
   isEmojiHuntSubmissionPayload,
   isMathExpressionSubmissionPayload,
+  isRevealImageSubmissionPayload,
   isRainbowPuzzleSubmissionPayload,
   type GameSubmissionPayload,
 } from '@quiz-tool/shared';
@@ -219,6 +221,18 @@ export function submitGameResult(
         penalties: Math.max(0, Math.round(payload.penalties)),
       };
     }
+  } else if (question.game.gameId === 'revealImage') {
+    if (!isRevealImageSubmissionPayload(payload)) {
+      throw new Error('Ugyldig spillinnsending.');
+    }
+    submissionPayload = {
+      gameId: 'revealImage',
+      answer: payload.answer.slice(0, 200),
+      openedTiles: Math.max(0, Math.round(payload.openedTiles)),
+      totalTiles: Math.max(1, Math.round(payload.totalTiles)),
+      usedChoices: payload.usedChoices,
+      source: payload.source,
+    };
   } else {
     throw new Error('Dette spillet er ikke støttet ennå.');
   }
@@ -339,6 +353,13 @@ export function calculateGameQuestionResults(
       question.game,
       submissions,
       room.teams.map((team) => team.id),
+    );
+  } else if (question.game.gameId === 'revealImage') {
+    results = buildRevealImageResults(
+      questionId,
+      question.maxPoints,
+      question.game,
+      submissions,
     );
   }
 

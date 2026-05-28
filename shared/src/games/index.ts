@@ -6,6 +6,7 @@ export * from './modules/anagram.js';
 export * from './modules/dropBall.js';
 export * from './modules/emojiHunt.js';
 export * from './modules/mathExpression.js';
+export * from './modules/revealImage.js';
 export * from './modules/rainbowPuzzle.js';
 export * from './modules/rainbowPuzzleBoard.js';
 export * from './modules/timerChallenge.js';

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { GruizMark } from '../brand/GruizMark';
 
 interface JoinCodeDisplayProps {
   joinCode: string;
@@ -21,14 +22,20 @@ export function JoinCodeDisplay({ joinCode, joinUrl }: JoinCodeDisplayProps) {
           <p className="text-xs font-semibold uppercase tracking-widest text-quiz-muted mb-5">
             Skann for å bli med
           </p>
-          <div className="rounded-2xl bg-[#242d3a] p-5 shadow-inner">
+          <div className="relative rounded-2xl bg-[#242d3a] p-5 shadow-inner">
             <QRCodeSVG
               value={joinUrl}
               size={QR_SIZE}
               bgColor="#242d3a"
               fgColor="#f0f4f8"
+              level="H"
               className="block h-auto w-full max-w-full"
             />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="rounded-lg border border-quiz-border/70 bg-[#242d3a]/95 px-2 py-1 shadow">
+                <GruizMark size="sm" tagline={false} className="items-center [&_.gruiz-mark-dot]:hidden [&_.gruiz-mark-sparkle]:hidden" />
+              </div>
+            </div>
           </div>
           <p className="mt-5 max-w-xs text-center text-xs text-quiz-muted leading-relaxed">
             Hold kameraet mot QR-koden her. Romkoden for manuell innlogging står under.
@@ -39,6 +46,7 @@ export function JoinCodeDisplay({ joinCode, joinUrl }: JoinCodeDisplayProps) {
           className="mt-12 sm:mt-14 w-full border-t border-quiz-border/60 pt-10 sm:pt-12 text-center"
           aria-label="Romkode"
         >
+          <GruizMark size="sm" tagline={false} className="mb-2 items-center [&_.gruiz-mark-dot]:hidden [&_.gruiz-mark-sparkle]:hidden" />
           <p className="text-sm text-quiz-muted mb-2">Romkode for deltakere</p>
           <p className="text-2xl sm:text-3xl font-bold tracking-wide text-quiz-accent break-words [overflow-wrap:anywhere] px-1">
             {joinCode}

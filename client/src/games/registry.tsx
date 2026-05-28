@@ -3,6 +3,7 @@ import {
   formatDropBallScore,
   formatEmojiHuntMs,
   formatTimerMs,
+  isRevealImageAnswerCorrect,
   rankGameEntries,
   type PublicRoomState,
   type Question,
@@ -23,6 +24,7 @@ import { AnagramGame } from './anagram/AnagramGame';
 import { DropBallGame } from './dropBall/DropBallGame';
 import { EmojiHuntGame } from './emojiHunt/EmojiHuntGame';
 import { MathExpressionGame } from './mathExpression/MathExpressionGame';
+import { RevealImageGame } from './revealImage/RevealImageGame';
 import { RainbowPuzzleGame } from './rainbowPuzzle/RainbowPuzzleGame';
 
 interface TeamGameViewProps {
@@ -90,6 +92,12 @@ export function TeamGameView({ room, question, teamId }: TeamGameViewProps) {
   if (question.game?.gameId === 'mathExpression') {
     return wrapGameFreeze(
       <MathExpressionTeamView room={room} question={question} teamId={teamId} />,
+      frozen,
+    );
+  }
+  if (question.game?.gameId === 'revealImage') {
+    return wrapGameFreeze(
+      <RevealImageTeamView room={room} question={question} teamId={teamId} />,
       frozen,
     );
   }
@@ -459,6 +467,46 @@ function MathExpressionTeamView({ room, question, teamId }: TeamGameViewProps) {
         socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
           questionId: question.id,
           payload: { gameId: 'mathExpression', mode: 'race', totalMs, penalties },
+        })
+      }
+    />
+  );
+}
+
+function RevealImageTeamView({ room, question, teamId }: TeamGameViewProps) {
+  const { socket } = useSocket();
+  const config = question.game?.gameId === 'revealImage' ? question.game : null;
+  const imageUrl = question.media?.find((m) => m.type === 'image')?.url ?? '';
+  const teamSubmissions = room.gameSubmissions.filter(
+    (submission) =>
+      submission.questionId === question.id &&
+      submission.teamId === teamId &&
+      submission.payload.gameId === 'revealImage',
+  );
+  const solved = config
+    ? teamSubmissions.some((submission) =>
+        submission.payload.gameId === 'revealImage' &&
+        isRevealImageAnswerCorrect(submission.payload.answer, config),
+      )
+    : false;
+  if (!config || !imageUrl) {
+    return (
+      <p className="mt-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-900">
+        Spillbildet mangler. Be quizmaster legge til bilde.
+      </p>
+    );
+  }
+
+  return (
+    <RevealImageGame
+      config={config}
+      imageUrl={imageUrl}
+      maxPoints={question.maxPoints}
+      disabled={solved}
+      onSubmit={(payload) =>
+        socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
+          questionId: question.id,
+          payload: { gameId: 'revealImage', ...payload },
         })
       }
     />

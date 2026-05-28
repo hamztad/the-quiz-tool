@@ -4,6 +4,7 @@ import {
   createDefaultDropBallConfig,
   createDefaultEmojiHuntConfig,
   createDefaultMathExpressionConfig,
+  createDefaultRevealImageConfig,
   createDefaultRainbowPuzzleConfig,
   createDefaultTimerChallengeConfig,
   type GameId,
@@ -134,10 +135,23 @@ export function createMathExpressionQuestion(order: number): Question {
   };
 }
 
+export function createRevealImageQuestion(order: number): Question {
+  return {
+    id: generateId('q'),
+    order,
+    type: 'game',
+    gameType: 'revealImage',
+    lines: [{ text: 'Avslør bildet', style: 'title' }],
+    game: createDefaultRevealImageConfig(),
+    maxPoints: 100,
+  };
+}
+
 export function createGameQuestion(order: number, gameId: GameId): Question {
   if (gameId === 'anagram') return createAnagramQuestion(order);
   if (gameId === 'mathExpression') return createMathExpressionQuestion(order);
   if (gameId === 'dropBall') return createDropBallQuestion(order);
+  if (gameId === 'revealImage') return createRevealImageQuestion(order);
   if (gameId === 'rainbowPuzzle') return createRainbowPuzzleQuestion(order);
   if (gameId === 'emojiHunt') return createEmojiHuntQuestion(order);
   return createTimerChallengeQuestion(order);
@@ -180,6 +194,11 @@ export function isQuestionIncomplete(question: Question): boolean {
     }
     if (question.game?.gameId === 'mathExpression') {
       return !validateMathExpressionConfig(question.game).ok;
+    }
+    if (question.game?.gameId === 'revealImage') {
+      const hasImage = Boolean(question.media?.some((m) => m.type === 'image' && m.url.trim()));
+      const hasAnswer = Boolean(question.game.correctAnswer.trim());
+      return !hasImage || !hasAnswer;
     }
     return !question.game;
   }
