@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { getIntervalParticipantStatus, getIntervalWindow, type PublicRoomState } from '@quiz-tool/shared';
 import { formatCountdown } from '../../hooks/useSyncedCountdown';
 import { useLiveClock } from '../../hooks/useLiveClock';
@@ -9,8 +10,11 @@ interface OppgaveIntervalBadgeProps {
 
 export function OppgaveIntervalBadge({ room, questionId }: OppgaveIntervalBadgeProps) {
   const now = useLiveClock();
-  const skew = room.serverNow ? room.serverNow - Date.now() : 0;
-  const adjustedNow = now + skew;
+  const serverOffsetMs = useMemo(
+    () => (room.serverNow ? room.serverNow - Date.now() : 0),
+    [room.serverNow],
+  );
+  const adjustedNow = now + serverOffsetMs;
 
   const status = getIntervalParticipantStatus(
     room.schedule,

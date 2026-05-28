@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { remainingMs } from '@quiz-tool/shared';
 
 export function useSyncedCountdown(
@@ -18,8 +18,12 @@ export function useSyncedCountdown(
     return { remaining: 0, progress: 0, urgency: 'normal' };
   }
 
-  const skew = serverNow ? serverNow - Date.now() : 0;
-  const adjustedNow = now + skew;
+  // Capture server/client skew when room state arrives, then let local clock tick from there.
+  const serverOffsetMs = useMemo(
+    () => (serverNow ? serverNow - Date.now() : 0),
+    [serverNow],
+  );
+  const adjustedNow = now + serverOffsetMs;
   const remaining = remainingMs(endsAt, adjustedNow);
   const duration =
     openedAt && endsAt > openedAt ? endsAt - openedAt : Math.max(remaining, 1);
