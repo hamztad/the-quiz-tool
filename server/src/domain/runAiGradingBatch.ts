@@ -2,7 +2,6 @@ import type { Server } from 'socket.io';
 import {
   collectOpenAnswerGradeJobs,
   mergeAiGradesToScores,
-  upsertAiGrade,
 } from '@quiz-tool/shared';
 import {
   applyAiGradeResult,
@@ -85,7 +84,13 @@ export async function runIncrementalAiGrade(
   }
 
   roomStore.update(roomId, (room) => {
-    const withGrade = upsertAiGrade(room, grade);
+    const filtered = room.aiGrades.filter(
+      (g) => !(g.teamId === grade.teamId && g.questionId === grade.questionId),
+    );
+    const withGrade = {
+      ...room,
+      aiGrades: [...filtered, grade],
+    };
     return { ...withGrade, scores: mergeAiGradesToScores(withGrade) };
   });
   publishRoomState(io, roomId);

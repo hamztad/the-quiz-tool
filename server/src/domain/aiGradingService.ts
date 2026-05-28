@@ -2,7 +2,6 @@ import {
   canStartAiGrading,
   collectOpenAnswerGradeJobs,
   mergeAiGradesToScores,
-  upsertAiGrade,
   type AiGrade,
 } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
@@ -60,7 +59,13 @@ export function applyAiGradeResult(
   grade: AiGrade,
   completed: number,
 ): RoomRecord {
-  const withGrade = upsertAiGrade(room, grade);
+  const filtered = room.aiGrades.filter(
+    (g) => !(g.teamId === grade.teamId && g.questionId === grade.questionId),
+  );
+  const withGrade: RoomRecord = {
+    ...room,
+    aiGrades: [...filtered, grade],
+  };
   return {
     ...withGrade,
     aiGrading: {

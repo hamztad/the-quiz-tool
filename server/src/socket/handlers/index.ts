@@ -447,7 +447,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       startsAt?: number;
       endsAt?: number;
       runMode?: 'manual' | 'assisted' | 'automatic';
-      deliveryMode?: 'qm_led' | 'self_paced' | 'interval' | 'hosted';
+      deliveryMode?: 'qm_led' | 'self_paced' | 'interval';
       autoOpenFirstQuestion?: boolean;
     }) => {
       const roomId = socket.data.roomId as string;
