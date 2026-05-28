@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CLIENT_EVENTS } from '@quiz-tool/shared';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { HostTeamList } from '../components/host/HostTeamList';
@@ -160,10 +160,10 @@ export function HostLobbyPage() {
         active="present"
         links={
           inviteOnly
-            ? { live: `/host/${roomId}` }
+            ? { live: `/host/${roomId}`, build: `/host/${roomId}/edit` }
             : room.questions.length > 0
-              ? { build: `/host/${roomId}/edit` }
-              : undefined
+              ? { build: `/host/${roomId}/edit`, live: `/host/${roomId}` }
+              : { build: `/host/${roomId}/edit` }
         }
       />
 
@@ -229,6 +229,11 @@ export function HostLobbyPage() {
         />
 
         <div className="w-full min-w-0 space-y-3">
+          <Link to={`/host/${roomId}/edit`} className="block w-full">
+            <Button type="button" variant="cta" size="lg" className="w-full">
+              ✏️ Rediger quiz
+            </Button>
+          </Link>
           {canStart && (
             <Button
               size="lg"

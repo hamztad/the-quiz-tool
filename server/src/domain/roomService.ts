@@ -1,6 +1,7 @@
 import type { PublicRoomState, Question, RoomState } from '@quiz-tool/shared';
 import { isQuestionRevealedToTeam, redactQuestionForTeam } from '@quiz-tool/shared';
 import {
+  assertLiveQuizQuestionUpdates,
   MAX_TEAMS,
   NB,
   RESERVED_TEST_PARTICIPANT_NAME,
@@ -179,6 +180,8 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
   if (validationErrors.length > 0) {
     throw new Error(validationErrors.join(' '));
   }
+
+  assertLiveQuizQuestionUpdates(room, questions);
 
   const newIds = new Set(questions.map((q) => q.id));
   const questionStatus: Record<string, 'locked' | 'open'> = {};

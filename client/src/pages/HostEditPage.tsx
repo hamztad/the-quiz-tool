@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { builtInGames, CLIENT_EVENTS, questionsToQuizText, type GameId, type Question } from '@quiz-tool/shared';
+import {
+  builtInGames,
+  CLIENT_EVENTS,
+  isLiveQuizEditPhase,
+  isQuestionEditableDuringLiveQuiz,
+  mergeDraftWithLockedOpenQuestions,
+  questionsToQuizText,
+  type GameId,
+  type Question,
+} from '@quiz-tool/shared';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
 import { HostQuestionEditorCard } from '../components/host/HostQuestionEditorCard';
@@ -128,8 +137,14 @@ export function HostEditPage() {
   }, [buildEntry]);
 
   useEffect(() => {
+    if (room && isLiveQuizEditPhase(room.phase) && editMode !== 'editor') {
+      setEditMode('editor');
+    }
+  }, [room, editMode]);
+
+  useEffect(() => {
     if (!roomId || !room) return;
-    if (room.phase !== 'lobby' && room.phase !== 'post_quiz') {
+    if (room.phase === 'ended') {
       navigate(`/host/${roomId}`, { replace: true });
     }
   }, [room, roomId, navigate]);
@@ -170,15 +185,23 @@ export function HostEditPage() {
         setSaveMessage('Fullfør alle spørsmål (tittel og svar) før du oppdaterer aktiv quiz.');
         return false;
       }
-      socket.emit(CLIENT_EVENTS.QUIZ_QUESTIONS_SET, { questions: normalized });
-      setDraftQuestions(normalized);
-      syncImportTextFromDraft(normalized);
+      const toSave =
+        room && isLiveQuizEditPhase(room.phase)
+          ? mergeDraftWithLockedOpenQuestions(room.questions, normalized, room.questionStatus)
+          : normalized;
+      socket.emit(CLIENT_EVENTS.QUIZ_QUESTIONS_SET, { questions: toSave });
+      setDraftQuestions(toSave);
+      syncImportTextFromDraft(toSave);
       setDirty(false);
-      setSaveMessage('Aktiv quiz oppdatert for denne økta.');
+      setSaveMessage(
+        room && isLiveQuizEditPhase(room.phase)
+          ? 'Aktiv quiz oppdatert. Lukkede spørsmål er endret — åpne på nytt når du er klar.'
+          : 'Aktiv quiz oppdatert for denne økta.',
+      );
       setTimeout(() => setSaveMessage(null), 4000);
       return true;
     },
-    [socket, syncImportTextFromDraft],
+    [socket, syncImportTextFromDraft, room],
   );
 
   const updateDraft = (questions: Question[]) => {
@@ -188,7 +211,10 @@ export function HostEditPage() {
     setRecoveryMessage(null);
   };
 
+  const isLiveEdit = Boolean(room && isLiveQuizEditPhase(room.phase));
+
   const addQuestion = (type: 'open' | 'mc' | 'ordering') => {
+    if (isLiveEdit) return;
     const nextQuestion =
       type === 'open'
         ? createOpenQuestion(draftQuestions.length)
@@ -203,6 +229,7 @@ export function HostEditPage() {
   };
 
   const addGameQuestion = (gameId: GameId) => {
+    if (isLiveEdit) return;
     const nextQuestion = createGameQuestion(draftQuestions.length, gameId);
     const nextList = [...draftQuestions, nextQuestion];
     updateDraft(nextList);
@@ -213,12 +240,23 @@ export function HostEditPage() {
   };
 
   const updateQuestionAt = (index: number, question: Question) => {
+    if (
+      room &&
+      isLiveQuizEditPhase(room.phase) &&
+      !isQuestionEditableDuringLiveQuiz(room.questionStatus, question.id)
+    ) {
+      return;
+    }
     const next = [...draftQuestions];
     next[index] = question;
     updateDraft(next);
   };
 
   const deleteQuestionAt = (index: number) => {
+    if (room && isLiveQuizEditPhase(room.phase)) {
+      setSaveMessage('Under live quiz kan du ikke slette spørsmål — bare redigere lukkede.');
+      return;
+    }
     if (!window.confirm('Slette dette spørsmålet?')) return;
     const removed = draftQuestions[index];
     updateDraft(draftQuestions.filter((_, i) => i !== index));
@@ -239,6 +277,7 @@ export function HostEditPage() {
   };
 
   const appendImportedQuestions = (parsed: ParsedImportQuestion[]) => {
+    if (isLiveEdit) return;
     const startIndex = draftQuestions.length;
     const stamped = stampImportedQuestions(parsed, startIndex);
     const nextList = [...draftQuestions, ...stamped];
@@ -251,6 +290,7 @@ export function HostEditPage() {
   };
 
   const replaceAllQuestions = (parsed: ParsedImportQuestion[]) => {
+    if (isLiveEdit) return;
     const typed = window.prompt(
       `Dette sletter alle ${draftQuestions.length} spørsmål og erstatter dem med teksten.\n\nSkriv ${REPLACE_CONFIRM_WORD} for å bekrefte:`,
     );
@@ -380,17 +420,19 @@ export function HostEditPage() {
     );
   }
 
-  const pageSubtitle = focusEntry
-    ? buildEntry === 'tekst'
-      ? 'Lim inn eller skriv quiz som tekst'
-      : buildEntry === 'import'
-        ? 'Velg en JSON-quizfil å importere'
-        : buildEntry === 'ai'
-          ? 'Generer spørsmål med AI'
-          : 'Legg til spørsmål i editoren'
-    : hasExistingQuiz
-      ? `${draftQuestions.length} spørsmål · aktiv økt oppdateres når du bruker endringene`
-      : 'Velg editor, tekst eller import — ingen invitasjon ennå';
+  const pageSubtitle = isLiveEdit
+    ? 'Kun lukkede spørsmål kan endres. Åpne spørsmålet på nytt etter retting.'
+    : focusEntry
+      ? buildEntry === 'tekst'
+        ? 'Lim inn eller skriv quiz som tekst'
+        : buildEntry === 'import'
+          ? 'Velg en JSON-quizfil å importere'
+          : buildEntry === 'ai'
+            ? 'Generer spørsmål med AI'
+            : 'Legg til spørsmål i editoren'
+      : hasExistingQuiz
+        ? `${draftQuestions.length} spørsmål · aktiv økt oppdateres når du bruker endringene`
+        : 'Velg editor, tekst eller import — ingen invitasjon ennå';
 
   const syncStatusBanner = (
     <div
@@ -442,6 +484,7 @@ export function HostEditPage() {
           ref={editorEntryRef}
           className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 min-w-0 max-w-full overflow-hidden box-border"
         >
+          {!isLiveEdit && (
           <div className="rounded-xl bg-quiz-bg/60 border border-quiz-accent/20 p-4 mb-6 min-w-0 max-w-full overflow-hidden">
             <p className="text-sm font-medium text-quiz-text mb-3">Legg til spørsmål</p>
             <div className="flex flex-wrap gap-2">
@@ -490,6 +533,7 @@ export function HostEditPage() {
               </p>
             )}
           </div>
+          )}
 
           <div
             ref={editorListRef}
@@ -550,6 +594,10 @@ export function HostEditPage() {
                   onToggleExpand={() => toggleExpand(q.id)}
                   onChange={(updated) => updateQuestionAt(index, updated)}
                   onDelete={() => deleteQuestionAt(index)}
+                  readOnly={
+                    isLiveEdit &&
+                    !isQuestionEditableDuringLiveQuiz(room.questionStatus, q.id)
+                  }
                 />
               ))
             )}
@@ -590,21 +638,38 @@ export function HostEditPage() {
         ? editorSection
         : tekstSection;
 
-  const phaseLinks =
-    roomId && draftQuestions.length > 0 ? { present: `/host/${roomId}/present` } : undefined;
+  const phaseLinks = isLiveEdit
+    ? roomId
+      ? { live: `/host/${roomId}`, present: `/host/${roomId}/present?invite=1` }
+      : undefined
+    : roomId && draftQuestions.length > 0
+      ? { present: `/host/${roomId}/present` }
+      : undefined;
   const showEditFooter = draftQuestions.length > 0;
 
   return (
-    <PageShell showBrand="compact" title="Bygg quiz" emoji="✨" subtitle={pageSubtitle} wide>
-      {!focusEntry && <HostPhaseIndicator active="build" links={phaseLinks} />}
+    <PageShell
+      showBrand="compact"
+      title={isLiveEdit ? 'Rediger quiz' : 'Bygg quiz'}
+      emoji={isLiveEdit ? '✏️' : '✨'}
+      subtitle={pageSubtitle}
+      wide
+    >
+      {!focusEntry && (
+        <HostPhaseIndicator active="build" links={phaseLinks} />
+      )}
 
       <div className={focusEntry ? 'mb-3 flex flex-wrap items-center justify-between gap-2' : 'mb-6'}>
         <button
           type="button"
-          onClick={() => requestLeave(() => navigate('/host'))}
+          onClick={() =>
+            isLiveEdit && roomId
+              ? navigate(`/host/${roomId}`)
+              : requestLeave(() => navigate('/host'))
+          }
           className="inline-flex items-center text-sm text-quiz-accent hover:underline shrink-0"
         >
-          ← Quizmaster-meny
+          {isLiveEdit ? '← Tilbake til kjøring' : '← Quizmaster-meny'}
         </button>
         {focusEntry && (
           <span className="text-xs text-quiz-muted truncate">
@@ -622,6 +687,14 @@ export function HostEditPage() {
       {recoveryMessage && (
         <p className="mb-4 rounded-xl border border-blue-400/40 bg-blue-400/10 px-4 py-3 text-sm font-medium text-blue-100 break-words">
           {recoveryMessage}
+        </p>
+      )}
+
+      {isLiveEdit && (
+        <p className="mb-4 rounded-xl border border-violet-300/60 bg-violet-50 px-4 py-3 text-sm text-violet-950 break-words">
+          Quizen kjører. Du kan rette feil i <strong>lukkede</strong> spørsmål — åpne spørsmål må
+          lukkes først. Etter endring: bruk knappen nedenfor, gå tilbake og åpne spørsmålet på nytt
+          for deltakerne.
         </p>
       )}
 
@@ -643,7 +716,7 @@ export function HostEditPage() {
       ) : (
         <>
           <div className="mb-6">{syncStatusBanner}</div>
-          {room && (
+          {room && !isLiveEdit && (
             <div className="mb-6">
               <HostTestModeControls
                 room={room}
@@ -661,8 +734,8 @@ export function HostEditPage() {
               />
             </div>
           )}
-          <div className="mb-6">{backupPanel}</div>
-          {modeTabs}
+          {!isLiveEdit && <div className="mb-6">{backupPanel}</div>}
+          {!isLiveEdit && modeTabs}
           {mainEditorContent}
         </>
       )}

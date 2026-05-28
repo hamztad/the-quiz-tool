@@ -251,7 +251,10 @@ export function HostDashboardPage() {
     >
       <HostPhaseIndicator
         active="live"
-        links={{ present: `/host/${roomId}/present?invite=1` }}
+        links={{
+          build: `/host/${roomId}/edit`,
+          present: `/host/${roomId}/present?invite=1`,
+        }}
       />
 
       <QuizScheduleBanner room={room} />
@@ -438,6 +441,11 @@ export function HostDashboardPage() {
           )}
 
           <div className="flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link to={`/host/${roomId}/edit`} className="w-full min-w-0 sm:w-auto">
+              <Button variant="cta" size="sm" className="w-full sm:w-auto">
+                ✏️ Rediger quiz
+              </Button>
+            </Link>
             <Link to={`/host/${roomId}/present?invite=1`} className="w-full min-w-0 sm:w-auto">
               <Button variant="secondary" size="sm" className="w-full sm:w-auto">
                 Vis invitasjon

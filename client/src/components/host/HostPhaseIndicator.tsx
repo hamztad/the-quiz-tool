@@ -47,7 +47,13 @@ function StepContent({
   );
 }
 
-function HostLivePhaseNav({ presentHref }: { presentHref?: string }) {
+function HostLivePhaseNav({
+  presentHref,
+  buildHref,
+}: {
+  presentHref?: string;
+  buildHref?: string;
+}) {
   return (
     <nav
       className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl border border-violet-200/60 bg-white/70 px-4 py-3 text-sm min-w-0 shadow-sm"
@@ -60,6 +66,19 @@ function HostLivePhaseNav({ presentHref }: { presentHref?: string }) {
       <span className="font-bold text-violet-800" aria-current="step">
         Kjør quiz
       </span>
+      {buildHref && (
+        <>
+          <span className="text-quiz-muted" aria-hidden>
+            ·
+          </span>
+          <Link
+            to={buildHref}
+            className="font-bold text-violet-700 hover:text-violet-900 hover:underline underline-offset-2"
+          >
+            ✏️ Rediger quiz
+          </Link>
+        </>
+      )}
       {presentHref && (
         <>
           <span className="text-quiz-muted" aria-hidden>
@@ -78,8 +97,8 @@ function HostLivePhaseNav({ presentHref }: { presentHref?: string }) {
 }
 
 export function HostPhaseIndicator({ active, links }: HostPhaseIndicatorProps) {
-  if (active === 'live' && !links?.build) {
-    return <HostLivePhaseNav presentHref={links?.present} />;
+  if (active === 'live') {
+    return <HostLivePhaseNav presentHref={links?.present} buildHref={links?.build} />;
   }
 
   const activeIndex = steps.findIndex((s) => s.id === active);

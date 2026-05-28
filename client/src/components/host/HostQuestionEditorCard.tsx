@@ -47,6 +47,8 @@ interface HostQuestionEditorCardProps {
   onDelete: () => void;
   roomId?: string;
   titleInputRef?: React.RefObject<HTMLTextAreaElement | null>;
+  /** Live quiz: åpne spørsmål kan ikke endres før de lukkes. */
+  readOnly?: boolean;
 }
 
 export function HostQuestionEditorCard({
@@ -60,6 +62,7 @@ export function HostQuestionEditorCard({
   onDelete,
   roomId,
   titleInputRef,
+  readOnly = false,
 }: HostQuestionEditorCardProps) {
   const localTitleRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = titleInputRef ?? localTitleRef;
@@ -179,22 +182,31 @@ export function HostQuestionEditorCard({
             {isExpanded ? '▾' : '▸'}
           </span>
         </button>
-        <Button
-          type="button"
-          variant="danger"
-          size="sm"
-          className="w-full shrink-0 sm:w-auto sm:self-center sm:min-h-[44px]"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          Slett
-        </Button>
+        {!readOnly && (
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            className="w-full shrink-0 sm:w-auto sm:self-center sm:min-h-[44px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            Slett
+          </Button>
+        )}
       </div>
 
       {isExpanded && (
         <div className="px-3 pb-3 pt-1 space-y-3 border-t border-quiz-border/80 bg-quiz-bg/40 min-w-0 max-w-full overflow-x-hidden">
+          {readOnly && (
+            <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+              Dette spørsmålet er åpent for deltakerne og kan ikke redigeres. Lukk det først — deretter
+              kan du rette og åpne på nytt.
+            </p>
+          )}
+          <fieldset disabled={readOnly} className={readOnly ? 'min-w-0 space-y-3 opacity-80' : 'min-w-0 space-y-3 border-0 p-0 m-0'}>
           <div className="min-w-0">
             <label className="block text-xs font-semibold text-quiz-text mb-1">Spørsmål</label>
             <EditorTextArea
@@ -279,6 +291,7 @@ export function HostQuestionEditorCard({
               />
             </div>
           </details>
+          </fieldset>
         </div>
       )}
     </article>
