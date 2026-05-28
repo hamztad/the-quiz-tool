@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { MediaAttachment } from '@quiz-tool/shared';
-import { searchPixabayImages, type PixabayImageResult } from '../../lib/pixabayApi';
-import { pixabayResultToMedia } from '../../lib/pixabayMedia';
+import {
+  searchImageProvider,
+  type ImageProvider,
+  type ImageSearchResult,
+} from '../../lib/pixabayApi';
+import { imageResultToMedia } from '../../lib/pixabayMedia';
 import { getHostSession } from '../../lib/tokens';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -24,13 +28,14 @@ export function PixabayImagePicker({
   label = 'Bilde fra Pixabay',
   hint,
 }: PixabayImagePickerProps) {
+  const [provider, setProvider] = useState<ImageProvider>(media?.source ?? 'pixabay');
   const [expanded, setExpanded] = useState(!media);
   const [error, setError] = useState<string | null>(null);
   const [pixabayQuery, setPixabayQuery] = useState('');
   const [pixabayLoading, setPixabayLoading] = useState<'nb' | 'en' | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [pixabayResults, setPixabayResults] = useState<PixabayImageResult[]>([]);
-  const [selectedPixabayResult, setSelectedPixabayResult] = useState<PixabayImageResult | null>(null);
+  const [pixabayResults, setPixabayResults] = useState<ImageSearchResult[]>([]);
+  const [selectedPixabayResult, setSelectedPixabayResult] = useState<ImageSearchResult | null>(null);
   const [resultsVisible, setResultsVisible] = useState(false);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [activeSearch, setActiveSearch] = useState<{
@@ -41,8 +46,14 @@ export function PixabayImagePicker({
   } | null>(null);
   const [noMoreResults, setNoMoreResults] = useState(false);
 
-  const attachPixabay = (result: PixabayImageResult) => {
-    onMediaChange(pixabayResultToMedia(result));
+  useEffect(() => {
+    if (media?.source === 'pixabay' || media?.source === 'wikimedia') {
+      setProvider(media.source);
+    }
+  }, [media?.source]);
+
+  const attachPixabay = (result: ImageSearchResult) => {
+    onMediaChange(imageResultToMedia(result, provider));
     setResultsVisible(false);
     setExpanded(false);
     setSelectedPixabayResult(null);
@@ -80,7 +91,7 @@ export function PixabayImagePicker({
     setNoMoreResults(false);
     setSelectedPixabayResult(null);
     try {
-      const response = await searchPixabayImages(session, query, language, 1);
+      const response = await searchImageProvider(session, provider, query, language, 1);
       setPixabayResults(response.results);
       setResultsVisible(response.results.length > 0);
       setActiveSearch({ query, language, page: response.page, hasMore: response.hasMore });
@@ -90,12 +101,22 @@ export function PixabayImagePicker({
         setSearchNotice(response.notice);
       }
       if (response.results.length === 0) {
-        setError('Fant ingen bilder på Pixabay for dette søket.');
+        setError(
+          provider === 'wikimedia'
+            ? 'No Wikimedia images found for this search.'
+            : 'Fant ingen bilder på Pixabay for dette søket.',
+        );
         setNoMoreResults(true);
       }
     } catch (err) {
       setPixabayResults([]);
-      setError(err instanceof Error ? err.message : 'Kunne ikke søke etter bilder.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : provider === 'wikimedia'
+            ? 'Kunne ikke søke i Wikimedia Commons.'
+            : 'Kunne ikke søke etter bilder.',
+      );
     } finally {
       setPixabayLoading(null);
     }
@@ -113,8 +134,9 @@ export function PixabayImagePicker({
     setError(null);
     try {
       const nextPage = activeSearch.page + 1;
-      const response = await searchPixabayImages(
+      const response = await searchImageProvider(
         session,
+        provider,
         activeSearch.query,
         activeSearch.language,
         nextPage,
@@ -148,6 +170,27 @@ export function PixabayImagePicker({
           placeholder="Søk på norsk eller engelsk"
           className="text-sm"
         />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="col-span-2 text-xs text-quiz-text font-semibold">Bildekilde</label>
+        <label className="flex items-center gap-2 rounded-lg border border-quiz-border/60 bg-quiz-surface/60 px-2 py-1.5 text-xs">
+          <input
+            type="radio"
+            name={`${label}-provider`}
+            checked={provider === 'pixabay'}
+            onChange={() => setProvider('pixabay')}
+          />
+          Pixabay
+        </label>
+        <label className="flex items-center gap-2 rounded-lg border border-quiz-border/60 bg-quiz-surface/60 px-2 py-1.5 text-xs">
+          <input
+            type="radio"
+            name={`${label}-provider`}
+            checked={provider === 'wikimedia'}
+            onChange={() => setProvider('wikimedia')}
+          />
+          Wikimedia Commons
+        </label>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <Button
@@ -223,6 +266,9 @@ export function PixabayImagePicker({
                   + Legg til bilde
                 </Button>
               </div>
+              <p className="mt-2 text-[11px] text-quiz-muted">
+                📄 {provider === 'wikimedia' ? 'Wikimedia Commons' : 'Pixabay'}
+              </p>
             </div>
           )}
           {resultsVisible && activeSearch && !noMoreResults && activeSearch.hasMore && (
@@ -265,6 +311,25 @@ export function PixabayImagePicker({
         <div className="flex flex-wrap items-start gap-3">
           <ChoiceMediaDisplay media={media} variant="editor-preview" />
           <div className="min-w-0 flex-1 space-y-2">
+            <div className="rounded-lg border border-quiz-border/60 bg-quiz-surface/50 px-2 py-1.5 text-[11px] text-quiz-muted">
+              {(media.photographer || media.creator) && (
+                <p>📷 Foto: {media.photographer || media.creator}</p>
+              )}
+              {media.license && <p>📄 Lisens: {media.license}</p>}
+              {media.pageUrl && (
+                <p>
+                  🔗{' '}
+                  <a
+                    href={media.pageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-2"
+                  >
+                    {media.source === 'wikimedia' ? 'Wikimedia Commons' : 'Kilde'}
+                  </a>
+                </p>
+              )}
+            </div>
             <Input
               value={media.alt ?? ''}
               onChange={(e) => updateAlt(e.target.value)}

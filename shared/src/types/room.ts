@@ -21,10 +21,13 @@ export interface QuestionLine {
 
 export interface MediaAttachment {
   type: 'image';
-  /** Remote image URL selected through the backend Pixabay search proxy. */
+  /** Remote image URL selected through backend image provider search. */
   url: string;
   alt?: string;
-  source?: 'pixabay';
+  source?: 'pixabay' | 'wikimedia';
+  title?: string;
+  creator?: string;
+  license?: string;
   /** Small preview URL when source provides one, e.g. Pixabay thumbnails. */
   previewUrl?: string;
   photographer?: string;

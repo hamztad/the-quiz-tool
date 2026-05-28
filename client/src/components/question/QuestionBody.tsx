@@ -1,5 +1,6 @@
 import type { Question } from '@quiz-tool/shared';
 import { getQuestionTypeTheme } from '../../lib/questionTypeTheme';
+import { MediaAttribution } from '../media/MediaAttribution';
 
 interface QuestionBodyProps {
   question: Question;
@@ -47,6 +48,7 @@ export function QuestionBody({ question, showHint = true }: QuestionBodyProps) {
               alt={m.alt ?? ''}
               className="max-h-64 max-w-full rounded-2xl object-contain shadow-md ring-2 ring-white/80"
             />
+            <MediaAttribution media={m} className="mt-2" />
           </figure>
         ) : null,
       )}

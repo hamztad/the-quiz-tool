@@ -5,6 +5,7 @@ import {
   AI_QUIZ_CUSTOM_THEME,
   AI_QUIZ_QUESTION_COUNT_OPTIONS,
   AI_QUIZ_THEME_PRESETS,
+  type AiImageProvider,
   type AiQuizDifficulty,
   type AiQuizQuestionStyle,
   type Question,
@@ -48,6 +49,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
   const [difficulty, setDifficulty] = useState<AiQuizDifficulty>('medium');
   const [questionStyle, setQuestionStyle] = useState<AiQuizQuestionStyle>('mixed');
   const [includePixabayImages, setIncludePixabayImages] = useState(false);
+  const [imageProvider, setImageProvider] = useState<AiImageProvider>('pixabay');
   const [loading, setLoading] = useState(false);
   const [loadingMode, setLoadingMode] = useState<'normal' | 'quizPackage' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
         difficulty,
         questionStyle: mode === 'quizPackage' ? 'quizPackage' : questionStyle,
         includePixabayImages,
+        imageProvider,
         varietySeed,
       });
       onGenerated(result.questions);
@@ -220,13 +223,40 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
           />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold leading-5 text-quiz-text">
-              Finn relevante bilder fra Pixabay
+              Finn relevante bilder automatisk
             </span>
             <span className="mt-1 block text-xs leading-relaxed text-quiz-muted">
               AI prøver å legge ved ett bilde per spørsmål. Du kan fjerne eller bytte bilde etterpå.
             </span>
           </span>
         </label>
+        {includePixabayImages && (
+          <div className="rounded-xl border border-quiz-border bg-quiz-surface-elevated/60 p-3">
+            <p className="text-xs font-semibold text-quiz-text">Bildekilde</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <label className="inline-flex items-center gap-2 rounded-lg border border-quiz-border/70 bg-white px-3 py-1.5 text-xs">
+                <input
+                  type="radio"
+                  name="ai-image-provider"
+                  checked={imageProvider === 'pixabay'}
+                  onChange={() => setImageProvider('pixabay')}
+                  disabled={loading}
+                />
+                Pixabay
+              </label>
+              <label className="inline-flex items-center gap-2 rounded-lg border border-quiz-border/70 bg-white px-3 py-1.5 text-xs">
+                <input
+                  type="radio"
+                  name="ai-image-provider"
+                  checked={imageProvider === 'wikimedia'}
+                  onChange={() => setImageProvider('wikimedia')}
+                  disabled={loading}
+                />
+                Wikimedia Commons
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
       <button
@@ -282,7 +312,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
               </p>
               <p className="mt-1 text-xs text-quiz-muted">
                 {includePixabayImages
-                  ? 'Dette kan ta litt ekstra tid når bilder hentes. Ikke lukk siden.'
+                  ? `Dette kan ta litt ekstra tid når bilder hentes fra ${imageProvider === 'wikimedia' ? 'Wikimedia Commons' : 'Pixabay'}. Ikke lukk siden.`
                   : 'Dette kan ta opptil et halvt minutt. Ikke lukk siden.'}
               </p>
             </div>
@@ -290,7 +320,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {(includePixabayImages
-              ? [...LOADING_STEPS, 'Finner relevante bilder']
+              ? [...LOADING_STEPS, `Finner relevante bilder (${imageProvider === 'wikimedia' ? 'Wikimedia' : 'Pixabay'})`]
               : LOADING_STEPS
             ).map((step, index) => (
               <div

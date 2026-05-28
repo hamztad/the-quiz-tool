@@ -1,17 +1,23 @@
 import type { HostSession } from './tokens';
 
-export interface PixabayImageResult {
+export type ImageProvider = 'pixabay' | 'wikimedia';
+
+export interface ImageSearchResult {
   id: string;
+  title: string;
   tags: string;
   previewUrl: string;
   imageUrl: string;
   pageUrl: string;
-  photographer: string;
+  creator?: string;
+  photographer?: string;
+  license?: string;
 }
 
-interface PixabaySearchSuccess {
+interface ImageSearchSuccess {
   ok: true;
-  results: PixabayImageResult[];
+  provider: ImageProvider;
+  results: ImageSearchResult[];
   query?: string;
   translatedQuery?: string;
   notice?: string;
@@ -19,9 +25,43 @@ interface PixabaySearchSuccess {
   hasMore: boolean;
 }
 
-interface PixabaySearchError {
+interface ImageSearchError {
   ok: false;
   message: string;
+}
+
+export async function searchImageProvider(
+  session: HostSession,
+  provider: ImageProvider,
+  query: string,
+  language: 'nb' | 'en',
+  page = 1,
+): Promise<ImageSearchSuccess> {
+  const params = new URLSearchParams({
+    provider,
+    roomId: session.roomId,
+    q: query,
+    language,
+    page: String(page),
+  });
+  const res = await fetch(`/api/ai/image-search?${params.toString()}`, {
+    headers: {
+      'X-Host-Token': session.hostToken,
+    },
+  });
+  const data = (await res.json()) as ImageSearchSuccess | ImageSearchError;
+
+  if (!res.ok || !data.ok) {
+    throw new Error(
+      !data.ok
+        ? data.message
+        : provider === 'wikimedia'
+          ? 'Kunne ikke søke etter Wikimedia-bilder.'
+          : 'Kunne ikke søke etter Pixabay-bilder.',
+    );
+  }
+
+  return data;
 }
 
 export async function searchPixabayImages(
@@ -29,23 +69,6 @@ export async function searchPixabayImages(
   query: string,
   language: 'nb' | 'en',
   page = 1,
-): Promise<PixabaySearchSuccess> {
-  const params = new URLSearchParams({
-    roomId: session.roomId,
-    q: query,
-    language,
-    page: String(page),
-  });
-  const res = await fetch(`/api/ai/pixabay-search?${params.toString()}`, {
-    headers: {
-      'X-Host-Token': session.hostToken,
-    },
-  });
-  const data = (await res.json()) as PixabaySearchSuccess | PixabaySearchError;
-
-  if (!res.ok || !data.ok) {
-    throw new Error(!data.ok ? data.message : 'Kunne ikke søke etter bilder.');
-  }
-
-  return data;
+): Promise<ImageSearchSuccess> {
+  return searchImageProvider(session, 'pixabay', query, language, page);
 }

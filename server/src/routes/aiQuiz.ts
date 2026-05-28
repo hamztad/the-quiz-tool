@@ -1,43 +1,24 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import {
   clampAiQuestionCount,
   type AiGenerateQuizRequest,
+  type AiImageProvider,
   type AiQuizDifficulty,
   type AiQuizQuestionStyle,
-  type MediaAttachment,
   type ParsedAiQuizQuestion,
 } from '@quiz-tool/shared';
 import { roomStore } from '../store/memoryStore.js';
 import { AiQuizGenerateError, generateQuizWithOpenAI } from '../services/openaiQuizGenerate.js';
+import {
+  providerResultToMedia,
+  searchImagesByProvider,
+  type ImageProviderId,
+} from '../services/imageProviders/index.js';
 
 const DIFFICULTIES = new Set<AiQuizDifficulty>(['easy', 'medium', 'hard']);
 const STYLES = new Set<AiQuizQuestionStyle>(['open', 'mc', 'mixed', 'quizPackage']);
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_TRANSLATE_MODEL = 'gpt-4o-mini';
-
-interface PixabayHit {
-  id: number;
-  tags?: string;
-  previewURL?: string;
-  webformatURL?: string;
-  largeImageURL?: string;
-  pageURL?: string;
-  user?: string;
-}
-
-interface PixabayResponse {
-  hits?: PixabayHit[];
-  totalHits?: number;
-}
-
-interface PixabayImageResult {
-  id: string;
-  tags: string;
-  previewUrl: string;
-  imageUrl: string;
-  pageUrl: string;
-  photographer: string;
-}
 
 interface OpenAiTranslateResponse {
   choices?: Array<{
@@ -76,40 +57,6 @@ async function translateNorwegianImageQuery(
   return translated.replace(/^["']|["']$/g, '').slice(0, 80);
 }
 
-async function searchPixabayImages(
-  apiKey: string,
-  query: string,
-  page = 1,
-): Promise<{ results: PixabayImageResult[]; hasMore: boolean }> {
-  const params = new URLSearchParams({
-    key: apiKey,
-    q: query,
-    image_type: 'photo',
-    safesearch: 'true',
-    per_page: '12',
-    page: String(page),
-  });
-
-  const pixabayRes = await fetch(`https://pixabay.com/api/?${params.toString()}`);
-  if (!pixabayRes.ok) {
-    throw new Error(`Pixabay-feil: ${pixabayRes.status}`);
-  }
-
-  const data = (await pixabayRes.json()) as PixabayResponse;
-  const results = (data.hits ?? [])
-    .filter((hit) => hit.webformatURL || hit.largeImageURL)
-    .map((hit) => ({
-      id: String(hit.id),
-      tags: hit.tags ?? '',
-      previewUrl: hit.previewURL ?? hit.webformatURL ?? hit.largeImageURL ?? '',
-      imageUrl: hit.webformatURL ?? hit.largeImageURL ?? '',
-      pageUrl: hit.pageURL ?? '',
-      photographer: hit.user ?? '',
-    }));
-
-  return { results, hasMore: page * 12 < (data.totalHits ?? 0) };
-}
-
 function questionTextForImageSearch(question: ParsedAiQuizQuestion): string {
   const title = question.lines[0]?.text ?? '';
   const correct =
@@ -119,24 +66,13 @@ function questionTextForImageSearch(question: ParsedAiQuizQuestion): string {
   return [title, correct].filter(Boolean).join(' ');
 }
 
-function mediaFromPixabayResult(result: PixabayImageResult): MediaAttachment {
-  return {
-    type: 'image',
-    url: result.imageUrl,
-    previewUrl: result.previewUrl,
-    alt: result.tags,
-    source: 'pixabay',
-    photographer: result.photographer,
-    pageUrl: result.pageUrl,
-  };
-}
-
-async function attachPixabayImagesToQuestions(
+async function attachProviderImagesToQuestions(
   questions: ParsedAiQuizQuestion[],
+  provider: ImageProviderId,
   pixabayApiKey: string | undefined,
   openAiApiKey: string,
 ): Promise<ParsedAiQuizQuestion[]> {
-  if (!pixabayApiKey) {
+  if (provider === 'pixabay' && !pixabayApiKey) {
     console.warn('AI image attachment skipped: PIXABAY_API_KEY missing.');
     return questions;
   }
@@ -149,10 +85,15 @@ async function attachPixabayImagesToQuestions(
 
         const translated = await translateNorwegianImageQuery(norwegianQuery, openAiApiKey);
         const searchQuery = translated || norwegianQuery;
-        const { results } = await searchPixabayImages(pixabayApiKey, searchQuery, 1);
+        const { results } = await searchImagesByProvider(
+          provider,
+          searchQuery,
+          1,
+          pixabayApiKey,
+        );
         const first = results[0];
         if (!first) return question;
-        return { ...question, media: [mediaFromPixabayResult(first)] };
+        return { ...question, media: [providerResultToMedia(provider, first)] };
       } catch (err) {
         console.warn('AI image attachment skipped for one question:', err);
         return question;
@@ -177,27 +118,28 @@ function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
     typeof b.questionStyle === 'string' &&
     STYLES.has(b.questionStyle as AiQuizQuestionStyle) &&
     (b.includePixabayImages === undefined || typeof b.includePixabayImages === 'boolean') &&
+    (b.imageProvider === undefined ||
+      b.imageProvider === 'pixabay' ||
+      b.imageProvider === 'wikimedia') &&
     varietyOk
   );
 }
 
 export const aiQuizRouter = Router();
 
-aiQuizRouter.get('/pixabay-search', async (req, res) => {
-  const apiKey = process.env.PIXABAY_API_KEY?.trim();
-  if (!apiKey) {
-    res.status(503).json({
-      ok: false,
-      code: 'MISSING_API_KEY',
-      message:
-        'Pixabay-søk er ikke konfigurert på serveren (PIXABAY_API_KEY mangler). Kontakt administrator.',
-    });
-    return;
-  }
-
+async function handleImageSearch(
+  req: Request,
+  res: Response,
+  forcedProvider?: ImageProviderId,
+) {
+  const pixabayApiKey = process.env.PIXABAY_API_KEY?.trim();
   const roomId = typeof req.query.roomId === 'string' ? req.query.roomId : '';
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   const language = req.query.language === 'nb' ? 'nb' : 'en';
+  const requestedProvider =
+    forcedProvider ??
+    (req.query.provider === 'wikimedia' ? 'wikimedia' : 'pixabay');
+  const provider = requestedProvider as ImageProviderId;
   const page = Math.max(1, Math.min(Number(req.query.page) || 1, 50));
   const hostToken = req.header('x-host-token');
 
@@ -240,9 +182,24 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
       }
     }
 
-    const { results, hasMore } = await searchPixabayImages(apiKey, searchQuery, page);
+    if (provider === 'pixabay' && !pixabayApiKey) {
+      res.status(503).json({
+        ok: false,
+        code: 'MISSING_API_KEY',
+        message:
+          'Pixabay-søk er ikke konfigurert på serveren (PIXABAY_API_KEY mangler). Kontakt administrator.',
+      });
+      return;
+    }
+    const { results, hasMore } = await searchImagesByProvider(
+      provider,
+      searchQuery,
+      page,
+      pixabayApiKey,
+    );
     res.json({
       ok: true,
+      provider,
       results,
       query: q,
       translatedQuery,
@@ -251,13 +208,24 @@ aiQuizRouter.get('/pixabay-search', async (req, res) => {
       hasMore,
     });
   } catch (err) {
-    console.error('Pixabay search error:', err);
+    console.error('Image search error:', err);
     res.status(500).json({
       ok: false,
       code: 'SERVER_ERROR',
-      message: 'Noe gikk galt under Pixabay-søk. Prøv igjen.',
+      message:
+        provider === 'wikimedia'
+          ? 'Noe gikk galt under Wikimedia-søk. Prøv igjen.'
+          : 'Noe gikk galt under Pixabay-søk. Prøv igjen.',
     });
   }
+}
+
+aiQuizRouter.get('/image-search', async (req, res) => {
+  await handleImageSearch(req, res);
+});
+
+aiQuizRouter.get('/pixabay-search', async (req, res) => {
+  await handleImageSearch(req, res, 'pixabay');
 });
 
 aiQuizRouter.post('/generate-quiz', async (req, res) => {
@@ -289,6 +257,7 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
     difficulty,
     questionStyle,
     includePixabayImages,
+    imageProvider,
     varietySeed,
   } = req.body;
 
@@ -325,9 +294,12 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
       apiKey,
     );
 
-    if (includePixabayImages) {
-      questions = await attachPixabayImagesToQuestions(
+    const shouldAttachImages = Boolean(includePixabayImages);
+    const provider: ImageProviderId = (imageProvider as AiImageProvider | undefined) ?? 'pixabay';
+    if (shouldAttachImages) {
+      questions = await attachProviderImagesToQuestions(
         questions,
+        provider,
         process.env.PIXABAY_API_KEY?.trim(),
         apiKey,
       );

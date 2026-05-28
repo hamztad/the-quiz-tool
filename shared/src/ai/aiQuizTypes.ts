@@ -22,6 +22,7 @@ export const AI_QUIZ_CUSTOM_THEME = 'Egendefinert tema' as const;
 export type AiQuizDifficulty = 'easy' | 'medium' | 'hard';
 
 export type AiQuizQuestionStyle = 'open' | 'mc' | 'mixed' | 'quizPackage';
+export type AiImageProvider = 'pixabay' | 'wikimedia';
 
 export interface AiGenerateQuizRequest {
   roomId: string;
@@ -29,8 +30,9 @@ export interface AiGenerateQuizRequest {
   questionCount: number;
   difficulty: AiQuizDifficulty;
   questionStyle: AiQuizQuestionStyle;
-  /** Best-effort: attach one Pixabay image per generated question when possible. */
+  /** Best-effort: attach one image per generated question when possible. */
   includePixabayImages?: boolean;
+  imageProvider?: AiImageProvider;
   /** Unique per generation — encourages fresh questions from the model. */
   varietySeed?: string;
 }

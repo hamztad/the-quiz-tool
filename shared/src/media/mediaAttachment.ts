@@ -6,10 +6,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isMediaAttachment(value: unknown): value is MediaAttachment {
   if (!isRecord(value)) return false;
-  const validSource = value.source === undefined || value.source === 'pixabay';
+  const validSource =
+    value.source === undefined || value.source === 'pixabay' || value.source === 'wikimedia';
   const validOptionalStrings =
     (value.alt === undefined || typeof value.alt === 'string') &&
     (value.previewUrl === undefined || typeof value.previewUrl === 'string') &&
+    (value.title === undefined || typeof value.title === 'string') &&
+    (value.creator === undefined || typeof value.creator === 'string') &&
+    (value.license === undefined || typeof value.license === 'string') &&
     (value.photographer === undefined || typeof value.photographer === 'string') &&
     (value.pageUrl === undefined || typeof value.pageUrl === 'string');
 
