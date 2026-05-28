@@ -29,6 +29,7 @@ interface ImageSearchSuccess {
 interface ImageSearchError {
   ok: false;
   message: string;
+  code?: string;
 }
 
 interface UploadImageSuccess {
@@ -39,6 +40,49 @@ interface UploadImageSuccess {
 interface UploadImageError {
   ok: false;
   message: string;
+}
+
+function imageSearchFallbackMessage(
+  provider: SearchImageProvider,
+  status: number,
+): string {
+  if (status === 404) {
+    return 'Quizen finnes ikke på serveren. Last siden på nytt eller opprett quizen på nytt.';
+  }
+  if (status === 403) {
+    return 'Ugyldig quizmaster-tilgang. Last siden på nytt for å koble til quizen igjen.';
+  }
+  if (status === 503) {
+    return 'Pixabay-søk er ikke konfigurert på serveren (PIXABAY_API_KEY mangler).';
+  }
+  if (status === 502 || status === 504) {
+    return 'Kunne ikke nå serveren. Sjekk at backend kjører (npm run dev).';
+  }
+  return provider === 'wikimedia'
+    ? 'Kunne ikke søke etter Wikimedia-bilder.'
+    : 'Kunne ikke søke etter Pixabay-bilder.';
+}
+
+async function parseImageSearchResponse(
+  res: Response,
+  provider: SearchImageProvider,
+): Promise<ImageSearchSuccess | ImageSearchError> {
+  const raw = await res.text();
+  if (!raw.trim()) {
+    return {
+      ok: false,
+      message: imageSearchFallbackMessage(provider, res.status),
+    };
+  }
+
+  try {
+    return JSON.parse(raw) as ImageSearchSuccess | ImageSearchError;
+  } catch {
+    return {
+      ok: false,
+      message: imageSearchFallbackMessage(provider, res.status),
+    };
+  }
 }
 
 export async function searchImageProvider(
@@ -60,15 +104,11 @@ export async function searchImageProvider(
       'X-Host-Token': session.hostToken,
     },
   });
-  const data = (await res.json()) as ImageSearchSuccess | ImageSearchError;
+  const data = await parseImageSearchResponse(res, provider);
 
   if (!res.ok || !data.ok) {
     throw new Error(
-      !data.ok
-        ? data.message
-        : provider === 'wikimedia'
-          ? 'Kunne ikke søke etter Wikimedia-bilder.'
-          : 'Kunne ikke søke etter Pixabay-bilder.',
+      !data.ok ? data.message : imageSearchFallbackMessage(provider, res.status),
     );
   }
 
@@ -102,7 +142,14 @@ export async function uploadPrivateImage(
     body,
   });
 
-  const data = (await res.json()) as UploadImageSuccess | UploadImageError;
+  const raw = await res.text();
+  let data: UploadImageSuccess | UploadImageError;
+  try {
+    data = JSON.parse(raw) as UploadImageSuccess | UploadImageError;
+  } catch {
+    throw new Error('Kunne ikke laste opp bildet. Sjekk at serveren kjører.');
+  }
+
   if (!res.ok || !data.ok) {
     throw new Error(!data.ok ? data.message : 'Kunne ikke laste opp bildet.');
   }

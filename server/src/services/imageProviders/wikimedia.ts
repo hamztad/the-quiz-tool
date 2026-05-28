@@ -1,5 +1,7 @@
 import type { ProviderSearchResult } from './types.js';
 
+const WIKIMEDIA_USER_AGENT = 'TheQuizTool/1.0 (quiz image search; contact: quiz@example.com)';
+
 interface WikimediaImageInfo {
   url?: string;
   thumburl?: string;
@@ -19,6 +21,10 @@ interface WikimediaPage {
 interface WikimediaResponse {
   query?: {
     pages?: Record<string, WikimediaPage>;
+  };
+  error?: {
+    code?: string;
+    info?: string;
   };
 }
 
@@ -64,11 +70,33 @@ export async function searchWikimediaImages(
     inprop: 'url',
   });
 
-  const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params.toString()}`);
-  if (!res.ok) {
-    throw new Error(`Wikimedia-feil: ${res.status}`);
+  const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params.toString()}`, {
+    headers: {
+      'User-Agent': WIKIMEDIA_USER_AGENT,
+      Accept: 'application/json',
+    },
+  });
+
+  const bodyText = await res.text();
+  let data: WikimediaResponse;
+  try {
+    data = JSON.parse(bodyText) as WikimediaResponse;
+  } catch {
+    throw new Error(
+      res.ok
+        ? 'Wikimedia returnerte ugyldig svar.'
+        : `Wikimedia-feil (${res.status}). Prøv igjen senere.`,
+    );
   }
-  const data = (await res.json()) as WikimediaResponse;
+
+  if (data.error) {
+    throw new Error(data.error.info ?? 'Wikimedia-søk feilet.');
+  }
+
+  if (!res.ok) {
+    throw new Error(`Wikimedia-feil (${res.status}). Prøv igjen senere.`);
+  }
+
   const pages = Object.values(data.query?.pages ?? {});
   const results: ProviderSearchResult[] = [];
 

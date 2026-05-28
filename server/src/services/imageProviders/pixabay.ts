@@ -13,6 +13,33 @@ interface PixabayHit {
 interface PixabayResponse {
   hits?: PixabayHit[];
   totalHits?: number;
+  error?: string;
+}
+
+function parsePixabayBody(text: string): PixabayResponse | null {
+  try {
+    return JSON.parse(text) as PixabayResponse;
+  } catch {
+    return null;
+  }
+}
+
+function pixabayErrorMessage(status: number, bodyText: string): string {
+  const parsed = parsePixabayBody(bodyText);
+  if (parsed?.error) {
+    return `Pixabay: ${parsed.error}`;
+  }
+  const trimmed = bodyText.trim();
+  if (trimmed.startsWith('[ERROR')) {
+    if (/invalid|missing api key/i.test(trimmed)) {
+      return 'Pixabay API-nøkkelen er ugyldig eller mangler. Sjekk PIXABAY_API_KEY på serveren.';
+    }
+    return trimmed.replace(/^\[ERROR \d+\]\s*/, 'Pixabay: ');
+  }
+  if (status === 401 || status === 403 || status === 400) {
+    return 'Pixabay API-nøkkelen er ugyldig eller mangler. Sjekk PIXABAY_API_KEY på serveren.';
+  }
+  return `Pixabay-feil (${status}). Prøv igjen senere.`;
 }
 
 export async function searchPixabayImages(
@@ -30,11 +57,17 @@ export async function searchPixabayImages(
   });
 
   const pixabayRes = await fetch(`https://pixabay.com/api/?${params.toString()}`);
-  if (!pixabayRes.ok) {
-    throw new Error(`Pixabay-feil: ${pixabayRes.status}`);
+  const bodyText = await pixabayRes.text();
+  const data = parsePixabayBody(bodyText);
+
+  if (!data) {
+    throw new Error(pixabayErrorMessage(pixabayRes.status, bodyText));
   }
 
-  const data = (await pixabayRes.json()) as PixabayResponse;
+  if (!pixabayRes.ok || data.error) {
+    throw new Error(pixabayErrorMessage(pixabayRes.status, data.error ?? bodyText));
+  }
+
   const results = (data.hits ?? [])
     .filter((hit) => hit.webformatURL || hit.largeImageURL)
     .map((hit) => ({

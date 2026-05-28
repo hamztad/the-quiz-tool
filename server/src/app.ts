@@ -17,6 +17,7 @@ export function createApp() {
     cors({
       origin: config.isProd ? true : config.clientOrigin,
       credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Host-Token'],
     }),
   );
 

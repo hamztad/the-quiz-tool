@@ -158,11 +158,21 @@ async function handleImageSearch(
   }
 
   const room = roomStore.get(roomId);
-  if (!room || room.hostToken !== hostToken) {
+  if (!room) {
+    res.status(404).json({
+      ok: false,
+      code: 'ROOM_NOT_FOUND',
+      message:
+        'Quizen finnes ikke på serveren (kan ha blitt nullstilt). Last siden på nytt eller opprett quizen på nytt.',
+    });
+    return;
+  }
+
+  if (!hostToken || room.hostToken !== hostToken) {
     res.status(403).json({
       ok: false,
       code: 'FORBIDDEN',
-      message: 'Ugyldig quizmaster-tilgang.',
+      message: 'Ugyldig quizmaster-tilgang. Last siden på nytt for å koble til quizen igjen.',
     });
     return;
   }
@@ -175,12 +185,17 @@ async function handleImageSearch(
     if (language === 'nb') {
       const openAiKey = process.env.OPENAI_API_KEY?.trim();
       if (openAiKey) {
-        const translated = await translateNorwegianImageQuery(q, openAiKey);
-        if (translated) {
-          searchQuery = translated;
-          translatedQuery = translated;
-        } else {
-          notice = 'Kunne ikke oversette akkurat nå, så vi søkte med originalteksten.';
+        try {
+          const translated = await translateNorwegianImageQuery(q, openAiKey);
+          if (translated) {
+            searchQuery = translated;
+            translatedQuery = translated;
+          } else {
+            notice = 'Kunne ikke oversette akkurat nå, så vi søkte med originalteksten.';
+          }
+        } catch (translateErr) {
+          console.warn('Image query translation failed:', translateErr);
+          notice = 'Oversetting feilet, så vi søkte med originalteksten.';
         }
       } else {
         notice = 'OpenAI-oversetting er ikke konfigurert, så vi søkte med originalteksten.';
@@ -214,13 +229,15 @@ async function handleImageSearch(
     });
   } catch (err) {
     console.error('Image search error:', err);
+    const detail = err instanceof Error ? err.message : '';
     res.status(500).json({
       ok: false,
       code: 'SERVER_ERROR',
       message:
-        provider === 'wikimedia'
+        detail ||
+        (provider === 'wikimedia'
           ? 'Noe gikk galt under Wikimedia-søk. Prøv igjen.'
-          : 'Noe gikk galt under Pixabay-søk. Prøv igjen.',
+          : 'Noe gikk galt under Pixabay-søk. Prøv igjen.'),
     });
   }
 }

@@ -80,13 +80,19 @@ export function PixabayImagePicker({
   const handlePixabaySearch = async (language: 'nb' | 'en') => {
     if (provider === 'upload') return;
     const query = pixabayQuery.trim();
-    if (!roomId || query.length < 2) {
+    if (!roomId) {
+      setError('Mangler quiz-id. Last redigeringssiden på nytt.');
+      return;
+    }
+    if (query.length < 2) {
       setError('Skriv minst to tegn for å søke etter bilde.');
       return;
     }
     const session = getHostSession(roomId);
     if (!session) {
-      setError('Fant ikke quizmaster-økt. Oppdater siden og prøv igjen.');
+      setError(
+        'Fant ikke quizmaster-økt. Gå tilbake til quizmaster-siden og åpne redigering på nytt.',
+      );
       return;
     }
 
