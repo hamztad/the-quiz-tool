@@ -26,6 +26,7 @@ export * from './protests/protestRules.js';
 export * from './review/teamReviewSelectors.js';
 export * from './ordering/orderingQuestion.js';
 export * from './session/sessionProtection.js';
+export * from './host/hostSession.js';
 export * from './ai/aiQuizTypes.js';
 export * from './ai/parseAiQuizJson.js';
 export * from './ai/buildAiGeneratePrompt.js';

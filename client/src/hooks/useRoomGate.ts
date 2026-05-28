@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CLIENT_EVENTS, ROOM_ERROR_CODES } from '@quiz-tool/shared';
+import { CLIENT_EVENTS, deriveHostQuizTitle, ROOM_ERROR_CODES } from '@quiz-tool/shared';
 import type { PublicRoomState } from '@quiz-tool/shared';
 import {
   parseRoomUnavailableReason,
   type RoomUnavailableReason,
 } from '../lib/roomUnavailable';
 import { clearHostPresenting } from '../lib/hostFlow';
+import { registerHostSession, removeHostSession } from '../lib/hostActiveSessions';
 import {
-  clearHostSession,
   clearTeamSession,
   getHostSession,
   getTeamSession,
@@ -29,27 +29,40 @@ export function useRoomGate(
   const [reconnectAttempted, setReconnectAttempted] = useState(false);
   const [sessionInvalid, setSessionInvalid] = useState(false);
   const [sessionRestored, setSessionRestored] = useState(false);
+  const [hostReconnectNotice, setHostReconnectNotice] = useState(false);
   const [selfPacedReconnectNotice, setSelfPacedReconnectNotice] = useState(false);
   const [reconnectTick, setReconnectTick] = useState(0);
 
   const session = useMemo(() => {
     if (!roomId) return null;
     return mode === 'host' ? getHostSession(roomId) : getTeamSession(roomId);
-  }, [roomId, mode]);
+  }, [roomId, mode, reconnectTick, room?.joinCode]);
 
   const emitReconnect = useCallback(() => {
     if (!roomId || !session) return;
     setReconnectAttempted(false);
     setSessionInvalid(false);
     const onDone = (res?: { ok?: boolean; code?: string; selfPacedRestored?: boolean }) => {
-      if (res?.ok === false && res.code === ROOM_ERROR_CODES.SESSION_INVALID) {
-        setSessionInvalid(true);
+      if (res?.ok === false) {
+        if (
+          res.code === ROOM_ERROR_CODES.SESSION_INVALID ||
+          res.code === ROOM_ERROR_CODES.ROOM_NOT_FOUND ||
+          res.code === ROOM_ERROR_CODES.ROOM_EXPIRED
+        ) {
+          removeHostSession(roomId);
+        }
+        if (res.code === ROOM_ERROR_CODES.SESSION_INVALID) {
+          setSessionInvalid(true);
+        }
       }
       if (res?.ok === true && mode === 'team') {
         setSessionRestored(true);
       }
-      if (res?.ok === true && mode === 'host' && res.selfPacedRestored) {
-        setSelfPacedReconnectNotice(true);
+      if (res?.ok === true && mode === 'host') {
+        setHostReconnectNotice(true);
+        if (res.selfPacedRestored) {
+          setSelfPacedReconnectNotice(true);
+        }
       }
       setReconnectAttempted(true);
     };
@@ -72,8 +85,21 @@ export function useRoomGate(
     emitReconnect();
   }, [roomId, connected, session, emitReconnect, reconnectTick]);
 
+  useEffect(() => {
+    if (mode !== 'host' || !roomId || !room) return;
+    const hostSession = getHostSession(roomId);
+    if (!hostSession) return;
+    registerHostSession({
+      roomId,
+      hostToken: hostSession.hostToken,
+      title: deriveHostQuizTitle(room.joinCode, room.questions),
+      joinCode: room.joinCode,
+    });
+  }, [mode, roomId, room]);
+
   const unavailableFromError = parseRoomUnavailableReason(roomError);
-  const unavailableFromPhase = room?.phase === 'ended' ? ('ended' as const) : null;
+  const unavailableFromPhase =
+    mode === 'host' ? null : room?.phase === 'ended' ? ('ended' as const) : null;
 
   const unavailable: RoomUnavailableReason | null =
     unavailableFromError ?? unavailableFromPhase;
@@ -82,11 +108,18 @@ export function useRoomGate(
     if (!unavailable) return;
     if (mode === 'host') {
       if (roomId) clearHostPresenting(roomId);
-      clearHostSession();
+      if (
+        roomId &&
+        (roomError?.code === ROOM_ERROR_CODES.SESSION_INVALID ||
+          roomError?.code === ROOM_ERROR_CODES.ROOM_NOT_FOUND ||
+          roomError?.code === ROOM_ERROR_CODES.ROOM_EXPIRED)
+      ) {
+        removeHostSession(roomId);
+      }
     } else {
       clearTeamSession();
     }
-  }, [unavailable, mode, roomId]);
+  }, [unavailable, mode, roomId, roomError?.code]);
 
   const reconnecting = Boolean(
     roomId && session && connected && !room && !unavailable,
@@ -125,6 +158,8 @@ export function useRoomGate(
     connected,
     operationalError,
     sessionRestored,
+    hostReconnectNotice,
+    dismissHostReconnectNotice: () => setHostReconnectNotice(false),
     selfPacedReconnectNotice,
     dismissSelfPacedReconnectNotice: () => setSelfPacedReconnectNotice(false),
     /** @deprecated use reconnecting */

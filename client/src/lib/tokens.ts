@@ -1,4 +1,10 @@
-const HOST_KEY = 'quiz_host';
+import {
+  getHostSessionEntry,
+  listHostSessions,
+  registerHostSession,
+  removeHostSession,
+} from './hostActiveSessions';
+
 const TEAM_KEY = 'quiz_team';
 const BROWSER_TEAM_TOKEN_KEY = 'teamToken';
 
@@ -36,19 +42,22 @@ export function getOrCreateBrowserTeamToken(): string {
   }
 }
 
-export function saveHostSession(session: HostSession) {
-  localStorage.setItem(HOST_KEY, JSON.stringify(session));
+export function saveHostSession(
+  session: HostSession,
+  meta?: { title?: string; joinCode?: string },
+): void {
+  registerHostSession({
+    roomId: session.roomId,
+    hostToken: session.hostToken,
+    title: meta?.title?.trim() || `Quiz ${meta?.joinCode ?? session.roomId.slice(-6)}`,
+    joinCode: meta?.joinCode,
+  });
 }
 
 export function getHostSession(roomId: string): HostSession | null {
-  try {
-    const raw = localStorage.getItem(HOST_KEY);
-    if (!raw) return null;
-    const session = JSON.parse(raw) as HostSession;
-    return session.roomId === roomId ? session : null;
-  } catch {
-    return null;
-  }
+  const entry = getHostSessionEntry(roomId);
+  if (!entry) return null;
+  return { roomId: entry.roomId, hostToken: entry.hostToken };
 }
 
 export function saveTeamSession(session: TeamSession) {
@@ -77,17 +86,19 @@ export function getStoredTeamSession(): TeamSession | null {
 }
 
 export function getStoredHostSession(): HostSession | null {
-  try {
-    const raw = localStorage.getItem(HOST_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as HostSession;
-  } catch {
-    return null;
-  }
+  const [first] = listHostSessions();
+  if (!first) return null;
+  return { roomId: first.roomId, hostToken: first.hostToken };
 }
 
-export function clearHostSession() {
-  localStorage.removeItem(HOST_KEY);
+export function clearHostSession(roomId?: string) {
+  if (roomId) {
+    removeHostSession(roomId);
+    return;
+  }
+  for (const entry of listHostSessions()) {
+    removeHostSession(entry.roomId);
+  }
 }
 
 export function clearTeamSession() {

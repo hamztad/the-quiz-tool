@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.app.json --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -24,6 +25,8 @@
     "typescript": "^5.8.3"
   },
   "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vitest": "^3.2.4",
     "@tailwindcss/vite": "^4.1.7",
     "@types/matter-js": "^0.20.2",
     "@vitejs/plugin-react": "^4.4.1",

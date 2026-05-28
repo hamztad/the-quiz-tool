@@ -13,6 +13,7 @@ import {
   type GameSubmissionPayload,
   type Question,
 } from '@quiz-tool/shared';
+import { checkHostReconnectAccess } from '../../domain/hostRoomAccess.js';
 import { checkRoomAccess } from '../../domain/roomAccess.js';
 import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import { createProtest, mergePeerGradesToScores, upsertScore } from '../../domain/gradingService.js';
@@ -39,6 +40,8 @@ import {
   findTeamIdByBrowserToken,
   joinTeam,
   lockFinalResult,
+  markHostSocketConnected,
+  markHostSocketDisconnected,
   markTeamSocketConnected,
   markTeamSocketDisconnected,
   removeTeam,
@@ -188,6 +191,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       }
       roomStore.create(room);
       attachSocket(socket, room.id, 'host');
+      roomStore.update(room.id, (r) => markHostSocketConnected(r));
 
       const created = {
         roomId: room.id,
@@ -277,6 +281,29 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     (payload: { roomId: string; hostToken?: string; teamToken?: string }, ack?: (res: unknown) => void) => {
       try {
         const room = roomStore.get(payload.roomId);
+
+        if (payload.hostToken) {
+          const hostAccess = checkHostReconnectAccess(room, payload.hostToken);
+          if (!hostAccess.ok) {
+            if (hostAccess.code === ROOM_ERROR_CODES.ROOM_EXPIRED && room) {
+              roomStore.delete(room.id);
+            }
+            emitRoomAccessError(socket, hostAccess.code);
+            ack?.({ ok: false, code: hostAccess.code });
+            return;
+          }
+          const activeRoom = hostAccess.room;
+          roomStore.update(activeRoom.id, (r) => markHostSocketConnected(r));
+          attachSocket(socket, activeRoom.id, 'host');
+          publishRoomState(io, activeRoom.id);
+          const refreshed = roomStore.get(activeRoom.id) ?? activeRoom;
+          const selfPacedRestored =
+            isSelfPacedQuiz(refreshed.schedule) &&
+            (refreshed.phase === 'live' || refreshed.phase === 'lobby');
+          ack?.({ ok: true, role: 'host', selfPacedRestored });
+          return;
+        }
+
         const access = checkRoomAccess(room);
         if (!access.ok) {
           if (access.code === ROOM_ERROR_CODES.ROOM_EXPIRED && room) {
@@ -288,17 +315,6 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         }
 
         const activeRoom = access.room;
-
-        if (payload.hostToken && payload.hostToken === activeRoom.hostToken) {
-          attachSocket(socket, activeRoom.id, 'host');
-          publishRoomState(io, activeRoom.id);
-          const refreshed = roomStore.get(activeRoom.id) ?? activeRoom;
-          const selfPacedRestored =
-            isSelfPacedQuiz(refreshed.schedule) &&
-            (refreshed.phase === 'live' || refreshed.phase === 'lobby');
-          ack?.({ ok: true, role: 'host', selfPacedRestored });
-          return;
-        }
 
         if (payload.teamToken) {
           const teamId = Object.entries(activeRoom.teamTokens).find(
@@ -399,8 +415,16 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
   socket.on('disconnect', () => {
     const roomId = socket.data.roomId as string | undefined;
+    if (!roomId) return;
+
+    if (socket.data.role === 'host') {
+      roomStore.update(roomId, (r) => markHostSocketDisconnected(r));
+      publishRoomState(io, roomId);
+      return;
+    }
+
     const teamId = socket.data.teamId as string | undefined;
-    if (socket.data.role !== 'secretary' || !roomId || !teamId) return;
+    if (socket.data.role !== 'secretary' || !teamId) return;
     const room = roomStore.get(roomId);
     if (!room || !room.teams.some((team) => team.id === teamId)) return;
     if (hasOtherConnectedTeamSocket(io, socket, roomId, teamId)) return;

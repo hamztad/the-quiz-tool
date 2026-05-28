@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { aiQuizRouter } from './routes/aiQuiz.js';
+import { hostSessionRouter } from './routes/hostSession.js';
 import { gameImagesRouter } from './routes/gameImages.js';
 import { initUploadCleanup } from './services/imageProviders/index.js';
 
@@ -28,6 +29,7 @@ export function createApp() {
   });
 
   app.use('/api/ai', aiQuizRouter);
+  app.use('/api/host', hostSessionRouter);
   app.use('/api/game-images', gameImagesRouter);
 
   if (config.isProd) {

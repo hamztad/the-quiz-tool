@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import { createApp } from './app.js';
 import { config } from './config.js';
 import { setupSocket } from './socket/index.js';
+import { startRoomExpirySweep } from './domain/roomCleanup.js';
 import {
   bootstrapScheduledRooms,
   startScheduledRoomSweep,
@@ -27,4 +28,5 @@ httpServer.listen(config.port, () => {
   );
   bootstrapScheduledRooms();
   startScheduledRoomSweep();
+  startRoomExpirySweep();
 });

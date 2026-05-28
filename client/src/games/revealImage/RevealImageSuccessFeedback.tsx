@@ -11,9 +11,9 @@ export function RevealImageSuccessFeedback({ className = '' }: RevealImageSucces
     >
       <p className="text-lg font-extrabold tracking-tight text-emerald-950 sm:text-xl">
         <span aria-hidden className="mr-1.5">
-          🎉
+          ✅
         </span>
-        Riktig! Du fant riktig bilde!
+        Du fant motivet!
       </p>
     </div>
   );

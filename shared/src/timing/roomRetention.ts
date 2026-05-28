@@ -7,6 +7,13 @@ export const SCHEDULED_ROOM_GRACE_MS = 2 * 60 * 60_000;
 /** Default TTL for rooms without a long-running schedule. */
 export const DEFAULT_ROOM_TTL_MS = 24 * 60 * 60_000;
 
+/**
+ * Room cleanup (in-memory MVP):
+ * - Manual/live rooms: expiresAt bumped on activity (see LIVE_ROOM_ACTIVITY_EXTENSION_MS).
+ * - Scheduled/self-running: expiresAt = max(default, endsAt + SCHEDULED_ROOM_GRACE_MS).
+ * - Ended rooms: removed after expiresAt (grace after post_quiz / ROOM_CLOSE).
+ */
+
 export function getScheduledRoomRetentionUntil(
   schedule: QuizSchedule | undefined,
   now = Date.now(),

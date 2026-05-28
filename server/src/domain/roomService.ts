@@ -17,8 +17,10 @@ import {
   computeRoomExpiresAt,
   createConnectedTeamPresence,
   DEFAULT_ROOM_TTL_MS,
+  deriveHostQuizTitle,
   markTeamConnected,
   markTeamDisconnected,
+  type HostPresence,
 } from '@quiz-tool/shared';
 import { buildFinalLeaderboardSnapshot } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
@@ -30,6 +32,7 @@ export function createRoom(title?: string): RoomRecord {
   const roomId = generateId('room');
   const joinCode = generateJoinCode();
   const hostToken = generateToken();
+  const now = Date.now();
 
   const room: RoomRecord = {
     id: roomId,
@@ -66,11 +69,38 @@ export function createRoom(title?: string): RoomRecord {
     hostToken,
     teamTokens: {},
     teamBrowserTokens: {},
-    expiresAt: Date.now() + DEFAULT_ROOM_TTL_MS,
+    expiresAt: now + DEFAULT_ROOM_TTL_MS,
+    createdAt: now,
+    lastActiveAt: now,
+    hostTitle: title?.trim() ? title.trim().slice(0, 120) : undefined,
+    hostPresence: { connected: false, lastSeenAt: now },
   };
 
-  void title;
   return room;
+}
+
+export function markHostSocketConnected(room: RoomRecord, now = Date.now()): RoomRecord {
+  const hostPresence: HostPresence = {
+    connected: true,
+    lastSeenAt: now,
+    disconnectedAt: undefined,
+  };
+  return { ...room, hostPresence };
+}
+
+export function markHostSocketDisconnected(room: RoomRecord, now = Date.now()): RoomRecord {
+  const hostPresence: HostPresence = {
+    connected: false,
+    lastSeenAt: now,
+    disconnectedAt: now,
+  };
+  return { ...room, hostPresence };
+}
+
+export function syncHostTitleFromQuestions(room: RoomRecord): RoomRecord {
+  const title = deriveHostQuizTitle(room.joinCode, room.questions, room.hostTitle);
+  if (title === room.hostTitle) return room;
+  return { ...room, hostTitle: title };
 }
 
 export function joinTeam(

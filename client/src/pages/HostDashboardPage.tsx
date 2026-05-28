@@ -23,11 +23,13 @@ import {
 import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 import { HostAnswerKeyPanel } from '../components/host/HostAnswerKeyPanel';
 import { HostTeamAnswersPanel } from '../components/host/HostTeamAnswersPanel';
 import { HostProtestsOverview } from '../components/host/HostProtestsOverview';
 import { HostTeamList } from '../components/host/HostTeamList';
 import { HostGameResults } from '../games/registry';
+import { HostReconnectBanner } from '../components/host/HostReconnectBanner';
 import { HostSelfPacedReconnectBanner } from '../components/host/HostSelfPacedReconnectBanner';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
@@ -72,6 +74,8 @@ export function HostDashboardPage() {
     loading,
     noSession,
     operationalError,
+    hostReconnectNotice,
+    dismissHostReconnectNotice,
     selfPacedReconnectNotice,
     dismissSelfPacedReconnectNotice,
   } = useRoomGate(roomId, 'host', socket, connected);
@@ -265,6 +269,10 @@ export function HostDashboardPage() {
 
       <LiveQuizClock room={room} />
 
+      <HostReconnectBanner
+        visible={hostReconnectNotice && !selfPacedReconnectNotice}
+        onDismiss={dismissHostReconnectNotice}
+      />
       <HostSelfPacedReconnectBanner
         visible={selfPacedReconnectNotice}
         onDismiss={dismissSelfPacedReconnectNotice}
@@ -522,40 +530,35 @@ export function HostDashboardPage() {
             <HostAnswerKeyPanel room={room} onClose={() => setShowAnswerKey(false)} />
           )}
 
-          {showFinalLockConfirm && (
-            <div
-              className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="final-lock-title"
-              onClick={() => setShowFinalLockConfirm(false)}
-            >
-              <div
-                className="w-full max-w-md rounded-2xl border border-quiz-border bg-quiz-surface p-5 shadow-xl"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <h2 id="final-lock-title" className="text-lg font-black text-quiz-text">
-                  Lås sluttresultat?
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-quiz-muted">
-                  Dette låser sluttresultatet. Lagene får se endelig plassering, og vinneren får
-                  en vinnerplakat.
-                </p>
-                <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setShowFinalLockConfirm(false)}
-                  >
-                    Avbryt
-                  </Button>
-                  <Button type="button" onClick={lockFinalResult}>
-                    Lås sluttresultat
-                  </Button>
-                </div>
+          <Modal
+            open={showFinalLockConfirm}
+            onClose={() => setShowFinalLockConfirm(false)}
+            closeOnBackdropClick
+            labelledBy="final-lock-title"
+            align="center"
+          >
+            <div className="p-5">
+              <h2 id="final-lock-title" className="text-lg font-black text-quiz-text">
+                Lås sluttresultat?
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-quiz-muted">
+                Dette låser sluttresultatet. Lagene får se endelig plassering, og vinneren får en
+                vinnerplakat.
+              </p>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowFinalLockConfirm(false)}
+                >
+                  Avbryt
+                </Button>
+                <Button type="button" onClick={lockFinalResult}>
+                  Lås sluttresultat
+                </Button>
               </div>
             </div>
-          )}
+          </Modal>
 
           {selectedTeamId && (
             <HostTeamAnswersPanel

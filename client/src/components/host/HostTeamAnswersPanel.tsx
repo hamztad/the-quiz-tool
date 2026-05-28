@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
 import { CLIENT_EVENTS, type GameSubmission, type PublicRoomState, type Question } from '@quiz-tool/shared';
 import { QuestionBody } from '../question/QuestionBody';
 import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
 import { OrderingComparison } from '../ordering/OrderingComparison';
 import { useSocket } from '../../hooks/useSocket';
@@ -49,14 +49,6 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
   const team = room.teams.find((t) => t.id === teamId);
   const totalPoints = computeTeamTotalPoints(room, teamId);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
-
   if (!team) return null;
 
   const overrideScore = (questionId: string, points: number, maxPoints: number) => {
@@ -68,17 +60,15 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="host-team-answers-title"
-      onClick={onClose}
+    <Modal
+      open
+      onClose={onClose}
+      closeOnBackdropClick
+      align="bottom"
+      labelledBy="host-team-answers-title"
+      maxWidthClass="max-w-2xl"
+      panelClassName="flex max-h-[min(90dvh,900px)] flex-col overflow-hidden p-0"
     >
-      <div
-        className="flex w-full max-w-2xl min-w-0 max-h-[min(90vh,900px)] flex-col rounded-2xl border border-quiz-border bg-quiz-surface shadow-xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="shrink-0 border-b border-quiz-border px-5 py-4 flex items-start gap-3 min-w-0">
           <div className="min-w-0 flex-1">
             <h2 id="host-team-answers-title" className="text-lg font-bold break-words [overflow-wrap:anywhere]">
@@ -263,7 +253,6 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
             })
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

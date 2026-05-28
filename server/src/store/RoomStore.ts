@@ -1,4 +1,4 @@
-import type { RoomState } from '@quiz-tool/shared';
+import type { HostPresence, RoomState } from '@quiz-tool/shared';
 
 export interface RoomRecord extends RoomState {
   hostToken: string;
@@ -6,6 +6,10 @@ export interface RoomRecord extends RoomState {
   teamBrowserTokens: Record<string, string>;
   /** Unix ms — room is removed from active use after this time */
   expiresAt: number;
+  createdAt: number;
+  lastActiveAt: number;
+  hostTitle?: string;
+  hostPresence: HostPresence;
 }
 
 export interface RoomStore {

@@ -4,35 +4,30 @@ import { CLIENT_EVENTS, SERVER_EVENTS } from '@quiz-tool/shared';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { HostSetupCard } from '../components/host/HostSetupCard';
 import { PageShell } from '../components/layout/PageShell';
-import { Button } from '../components/ui/Button';
 import { buildEditPath, type HostBuildEntry } from '../lib/hostFlow';
-import { getStoredHostSession, saveHostSession } from '../lib/tokens';
+import { HostActiveSessionsPanel } from '../components/host/HostActiveSessionsPanel';
+import { saveHostSession } from '../lib/tokens';
 import { useSocket } from '../hooks/useSocket';
 
 export function HostLandingPage() {
   const navigate = useNavigate();
   const { socket, connected } = useSocket();
-  const [loading, setLoading] = useState<HostBuildEntry | 'continue' | null>(null);
-  const existingSession = getStoredHostSession();
+  const [loading, setLoading] = useState<HostBuildEntry | null>(null);
 
   const createQuiz = (entry: HostBuildEntry) => {
     setLoading(entry);
     const onCreated = (data: { roomId: string; hostToken: string }) => {
       setLoading(null);
-      saveHostSession({ roomId: data.roomId, hostToken: data.hostToken });
+      saveHostSession(
+        { roomId: data.roomId, hostToken: data.hostToken },
+        { title: 'Ny quiz', joinCode: (data as { joinCode?: string }).joinCode },
+      );
       navigate(buildEditPath(data.roomId, entry));
     };
     socket.once(SERVER_EVENTS.ROOM_CREATED, onCreated);
     socket.emit(CLIENT_EVENTS.ROOM_CREATE, {}, (res: { roomId: string; hostToken: string } | undefined) => {
       if (res?.roomId) onCreated(res);
     });
-  };
-
-  const continueQuiz = () => {
-    if (!existingSession) return;
-    setLoading('continue');
-    navigate(`/host/${existingSession.roomId}`);
-    setLoading(null);
   };
 
   const busy = loading !== null;
@@ -86,7 +81,7 @@ export function HostLandingPage() {
           disabled={!connected || busy}
         />
 
-        {loading && loading !== 'continue' && (
+        {loading && (
           <p className="text-sm text-quiz-muted text-center font-medium" role="status">
             ✨ Oppretter quizrom…
           </p>
@@ -95,23 +90,7 @@ export function HostLandingPage() {
           <p className="text-sm text-quiz-muted text-center">Kobler til server…</p>
         )}
 
-        {existingSession && (
-          <div className="rounded-2xl border-2 border-violet-300/50 bg-gradient-to-br from-violet-50/90 to-white/95 p-5 space-y-3 shadow-md">
-            <p className="quiz-display text-lg font-bold text-quiz-text">Fortsett påbegynt quiz</p>
-            <p className="text-sm text-quiz-muted break-words">
-              Du har en aktiv quizmaster-økt. Fortsett der du slapp.
-            </p>
-            <Button
-              size="lg"
-              variant="cta"
-              className="w-full"
-              onClick={continueQuiz}
-              disabled={!connected || busy}
-            >
-              🚀 {loading === 'continue' ? 'Åpner…' : 'Fortsett quiz'}
-            </Button>
-          </div>
-        )}
+        <HostActiveSessionsPanel connected={connected} />
 
         <p className="text-center text-sm text-quiz-muted pt-2">
           Skal du delta som deltaker?{' '}

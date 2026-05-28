@@ -55,6 +55,9 @@ function baseRoom(): RoomRecord {
     teamTokens: { team1: 'token1' },
     teamBrowserTokens: {},
     expiresAt: Date.now() + 60_000,
+    createdAt: 1_000,
+    lastActiveAt: 1_000,
+    hostPresence: { connected: true, lastSeenAt: 1_000 },
   };
 }
 

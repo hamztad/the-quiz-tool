@@ -14,6 +14,7 @@ import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
+import { HostReconnectBanner } from '../components/host/HostReconnectBanner';
 import { HostSelfPacedReconnectBanner } from '../components/host/HostSelfPacedReconnectBanner';
 import { HostScheduleCard } from '../components/timing/HostScheduleCard';
 import { LiveQuizClock } from '../components/timing/LiveQuizClock';
@@ -36,6 +37,8 @@ export function HostLobbyPage() {
     loading,
     noSession,
     operationalError,
+    hostReconnectNotice,
+    dismissHostReconnectNotice,
     selfPacedReconnectNotice,
     dismissSelfPacedReconnectNotice,
   } = useRoomGate(roomId, 'host', socket, connected);
@@ -190,6 +193,10 @@ export function HostLobbyPage() {
         </p>
       )}
 
+      <HostReconnectBanner
+        visible={hostReconnectNotice && !selfPacedReconnectNotice}
+        onDismiss={dismissHostReconnectNotice}
+      />
       <HostSelfPacedReconnectBanner
         visible={selfPacedReconnectNotice}
         onDismiss={dismissSelfPacedReconnectNotice}

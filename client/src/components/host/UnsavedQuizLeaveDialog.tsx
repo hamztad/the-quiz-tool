@@ -1,6 +1,7 @@
 import { questionsToQuizText, type Question } from '@quiz-tool/shared';
 import { downloadQuizFile } from '../../lib/downloadQuizFile';
 import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
 
 interface UnsavedQuizLeaveDialogProps {
   open: boolean;
@@ -19,8 +20,6 @@ export function UnsavedQuizLeaveDialog({
   onStay,
   onLeave,
 }: UnsavedQuizLeaveDialogProps) {
-  if (!open) return null;
-
   const handleCopy = async () => {
     if (questions.length === 0) return;
     try {
@@ -31,13 +30,8 @@ export function UnsavedQuizLeaveDialog({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="unsaved-quiz-title"
-    >
-      <div className="w-full max-w-md min-w-0 rounded-2xl border border-quiz-border bg-quiz-surface p-5 shadow-xl space-y-4">
+    <Modal open={open} labelledBy="unsaved-quiz-title" align="center">
+      <div className="space-y-4 p-5">
         <div>
           <h2 id="unsaved-quiz-title" className="text-lg font-bold text-quiz-text">
             Quizen er ikke lagret som fil
@@ -58,17 +52,23 @@ export function UnsavedQuizLeaveDialog({
           >
             Last ned quizfil
           </Button>
-          <Button type="button" variant="secondary" className="w-full" onClick={handleCopy} disabled={questions.length === 0}>
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            onClick={handleCopy}
+            disabled={questions.length === 0}
+          >
             Kopier som tekst
           </Button>
           <Button type="button" variant="ghost" className="w-full" onClick={onLeave}>
-            Fortsett uten quizfil
+            Avslutt uten å lagre
           </Button>
           <Button type="button" variant="secondary" className="w-full" onClick={onStay}>
             Avbryt
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

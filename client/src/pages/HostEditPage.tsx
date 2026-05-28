@@ -22,6 +22,7 @@ import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
 import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
+import { HostReconnectBanner } from '../components/host/HostReconnectBanner';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import {
@@ -55,12 +56,15 @@ export function HostEditPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { socket, connected } = useSocket();
-  const { room, unavailable, loading, noSession, operationalError } = useRoomGate(
-    roomId,
-    'host',
-    socket,
-    connected,
-  );
+  const {
+    room,
+    unavailable,
+    loading,
+    noSession,
+    operationalError,
+    hostReconnectNotice,
+    dismissHostReconnectNotice,
+  } = useRoomGate(roomId, 'host', socket, connected);
   const buildEntry = useMemo(
     () => parseBuildEntry(searchParams.toString()),
     [searchParams],
@@ -693,6 +697,11 @@ export function HostEditPage() {
       {!focusEntry && (
         <HostPhaseIndicator active="build" links={phaseLinks} />
       )}
+
+      <HostReconnectBanner
+        visible={hostReconnectNotice}
+        onDismiss={dismissHostReconnectNotice}
+      />
 
       <div className={focusEntry ? 'mb-3 flex flex-wrap items-center justify-between gap-2' : 'mb-6'}>
         <button
