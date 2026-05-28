@@ -14,7 +14,11 @@ import type {
   TimerChallengeConfig,
 } from '@quiz-tool/shared';
 import {
+  clampQuestionMaxPoints,
+  clampQuizPointsPerQuestion,
   createDefaultMathRaceConfig,
+  DEFAULT_RANKED_POINT_BANDS,
+  QUIZ_MAX_POINTS_PER_QUESTION,
   scrambleAnagramText,
   validateAnagramAnswerText,
   validateMathExpression,
@@ -110,7 +114,7 @@ export function HostQuestionEditorCard({
   };
 
   const updatePoints = (maxPoints: number) => {
-    const nextMaxPoints = Math.max(0, maxPoints);
+    const nextMaxPoints = clampQuestionMaxPoints(maxPoints);
     onChange({
       ...question,
       maxPoints: nextMaxPoints,
@@ -279,7 +283,7 @@ export function HostQuestionEditorCard({
                 <Input
                   type="number"
                   min={0}
-                  max={20}
+                  max={QUIZ_MAX_POINTS_PER_QUESTION}
                   value={question.maxPoints}
                   onChange={(e) => updatePoints(Number(e.target.value))}
                   className="bg-quiz-bg py-2 min-h-[44px]"
@@ -528,16 +532,7 @@ function GameQuestionEditor({
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-quiz-muted">Maks poeng</span>
-            <Input
-              type="number"
-              min={1}
-              value={question.maxPoints}
-              onChange={(event) => onChange({ ...question, maxPoints: Math.max(1, Number(event.target.value)) })}
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-quiz-muted">Alternativ-multiplikator</span>
+            <span className="mb-1 block text-xs font-medium text-quiz-muted">Alternativ-multiplikator (rangering)</span>
             <Input
               type="number"
               min={0.1}
@@ -547,15 +542,41 @@ function GameQuestionEditor({
               onChange={(event) => updateGame({ ...config, choiceMultiplier: Math.min(1, Math.max(0.1, Number(event.target.value))) })}
             />
           </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-quiz-muted">Minimum poeng ved riktig</span>
-            <Input
-              type="number"
-              min={0}
-              value={config.minCorrectScore}
-              onChange={(event) => updateGame({ ...config, minCorrectScore: Math.max(0, Number(event.target.value)) })}
-            />
-          </label>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-medium text-quiz-muted">
+            Quiz-poeng etter plassering (maks {QUIZ_MAX_POINTS_PER_QUESTION} per oppgave)
+          </p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {(config.pointBands ?? DEFAULT_RANKED_POINT_BANDS).map((band) => (
+              <label key={band.rank} className="block min-w-0">
+                <span className="mb-1 block text-xs font-medium text-quiz-muted">{band.rank}. plass</span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={QUIZ_MAX_POINTS_PER_QUESTION}
+                  value={band.points}
+                  onChange={(event) => {
+                    const points = clampQuizPointsPerQuestion(Number(event.target.value));
+                    const nextBands = [1, 2, 3].map((rank) => ({
+                      rank,
+                      points:
+                        rank === band.rank
+                          ? points
+                          : (config.pointBands ?? DEFAULT_RANKED_POINT_BANDS).find((b) => b.rank === rank)?.points ?? 0,
+                    }));
+                    const firstPlace = nextBands.find((b) => b.rank === 1)?.points ?? 5;
+                    onChange({
+                      ...question,
+                      maxPoints: firstPlace,
+                      game: { ...config, pointBands: nextBands },
+                    });
+                  }}
+                  className="bg-quiz-bg py-2 min-h-[44px]"
+                />
+              </label>
+            ))}
+          </div>
         </div>
         <div className="rounded-lg border border-quiz-border/70 bg-quiz-bg/40 p-2">
           <p className="mb-2 text-xs font-semibold text-quiz-text">Alternativer (3-5, valgfritt)</p>

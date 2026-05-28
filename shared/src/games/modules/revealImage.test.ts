@@ -128,8 +128,48 @@ describe('revealImage', () => {
         serverReceivedAt: 3,
       },
     ];
-    const results = buildRevealImageResults('q1', 100, config, submissions);
+    const results = buildRevealImageResults('q1', 5, config, submissions);
     expect(results).toHaveLength(1);
-    expect(results[0]).toMatchObject({ teamId: 'a', quizPoints: 88 });
+    expect(results[0]).toMatchObject({ teamId: 'a', quizPoints: 5, rank: 1 });
+  });
+
+  it('awards ranked quiz points by placement', () => {
+    const config = createDefaultRevealImageConfig();
+    config.correctAnswer = 'Oslo';
+    const submissions: GameSubmission[] = [
+      {
+        questionId: 'q1',
+        teamId: 'a',
+        gameId: 'revealImage',
+        payload: {
+          gameId: 'revealImage',
+          answer: 'Oslo',
+          openedTiles: 10,
+          totalTiles: 25,
+          usedChoices: false,
+          source: 'text',
+        },
+        submittedAt: 1,
+        serverReceivedAt: 1,
+      },
+      {
+        questionId: 'q1',
+        teamId: 'b',
+        gameId: 'revealImage',
+        payload: {
+          gameId: 'revealImage',
+          answer: 'Oslo',
+          openedTiles: 3,
+          totalTiles: 25,
+          usedChoices: false,
+          source: 'text',
+        },
+        submittedAt: 2,
+        serverReceivedAt: 2,
+      },
+    ];
+    const results = buildRevealImageResults('q1', 5, config, submissions);
+    expect(results.find((r) => r.teamId === 'b')).toMatchObject({ quizPoints: 5, rank: 1 });
+    expect(results.find((r) => r.teamId === 'a')).toMatchObject({ quizPoints: 3, rank: 2 });
   });
 });

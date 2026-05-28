@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { calculateEmojiHuntTotalMs, formatEmojiHuntMs } from '@quiz-tool/shared';
 import {
   buildEmojiHuntOptions,
+  EMOJI_HUNT_MOBILE_PLAYFIELD_MAX_WIDTH_PX,
   pickEmojiHuntTargets,
 } from './emojiHuntLogic';
 import type { EmojiHuntOption, EmojiHuntPhase } from './emojiHuntTypes';
@@ -271,9 +272,18 @@ export function EmojiHuntGame({
         </div>
       </div>
 
-      <div className="min-h-0 rounded-[1.75rem] border-2 border-white/20 bg-white/10 p-2 shadow-[inset_0_0_30px_rgba(255,255,255,0.06)]">
+      <div
+        className="mx-auto min-h-0 w-full rounded-[1.75rem] border-2 border-white/20 bg-white/10 p-2 shadow-[inset_0_0_30px_rgba(255,255,255,0.06)]"
+        style={{ maxWidth: EMOJI_HUNT_MOBILE_PLAYFIELD_MAX_WIDTH_PX }}
+      >
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-sky-100/80 sm:hidden">
+          Mobilspillfelt
+        </p>
+        <p className="mb-1.5 hidden text-[10px] font-semibold uppercase tracking-wide text-sky-100/80 sm:block">
+          Samme størrelse som på mobil
+        </p>
         <div
-          className="grid h-full min-h-0 grid-cols-4 place-items-center gap-1.5 sm:gap-2"
+          className="grid h-full min-h-[12rem] grid-cols-4 place-items-center gap-1.5"
           style={{ gridTemplateRows: `repeat(${optionRows}, minmax(0, 1fr))` }}
         >
           {options.map((option) => {
@@ -284,7 +294,7 @@ export function EmojiHuntGame({
                 type="button"
                 disabled={disabled || phase !== 'playing'}
                 onClick={() => clickEmoji(option)}
-                className={`flex aspect-square h-full max-h-14 min-h-0 w-full max-w-14 items-center justify-center rounded-2xl border-2 bg-white/15 text-[clamp(1.25rem,6svh,1.875rem)] leading-none shadow-lg transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:max-h-16 sm:max-w-16 ${
+                className={`flex aspect-square h-full max-h-12 min-h-0 w-full max-w-12 items-center justify-center rounded-2xl border-2 bg-white/15 text-2xl leading-none shadow-lg transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 ${
                   state === 'hit'
                     ? 'scale-110 border-green-300 bg-green-400/50'
                     : state === 'miss'

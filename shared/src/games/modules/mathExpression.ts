@@ -8,6 +8,7 @@ import type {
   MathExpressionSingleSubmissionPayload,
   MathExpressionSubmissionPayload,
 } from '../types.js';
+import { clampQuizPointsPerQuestion } from '../../scoring/quizScoring.js';
 import { rankGameEntries } from '../ranking.js';
 import { quizPointsForRank } from '../scoring.js';
 
@@ -272,7 +273,7 @@ export function buildMathExpressionResults(
         rankValue: correct ? 1 : 0,
         displayValue: correct ? 'Riktig svar' : payload ? 'Feil svar' : 'Ikke besvart',
         rank: 0,
-        quizPoints: correct ? maxPoints : 0,
+        quizPoints: correct ? clampQuizPointsPerQuestion(maxPoints) : 0,
         status: 'ranked' as const,
       };
     });

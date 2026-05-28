@@ -137,8 +137,8 @@ function isGameQuestionConfig(value: unknown): value is GameQuestionConfig {
       typeof value.choiceMultiplier === 'number' &&
       typeof value.minCorrectScore === 'number' &&
       value.rankingMode === 'highest' &&
-      value.resultKind === 'directScore' &&
-      value.pointMode === 'directScoreToPoints' &&
+      value.resultKind === 'ranked' &&
+      value.pointMode === 'rankedBands' &&
       (value.choices === undefined ||
         sanitizeRevealImageChoices(value.choices as { id: string; text: string; isCorrect: boolean }[]) !==
           undefined)

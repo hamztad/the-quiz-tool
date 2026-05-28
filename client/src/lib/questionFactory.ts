@@ -144,7 +144,7 @@ export function createRevealImageQuestion(order: number): Question {
     gameType: 'revealImage',
     lines: [{ text: 'Avslør bildet', style: 'title' }],
     game: createDefaultRevealImageConfig(),
-    maxPoints: 100,
+    maxPoints: 5,
   };
 }
 

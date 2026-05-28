@@ -10,6 +10,7 @@ import {
   MAX_TEAMS,
   NB,
   RESERVED_TEST_PARTICIPANT_NAME,
+  normalizeQuestionsScoring,
   validateQuestionsForSave,
   validateTeamName,
 } from '@quiz-tool/shared';
@@ -185,24 +186,25 @@ function recomputeAnsweredByTeam(
 
 /** Lobby / full replace: resets answers and grading state */
 export function setQuestions(room: RoomRecord, questions: Question[]): RoomRecord {
-  const validationErrors = validateQuestionsForSave(questions);
+  const normalized = normalizeQuestionsScoring(questions);
+  const validationErrors = validateQuestionsForSave(normalized);
   if (validationErrors.length > 0) {
     throw new Error(validationErrors.join(' '));
   }
 
   const questionStatus: Record<string, 'locked' | 'open'> = {};
-  questions.forEach((q) => {
+  normalized.forEach((q) => {
     questionStatus[q.id] = 'locked';
   });
 
   const questionsActivated: Record<string, boolean> = {};
-  questions.forEach((q) => {
+  normalized.forEach((q) => {
     questionsActivated[q.id] = false;
   });
 
   return {
     ...room,
-    questions: questions.map((q, i) => ({ ...q, order: i })),
+    questions: normalized.map((q, i) => ({ ...q, order: i })),
     questionStatus,
     questionsActivated,
     answers: [],
@@ -223,14 +225,15 @@ export function setQuestions(room: RoomRecord, questions: Question[]): RoomRecor
 
 /** Live edit: keep answers/scores for remaining questions */
 export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRecord {
-  const validationErrors = validateQuestionsForSave(questions);
+  const normalized = normalizeQuestionsScoring(questions);
+  const validationErrors = validateQuestionsForSave(normalized);
   if (validationErrors.length > 0) {
     throw new Error(validationErrors.join(' '));
   }
 
-  assertLiveQuizQuestionUpdates(room, questions);
+  assertLiveQuizQuestionUpdates(room, normalized);
 
-  const newIds = new Set(questions.map((q) => q.id));
+  const newIds = new Set(normalized.map((q) => q.id));
   const questionStatus: Record<string, 'locked' | 'open'> = {};
   const questionsActivated: Record<string, boolean> = {};
 
@@ -258,7 +261,7 @@ export function updateQuestions(room: RoomRecord, questions: Question[]): RoomRe
 
   return {
     ...room,
-    questions: questions.map((q, i) => ({ ...q, order: i })),
+    questions: normalized.map((q, i) => ({ ...q, order: i })),
     questionStatus,
     questionsActivated,
     answers,

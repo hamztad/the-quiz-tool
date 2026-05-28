@@ -135,8 +135,9 @@ export interface RevealImageConfig extends GameQuestionConfigBase {
   choiceMultiplier: number;
   minCorrectScore: number;
   rankingMode: 'highest';
-  resultKind: 'directScore';
-  pointMode: 'directScoreToPoints';
+  resultKind: 'ranked';
+  pointMode: 'rankedBands';
+  pointBands?: GamePointBand[];
 }
 
 export type GameQuestionConfig =

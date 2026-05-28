@@ -1,3 +1,4 @@
+import { clampQuizPointsPerQuestion } from '../scoring/quizScoring.js';
 import type { ScoreEntry } from '../types/room.js';
 import type { GamePointBand, GamePointMode, GameResult } from './types.js';
 
@@ -8,11 +9,12 @@ export function quizPointsForRank(
   pointBands: GamePointBand[] = [],
 ): number {
   if (pointMode === 'winnerTakesAll') {
-    return rank === 1 ? maxPoints : 0;
+    return rank === 1 ? clampQuizPointsPerQuestion(maxPoints) : 0;
   }
 
   if (pointMode === 'rankedBands') {
-    return pointBands.find((band) => band.rank === rank)?.points ?? 0;
+    const points = pointBands.find((band) => band.rank === rank)?.points ?? 0;
+    return clampQuizPointsPerQuestion(points);
   }
 
   return 0;

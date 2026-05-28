@@ -1,4 +1,5 @@
 import { migrateQuestionChoiceLabelsFromMedia } from '../choice/choiceValidation.js';
+import { normalizeQuestionScoring } from '../scoring/quizScoring.js';
 import { sanitizeRevealImageChoices } from '../games/modules/revealImage.js';
 import { isMediaAttachment } from '../media/mediaAttachment.js';
 import { isValidQuestionTimerConfig } from '../timing/timerConfig.js';
@@ -134,7 +135,7 @@ export function prepareQuizFileQuestionForImport(value: unknown): unknown {
     question = rest as Question;
   }
 
-  return question;
+  return normalizeQuestionScoring(question);
 }
 
 export function prepareQuizFileQuestionsForImport(questions: unknown[]): unknown[] {

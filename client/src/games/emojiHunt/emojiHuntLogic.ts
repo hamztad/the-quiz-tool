@@ -33,6 +33,9 @@ export const EMOJI_HUNT_EMOJIS = [
   '💎',
 ];
 
+/** Bredde som matcher typisk mobil — spillfeltet sentreres på større skjermer. */
+export const EMOJI_HUNT_MOBILE_PLAYFIELD_MAX_WIDTH_PX = 390;
+
 export const EMOJI_HUNT_POSITIONS = [
   { left: 50, top: 9 },
   { left: 64, top: 12 },

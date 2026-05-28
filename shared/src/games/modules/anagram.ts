@@ -1,3 +1,4 @@
+import { clampQuizPointsPerQuestion } from '../../scoring/quizScoring.js';
 import type {
   AnagramGameConfig,
   AnagramSubmissionPayload,
@@ -178,7 +179,7 @@ export function buildAnagramResults(
       rankValue: correct ? 1 : 0,
       displayValue: correct ? 'Riktig svar' : 'Feil svar',
       rank: 0,
-      quizPoints: correct ? maxPoints : 0,
+      quizPoints: correct ? clampQuizPointsPerQuestion(maxPoints) : 0,
       status: 'ranked' as const,
     };
   });

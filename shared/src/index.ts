@@ -15,6 +15,7 @@ export * from './testSession/testSession.js';
 export * from './quizExport/quizFile.js';
 export * from './quizExport/questionsToQuizText.js';
 export * from './constants/events.js';
+export * from './scoring/quizScoring.js';
 export * from './constants/roomErrors.js';
 export * from './import/parseQuizText.js';
 export * from './import/aiQuizPrompt.js';

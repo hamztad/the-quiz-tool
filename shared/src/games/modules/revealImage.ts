@@ -1,3 +1,6 @@
+import { DEFAULT_RANKED_POINT_BANDS } from '../../scoring/quizScoring.js';
+import { rankGameEntries } from '../ranking.js';
+import { quizPointsForRank } from '../scoring.js';
 import type {
   GameResult,
   GameSubmission,
@@ -12,7 +15,8 @@ function localId() {
 }
 
 export const DEFAULT_REVEAL_IMAGE_GRID_SIZE = 5;
-export const DEFAULT_REVEAL_IMAGE_MAX_POINTS = 100;
+/** Intern skala for å sammenligne prestasjoner ved rangering (ikke quiz-poeng). */
+export const DEFAULT_REVEAL_IMAGE_RANKING_SCALE = 100;
 export const DEFAULT_REVEAL_IMAGE_CHOICE_MULTIPLIER = 0.6;
 export const DEFAULT_REVEAL_IMAGE_MIN_SCORE = 10;
 
@@ -72,8 +76,9 @@ export function createDefaultRevealImageConfig(): RevealImageConfig {
     choiceMultiplier: DEFAULT_REVEAL_IMAGE_CHOICE_MULTIPLIER,
     minCorrectScore: DEFAULT_REVEAL_IMAGE_MIN_SCORE,
     rankingMode: 'highest',
-    resultKind: 'directScore',
-    pointMode: 'directScoreToPoints',
+    resultKind: 'ranked',
+    pointMode: 'rankedBands',
+    pointBands: [...DEFAULT_RANKED_POINT_BANDS],
   };
 }
 
@@ -149,12 +154,13 @@ export function buildRevealImageResults(
   submissions: GameSubmission[],
 ): GameResult[] {
   const bestByTeam = new Map<string, { score: number; openedTiles: number; usedChoices: boolean; answer: string }>();
+  const rankingScale = DEFAULT_REVEAL_IMAGE_RANKING_SCALE;
 
   for (const submission of submissions) {
     if (!isRevealImageSubmissionPayload(submission.payload)) continue;
     if (!isRevealImageAnswerCorrect(submission.payload.answer, config)) continue;
     const score = calculateRevealImageScore({
-      maxPoints,
+      maxPoints: rankingScale,
       totalTiles: submission.payload.totalTiles,
       openedTiles: submission.payload.openedTiles,
       usedChoices: submission.payload.usedChoices,
@@ -172,14 +178,27 @@ export function buildRevealImageResults(
     }
   }
 
-  return Array.from(bestByTeam.entries()).map(([teamId, best]) => ({
-    questionId,
-    teamId,
-    gameId: 'revealImage',
-    rankValue: best.score,
-    displayValue: `${best.openedTiles} ruter · ${best.usedChoices ? 'alternativer brukt' : 'fritekst'}`,
-    rank: 0,
-    quizPoints: best.score,
-    status: 'ranked',
-  }));
+  const ranked = rankGameEntries(
+    Array.from(bestByTeam.entries()).map(([teamId, best]) => ({
+      teamId,
+      rankValue: best.score,
+    })),
+    config.rankingMode,
+  );
+
+  const pointBands = config.pointBands ?? DEFAULT_RANKED_POINT_BANDS;
+
+  return ranked.map((entry) => {
+    const best = bestByTeam.get(entry.teamId)!;
+    return {
+      questionId,
+      teamId: entry.teamId,
+      gameId: 'revealImage',
+      rankValue: entry.rankValue,
+      displayValue: `${best.openedTiles} ruter · ${best.usedChoices ? 'alternativer brukt' : 'fritekst'}`,
+      rank: entry.rank,
+      quizPoints: quizPointsForRank(entry.rank, maxPoints, config.pointMode, pointBands),
+      status: 'ranked' as const,
+    };
+  });
 }
