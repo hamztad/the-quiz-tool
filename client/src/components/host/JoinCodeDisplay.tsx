@@ -7,7 +7,11 @@ interface JoinCodeDisplayProps {
   joinUrl: string;
 }
 
-const QR_SIZE = 224;
+const QR_SIZE = 256;
+const QR_LOGO_WIDTH = 100;
+const QR_LOGO_HEIGHT = 34;
+const QR_BG = '#242d3a';
+const QR_FG = '#f0f4f8';
 
 export function JoinCodeDisplay({ joinCode, joinUrl }: JoinCodeDisplayProps) {
   const [showUrl, setShowUrl] = useState(false);
@@ -22,20 +26,22 @@ export function JoinCodeDisplay({ joinCode, joinUrl }: JoinCodeDisplayProps) {
           <p className="text-xs font-semibold uppercase tracking-widest text-quiz-muted mb-5">
             Skann for å bli med
           </p>
-          <div className="relative rounded-2xl bg-[#242d3a] p-5 shadow-inner">
+          <div className="rounded-2xl bg-[#242d3a] p-5 shadow-inner">
             <QRCodeSVG
               value={joinUrl}
               size={QR_SIZE}
-              bgColor="#242d3a"
-              fgColor="#f0f4f8"
+              bgColor={QR_BG}
+              fgColor={QR_FG}
               level="H"
-              className="block h-auto w-full max-w-full"
+              marginSize={2}
+              className="block h-auto w-full max-w-full rounded-xl"
+              imageSettings={{
+                src: `${import.meta.env.BASE_URL}gruiz-qr-center.svg`,
+                width: QR_LOGO_WIDTH,
+                height: QR_LOGO_HEIGHT,
+                excavate: true,
+              }}
             />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="rounded-lg border border-quiz-border/70 bg-[#242d3a]/95 px-2 py-1 shadow">
-                <GruizMark size="sm" tagline={false} className="items-center [&_.gruiz-mark-dot]:hidden [&_.gruiz-mark-sparkle]:hidden" />
-              </div>
-            </div>
           </div>
           <p className="mt-5 max-w-xs text-center text-xs text-quiz-muted leading-relaxed">
             Hold kameraet mot QR-koden her. Romkoden for manuell innlogging står under.
