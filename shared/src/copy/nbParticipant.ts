@@ -8,6 +8,7 @@ export const NB = {
 
   participantNameRequired: 'Skriv inn et deltakernavn.',
   participantNameTooLong: (max: number) => `Deltakernavnet er for langt (maks ${max} tegn).`,
+  participantNameTaken: 'Dette deltakernavnet er allerede i bruk i rommet. Velg et annet navn.',
   reservedTestName:
     'Dette navnet er reservert for testmodus. Velg et annet deltakernavn.',
   maxParticipantsReached: 'Maks antall deltakere er nådd.',

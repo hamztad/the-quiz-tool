@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_TEAM_NAME_LENGTH, validateTeamName } from './teamName.js';
+import { canonicalTeamName, MAX_TEAM_NAME_LENGTH, validateTeamName } from './teamName.js';
 
 describe('validateTeamName', () => {
   it('accepts Norwegian characters and names up to the limit', () => {
@@ -33,5 +33,10 @@ describe('validateTeamName', () => {
     if (!result.ok) {
       expect(result.message).toContain(String(MAX_TEAM_NAME_LENGTH));
     }
+  });
+
+  it('builds a canonical form for duplicate checks', () => {
+    expect(canonicalTeamName('  Team   One  ')).toBe('team one');
+    expect(canonicalTeamName('Ørn')).toBe('ørn');
   });
 });

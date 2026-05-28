@@ -13,6 +13,11 @@ export function trimTeamName(raw: string): string {
   return raw.trim();
 }
 
+/** Canonical form for duplicate checks (trim + collapse spaces + lowercase). */
+export function canonicalTeamName(raw: string): string {
+  return trimTeamName(raw).replace(/\s+/g, ' ').toLocaleLowerCase('nb');
+}
+
 export function validateTeamName(
   raw: string,
   options?: { allowReservedTestName?: boolean },

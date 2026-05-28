@@ -6,6 +6,7 @@ import {
 } from '@quiz-tool/shared';
 import {
   assertLiveQuizQuestionUpdates,
+  canonicalTeamName,
   MAX_TEAMS,
   NB,
   RESERVED_TEST_PARTICIPANT_NAME,
@@ -80,6 +81,10 @@ export function joinTeam(
     throw new Error(nameResult.message);
   }
   const trimmed = nameResult.name;
+  const canonical = canonicalTeamName(trimmed);
+  if (room.teams.some((team) => canonicalTeamName(team.name) === canonical)) {
+    throw new Error(NB.participantNameTaken);
+  }
 
   const teamId = generateId('team');
   const teamToken = generateToken();
