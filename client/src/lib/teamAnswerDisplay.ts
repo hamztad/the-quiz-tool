@@ -1,4 +1,9 @@
-import { formatOrderingOrder, parseOrderingAnswer, type Question } from '@quiz-tool/shared';
+import {
+  formatOrderingOrder,
+  getChoiceItemLabel,
+  parseOrderingAnswer,
+  type Question,
+} from '@quiz-tool/shared';
 
 /** Format a team's stored answer for display in overview or detail view. */
 export function formatTeamAnswerDisplay(
@@ -8,7 +13,11 @@ export function formatTeamAnswerDisplay(
   if (!value || value === '[hidden]') return null;
   if (question.type === 'mc') {
     const option = question.options?.find((o) => o.id === value);
-    return option?.text?.trim() || value;
+    if (!option) return value;
+    const text = option.text.trim();
+    if (text) return text;
+    if (option.media) return getChoiceItemLabel(option, 'Bilde');
+    return value;
   }
   if (question.type === 'ordering') {
     const order = parseOrderingAnswer(value);

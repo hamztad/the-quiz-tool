@@ -1,10 +1,8 @@
 import type { McOption } from '@quiz-tool/shared';
-import { getChoiceItemLabel } from '@quiz-tool/shared';
 import { ChoiceMediaDisplay } from '../media/ChoiceMediaDisplay';
 import { MediaAttribution } from '../media/MediaAttribution';
 
 export function McOptionButtonContent({ option }: { option: McOption }) {
-  const label = getChoiceItemLabel(option);
   const showText = Boolean(option.text.trim());
 
   return (
@@ -15,10 +13,13 @@ export function McOptionButtonContent({ option }: { option: McOption }) {
           <MediaAttribution media={option.media} />
         </>
       )}
-      {(showText || !option.media) && (
+      {showText && (
         <span className="w-full break-words [overflow-wrap:anywhere] text-base font-semibold quiz-user-text">
-          {showText ? option.text : label}
+          {option.text}
         </span>
+      )}
+      {!option.media && !showText && (
+        <span className="w-full text-base font-semibold text-quiz-muted">—</span>
       )}
     </span>
   );

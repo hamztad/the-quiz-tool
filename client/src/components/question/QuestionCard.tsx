@@ -66,7 +66,8 @@ export function QuestionCard({
   const badgeLabel = teamBadge?.label ?? defaultBadgeLabel;
 
   const hostLabel = hostDisplayStatus ? hostStatusLabels[hostDisplayStatus] : null;
-  const showResponseBadge = hostLabel !== badgeLabel;
+  const showResponseBadge =
+    hostLabel !== badgeLabel && !(viewMode === 'team' && badgeLabel === 'Åpent');
   const typeTheme = getQuestionTypeTheme(question);
   const acceptedAnswers = (question.acceptedAnswers ?? []).filter((answer) => answer.trim());
 
@@ -129,7 +130,11 @@ export function QuestionCard({
           Skjules til quizmaster åpner oppgaven
         </p>
       ) : (
-        <QuestionBody question={question} showHint={viewMode !== 'team' || teamRevealed} />
+        <QuestionBody
+          question={question}
+          showHint={viewMode !== 'team' || teamRevealed}
+          showTypeHeading={viewMode !== 'team'}
+        />
       )}
       {showHostQuestionDetails && question.type === 'mc' && teamRevealed && (
         <div className="mt-3 min-w-0 max-w-full rounded-xl border border-indigo-200/70 bg-white/80 p-3 shadow-sm">

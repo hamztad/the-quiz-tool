@@ -308,7 +308,7 @@ export function TeamSelfPacedQuiz({
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {room.questions.map((q, index) => {
+          {room.questions.map((q) => {
             const teamLocked = isTeamQuestionLocked(locks, teamId, q.id);
             const answered = hasAnswered(q.id);
             const isGame = q.type === 'game';
@@ -317,16 +317,6 @@ export function TeamSelfPacedQuiz({
               canTeamWorkOnQuestion(room.schedule, room.phase, teamsLockedOut, locks, teamId, q);
             const myAnswer = getMyAnswer(q.id);
             const answerPreview = formatTeamAnswerDisplay(q, myAnswer?.value);
-            const statusLabel = isGame
-              ? teamsLockedOut
-                ? 'Spill stengt'
-                : 'Spill — åpent til frist'
-              : teamLocked
-                ? 'Låst (sendt inn)'
-                : answered
-                  ? 'Sendt inn'
-                  : 'Klar';
-
             return (
               <div key={q.id} id={`team-question-${q.id}`}>
                 <QuestionCard
@@ -340,11 +330,7 @@ export function TeamSelfPacedQuiz({
                   teamAnswerPreview={teamLocked || answered ? answerPreview : null}
                   onClick={canOpen ? () => openQuestion(q) : undefined}
                   className={canOpen ? 'cursor-pointer hover:border-violet-300' : 'opacity-90'}
-                >
-                  <p className="mt-2 text-xs font-semibold text-quiz-muted">
-                    {formatOppgaveLabel(index + 1)} · {statusLabel}
-                  </p>
-                </QuestionCard>
+                />
               </div>
             );
           })}

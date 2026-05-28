@@ -1,5 +1,4 @@
 import type { OrderingItem } from '@quiz-tool/shared';
-import { getChoiceItemLabel } from '@quiz-tool/shared';
 import { ChoiceMediaDisplay } from '../media/ChoiceMediaDisplay';
 import { MediaAttribution } from '../media/MediaAttribution';
 
@@ -9,7 +8,6 @@ interface OrderingChoiceContentProps {
 }
 
 export function OrderingChoiceContent({ item, variant }: OrderingChoiceContentProps) {
-  const label = getChoiceItemLabel(item);
   const showText = Boolean(item.text.trim());
 
   if (variant === 'comparison') {
@@ -21,7 +19,9 @@ export function OrderingChoiceContent({ item, variant }: OrderingChoiceContentPr
             <MediaAttribution media={item.media} />
           </div>
         )}
-        <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{label}</span>
+        {showText && (
+          <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{item.text}</span>
+        )}
       </div>
     );
   }
@@ -34,15 +34,13 @@ export function OrderingChoiceContent({ item, variant }: OrderingChoiceContentPr
           <MediaAttribution media={item.media} />
         </div>
       )}
-      <div className="min-w-0 flex-1">
-        {showText ? (
+      {showText && (
+        <div className="min-w-0 flex-1">
           <span className="text-base font-bold text-quiz-text break-words [overflow-wrap:anywhere]">
             {item.text}
           </span>
-        ) : (
-          <span className="text-sm font-medium text-quiz-muted italic">{label}</span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

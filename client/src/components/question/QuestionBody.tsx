@@ -5,17 +5,25 @@ import { MediaAttribution } from '../media/MediaAttribution';
 interface QuestionBodyProps {
   question: Question;
   showHint?: boolean;
+  /** Type badge is shown on QuestionCard header in team view — skip duplicate heading. */
+  showTypeHeading?: boolean;
 }
 
-export function QuestionBody({ question, showHint = true }: QuestionBodyProps) {
+export function QuestionBody({
+  question,
+  showHint = true,
+  showTypeHeading = true,
+}: QuestionBodyProps) {
   const lineClass = 'break-words [overflow-wrap:anywhere]';
   const typeTheme = getQuestionTypeTheme(question);
 
   return (
     <div className="min-w-0 max-w-full space-y-3">
-      <p className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
-        <span aria-hidden>{typeTheme.emoji}</span> {typeTheme.label}
-      </p>
+      {showTypeHeading && (
+        <p className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
+          <span aria-hidden>{typeTheme.emoji}</span> {typeTheme.label}
+        </p>
+      )}
       {question.lines.map((line, i) => (
         <p
           key={i}
