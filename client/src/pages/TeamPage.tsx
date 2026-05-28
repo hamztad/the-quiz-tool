@@ -256,6 +256,43 @@ export function TeamPage() {
     });
   }, [highlightedQuestionId, activeQuestionId]);
 
+  const selfPacedLive =
+    Boolean(room) &&
+    isSelfPacedQuiz(room?.schedule) &&
+    room?.phase === 'live';
+
+  // Must run before any early returns to keep hook order stable.
+  useEffect(() => {
+    if (!room || selfPacedLive) {
+      hostedQuestionNavRef.current = null;
+      return;
+    }
+    hostedQuestionNavRef.current = (questionId) => {
+      const q = room.questions.find((item) => item.id === questionId);
+      if (!q || !isQuestionRevealedToTeam(room, q.id)) return;
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+        highlightTimerRef.current = null;
+      }
+      setHighlightedQuestionId(null);
+      setActiveQuestionId(q.id);
+      const ans = room.answers.find((a) => a.teamId === teamId && a.questionId === q.id);
+      const storedValue =
+        answerDrafts[q.id] ?? (ans?.value && ans.value !== '[hidden]' ? ans.value : '');
+      if (q.type === 'ordering' && !storedValue) {
+        const shuffled = shuffleOrderingItems(q.orderingItems ?? []);
+        const value = serializeOrderingAnswer(shuffled);
+        setAnswerText(value);
+        setAnswerDrafts((current) => ({ ...current, [q.id]: value }));
+        return;
+      }
+      setAnswerText(storedValue);
+    };
+    return () => {
+      hostedQuestionNavRef.current = null;
+    };
+  }, [room, selfPacedLive, answerDrafts, teamId]);
+
   if (!roomId) return null;
 
   if (reconnectFailed) {
@@ -366,25 +403,6 @@ export function TeamPage() {
     }
     setAnswerText(storedValue);
   };
-
-  const selfPacedLive =
-    Boolean(room) &&
-    isSelfPacedQuiz(room?.schedule) &&
-    room?.phase === 'live';
-
-  useEffect(() => {
-    if (!room || selfPacedLive) {
-      hostedQuestionNavRef.current = null;
-      return;
-    }
-    hostedQuestionNavRef.current = (questionId) => {
-      const q = room.questions.find((item) => item.id === questionId);
-      if (q) openQuestion(q);
-    };
-    return () => {
-      hostedQuestionNavRef.current = null;
-    };
-  }, [room, selfPacedLive, openQuestion]);
 
   const updateActiveAnswer = (value: string) => {
     if (activeQuestionId) {
