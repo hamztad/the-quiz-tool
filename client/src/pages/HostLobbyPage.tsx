@@ -16,6 +16,7 @@ import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
 import { HostScheduleCard } from '../components/timing/HostScheduleCard';
 import { LiveQuizClock } from '../components/timing/LiveQuizClock';
+import { QuizBackupPanel } from '../components/host/QuizBackupPanel';
 import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
 import { clearTeamSession } from '../lib/tokens';
 import { isQuestionIncomplete } from '../lib/questionFactory';
@@ -203,6 +204,21 @@ export function HostLobbyPage() {
             ending={testBusy === 'end'}
             onStartTest={() => void handleStartTest()}
             onEndTest={() => void handleEndTest()}
+          />
+        )}
+
+        {!inviteOnly && (
+          <QuizBackupPanel
+            questions={room.questions}
+            quizTitle={room.joinCode}
+            hasUnsavedWork={false}
+            exportOnly
+            onExported={() => {
+              if (!roomId) return;
+              markHostDraftExported(roomId, room.questions);
+              setExportedHash(quizContentHash(room.questions));
+            }}
+            onImportQuestions={() => {}}
           />
         )}
 
