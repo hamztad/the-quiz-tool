@@ -214,7 +214,7 @@ export function JoinPage() {
         ) : (
           <>
         {storedTeamSession && storedSessionMatchesRoom && overrideExistingSession && (
-          <div className="w-full rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+          <div className="w-full rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
             Denne enheten deltar allerede i quizen. Fortsett eksisterende deltaker hvis du ikke
             bevisst lager en ekstra deltaker.
           </div>
@@ -270,7 +270,7 @@ export function JoinPage() {
 
         {error && (
           <p
-            className="w-full text-sm text-red-300 text-center rounded-xl bg-red-500/10 px-4 py-3"
+            className="w-full text-sm text-red-800 text-center rounded-xl bg-red-500/10 px-4 py-3"
             role="alert"
           >
             {error}

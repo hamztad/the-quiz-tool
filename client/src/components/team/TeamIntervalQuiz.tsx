@@ -120,7 +120,7 @@ export function TeamIntervalQuiz({
 
       <Card className="border-2 border-indigo-200/70 bg-indigo-50/80 p-4 space-y-2">
         <p className="text-sm font-bold text-indigo-950">Intervall-quiz</p>
-        <ul className="text-sm text-indigo-950/90 list-disc pl-5 space-y-1">
+        <ul className="text-sm text-indigo-950 list-disc pl-5 space-y-1">
           <li>Oppgaver åpnes én om gangen etter tidsplanen — følg med.</li>
           <li>
             <strong>ÅPEN</strong> = du kan svare nå. <strong>STENGT</strong> = vinduet er over.
@@ -130,7 +130,7 @@ export function TeamIntervalQuiz({
       </Card>
 
       {operationalError && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex gap-3">
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800 flex gap-3">
           <p className="flex-1">{operationalError}</p>
           <Button type="button" size="sm" variant="secondary" onClick={onRetryReconnect}>
             Prøv igjen

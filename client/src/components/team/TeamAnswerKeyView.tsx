@@ -58,7 +58,7 @@ export function TeamAnswerKeyView({ room, teamName, onBack }: TeamAnswerKeyViewP
 
               <section className="rounded-xl border border-green-500/30 bg-green-500/5 overflow-hidden min-w-0">
                 <div className="border-b border-green-500/20 px-3 py-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-green-400">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-green-800">
                     Fasit
                   </h3>
                 </div>

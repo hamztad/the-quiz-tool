@@ -47,7 +47,7 @@ export function LiveQuizClock({ room }: LiveQuizClockProps) {
             <span className="text-sm font-bold text-amber-900 block">
               {room.settings.teamsLockedOut ? 'Quizen er avsluttet' : 'Quiz slutter om'}
             </span>
-            <span className="text-xs text-amber-800/80">
+            <span className="text-xs text-amber-900">
               {formatScheduleClock(quizEndsAt)} · live nedtelling
             </span>
           </div>

@@ -347,7 +347,7 @@ export function TeamPage() {
               : 'Venter på nettverkstilkobling…'}
           </p>
           {operationalError && (
-            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800">
               <p>{operationalError}</p>
               <Button type="button" size="sm" className="mt-3" onClick={retryReconnect}>
                 Prøv igjen
@@ -570,17 +570,17 @@ export function TeamPage() {
     return (
       <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Leaderboard">
         {!connected && (
-          <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+          <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
             Kobler til igjen… Dine innsendte svar er lagret på serveren.
           </div>
         )}
         {showRestoredMessage && (
-          <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
+          <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-900">
             Du er koblet tilbake til deltakeren din.
           </div>
         )}
         {operationalError && (
-          <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p>{operationalError}</p>
             <Button type="button" size="sm" variant="secondary" onClick={retryReconnect}>
               Prøv igjen
@@ -601,17 +601,17 @@ export function TeamPage() {
         <TestModeBanner hostDashboardHref={`/host/${roomId}`} />
       )}
       {!connected && (
-        <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+        <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
           Kobler til igjen… Dine innsendte svar er lagret på serveren.
         </div>
       )}
         {showRestoredMessage && (
-          <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
+          <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-900">
             Du er koblet tilbake til deltakeren din.
           </div>
         )}
       {operationalError && (
-        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0 max-w-full">
+        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0 max-w-full">
           <p className="min-w-0 flex-1 quiz-user-text">{operationalError}</p>
           <Button type="button" size="sm" variant="secondary" onClick={retryReconnect}>
             Prøv igjen

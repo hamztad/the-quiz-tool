@@ -94,7 +94,7 @@ export function AiQuizPromptPanel() {
       </Button>
 
       {feedback && (
-        <p className="text-xs text-green-400 break-words" role="status">
+        <p className="text-xs text-green-800 break-words" role="status">
           {feedback}
         </p>
       )}

@@ -480,13 +480,13 @@ export function HostEditPage() {
           {draftQuestions.length} spørsmål · Dette er arbeidsquizen i denne økta
         </p>
         {hasUnexportedQuiz && (
-          <p className="text-xs text-yellow-100/90 mt-1 break-words">
+          <p className="text-xs text-yellow-900 mt-1 break-words">
             Ikke lastet ned som quizfil ennå. Quizfil er permanent lagring for senere import.
           </p>
         )}
       </div>
       {room.phase !== 'lobby' && (
-        <p className="text-xs text-yellow-200/90 shrink-0 sm:max-w-[12rem] break-words">
+        <p className="text-xs text-yellow-900 shrink-0 sm:max-w-[12rem] break-words">
           Live-quiz: oppdatering beholder eksisterende svar
         </p>
       )}
@@ -573,7 +573,7 @@ export function HostEditPage() {
               <h3 className="text-base font-bold">Spørsmål ({draftQuestions.length})</h3>
               <div className="flex flex-wrap items-center gap-2">
                 {incompleteCount > 0 && (
-                  <span className="text-xs text-slate-300 bg-slate-500/20 px-2 py-1 rounded-full">
+                  <span className="text-xs text-slate-800 bg-slate-500/20 px-2 py-1 rounded-full">
                     {incompleteCount} uferdige
                   </span>
                 )}
@@ -709,13 +709,13 @@ export function HostEditPage() {
       </div>
 
       {operationalError && (
-        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 break-words">
+        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800 break-words">
           {operationalError}
         </p>
       )}
 
       {recoveryMessage && (
-        <p className="mb-4 rounded-xl border border-blue-400/40 bg-blue-400/10 px-4 py-3 text-sm font-medium text-blue-100 break-words">
+        <p className="mb-4 rounded-xl border border-blue-400/40 bg-blue-400/10 px-4 py-3 text-sm font-medium text-blue-900 break-words">
           {recoveryMessage}
         </p>
       )}
@@ -789,7 +789,7 @@ export function HostEditPage() {
               )}
               {saveMessage && (
                 <span
-                  className={`block mt-0.5 ${saveMessage.includes('oppdatert') || saveMessage.includes('lastet ned') ? 'text-green-400' : 'text-red-300'}`}
+                  className={`block mt-0.5 ${saveMessage.includes('oppdatert') || saveMessage.includes('lastet ned') ? 'text-green-800' : 'text-red-800'}`}
                 >
                   {saveMessage}
                 </span>

@@ -179,7 +179,7 @@ export function HostLobbyPage() {
       />
 
       {operationalError && (
-        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 break-words">
+        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800 break-words">
           {operationalError}
         </p>
       )}
@@ -227,7 +227,7 @@ export function HostLobbyPage() {
             </Button>
           </div>
           {!room.settings.allowNewTeams && (
-            <p className="mt-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-100">
+            <p className="mt-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-900">
               Nye deltakere er stengt. Deltakere som allerede er med kan koble til igjen.
             </p>
           )}

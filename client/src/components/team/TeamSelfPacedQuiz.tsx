@@ -170,7 +170,7 @@ export function TeamSelfPacedQuiz({
       {teamsLockedOut && (
         <Card className="border-2 border-violet-300/60 bg-violet-50 p-4">
           <p className="text-sm font-bold text-violet-950">Quizen er avsluttet</p>
-          <p className="mt-1 text-sm text-violet-900/90">
+          <p className="mt-1 text-sm text-violet-900">
             Tidsfristen er nådd. Du kan ikke sende flere svar, men du kan se leaderboard og vente
             på endelig resultat fra quizmaster.
           </p>
@@ -179,7 +179,7 @@ export function TeamSelfPacedQuiz({
 
       <Card className="border-2 border-cyan-200/70 bg-gradient-to-br from-cyan-50/90 to-white p-4 space-y-2">
         <p className="text-sm font-bold text-cyan-950">Selvgående quiz</p>
-        <ul className="text-sm text-cyan-950/90 space-y-1.5 list-disc pl-5">
+        <ul className="text-sm text-cyan-950 space-y-1.5 list-disc pl-5">
           <li>
             Alle oppgaver er tilgjengelige med én gang. Trykk på en oppgave for å svare eller spille.
           </li>
@@ -199,7 +199,7 @@ export function TeamSelfPacedQuiz({
       </Card>
 
       {operationalError && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800 flex flex-col sm:flex-row sm:items-center gap-3">
           <p className="flex-1">{operationalError}</p>
           <Button type="button" size="sm" variant="secondary" onClick={onRetryReconnect}>
             Prøv igjen

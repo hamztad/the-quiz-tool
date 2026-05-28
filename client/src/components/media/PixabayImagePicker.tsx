@@ -284,7 +284,7 @@ export function PixabayImagePicker({
 
       {searchPanel}
       {error && (
-        <p className="text-xs text-red-300 break-words" role="alert">
+        <p className="text-xs text-red-800 break-words" role="alert">
           {error}
         </p>
       )}

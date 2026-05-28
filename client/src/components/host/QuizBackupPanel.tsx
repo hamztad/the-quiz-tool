@@ -129,12 +129,12 @@ export function QuizBackupPanel({
         </Button>
         {fileInput}
         {feedback && (
-          <p className="mt-3 text-sm text-green-400 break-words" role="status">
+          <p className="mt-3 text-sm text-green-800 break-words" role="status">
             {feedback}
           </p>
         )}
         {error && (
-          <p className="mt-3 text-sm text-red-300 break-words" role="alert">
+          <p className="mt-3 text-sm text-red-800 break-words" role="alert">
             {error}
           </p>
         )}
@@ -194,12 +194,12 @@ export function QuizBackupPanel({
       </div>
 
       {feedback && (
-        <p className="mt-3 text-sm text-green-400 break-words" role="status">
+        <p className="mt-3 text-sm text-green-800 break-words" role="status">
           {feedback}
         </p>
       )}
       {error && (
-        <p className="mt-3 text-sm text-red-300 break-words" role="alert">
+        <p className="mt-3 text-sm text-red-800 break-words" role="alert">
           {error}
         </p>
       )}

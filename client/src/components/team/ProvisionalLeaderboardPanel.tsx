@@ -23,11 +23,11 @@ export function ProvisionalLeaderboardPanel({ room, onBack }: ProvisionalLeaderb
       {!finalLocked && (
         <Card className="border-2 border-amber-300/70 bg-amber-50/90 p-4 space-y-2">
           <p className="text-sm font-bold text-amber-950">⚠️ Midlertidig leaderboard</p>
-          <p className="text-sm text-amber-950/90 leading-relaxed">
+          <p className="text-sm text-amber-950 leading-relaxed">
             Poengene oppdateres underveis — blant annet med KI-retting av åpne svar. Dette er ikke
             sluttresultatet.
           </p>
-          <p className="text-sm text-amber-950/90 leading-relaxed">
+          <p className="text-sm text-amber-950 leading-relaxed">
             Du kan sende <strong>protest</strong> på enkeltoppgaver etter quizen. Quizmaster kan
             godkjenne protester og justere poeng <strong>etter at quizen er ferdig</strong>.
           </p>

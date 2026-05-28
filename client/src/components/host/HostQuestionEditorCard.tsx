@@ -361,7 +361,7 @@ function OpenAnswersEditor({
 
   return (
     <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 space-y-2 min-w-0 max-w-full overflow-x-hidden">
-      <p className="text-xs font-semibold text-green-300">Godkjente svar (fasit)</p>
+      <p className="text-xs font-semibold text-green-800">Godkjente svar (fasit)</p>
       {answers.map((a, i) => (
         <div key={i} className="flex gap-1.5 items-start min-w-0">
           <EditorTextArea
@@ -674,12 +674,12 @@ function GameQuestionEditor({
             {config.scrambledText || 'Skriv et gyldig svar for å lage anagram.'}
           </p>
         </div>
-        <p className={`text-xs ${validation.ok ? 'text-quiz-muted' : 'text-red-200'}`}>
+        <p className={`text-xs ${validation.ok ? 'text-quiz-muted' : 'text-red-800'}`}>
           {validation.letterCount}/20 bokstaver · {validation.words.length}/4 ord
           {validation.errors.length > 0 ? ` · ${validation.errors.join(' ')}` : ''}
         </p>
         {validation.warnings.map((warning) => (
-          <p key={warning} className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-100">
+          <p key={warning} className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-900">
             {warning}
           </p>
         ))}
@@ -912,7 +912,7 @@ function MathSingleEditor({
         )}
       </div>
       {!expressionValidation.ok && (
-        <p className="text-xs text-red-200">{expressionValidation.errors.join(' ')}</p>
+        <p className="text-xs text-red-800">{expressionValidation.errors.join(' ')}</p>
       )}
       {expressionValidation.ok && (
         <p className="text-xs text-quiz-muted">
@@ -977,7 +977,7 @@ function MathRaceEditor({
                 </Button>
               </div>
               {!validation.ok && (
-                <p className="mt-1 text-xs text-red-200">{validation.errors.join(' ')}</p>
+                <p className="mt-1 text-xs text-red-800">{validation.errors.join(' ')}</p>
               )}
             </div>
           );
@@ -1103,7 +1103,7 @@ function McOptionsEditor({
               onClick={() => setCorrect(opt.id)}
               className={`shrink-0 h-11 w-11 rounded-full border-2 text-xs font-bold transition-colors ${
                 opt.isCorrect
-                  ? 'border-green-500 bg-green-500/25 text-green-200'
+                  ? 'border-green-500 bg-green-500/25 text-green-900'
                   : 'border-quiz-border text-quiz-muted hover:border-quiz-muted'
               }`}
               title="Riktig svar"
@@ -1253,12 +1253,12 @@ function OrderingQuestionEditor({
       />
 
       {hasEmptyItems && (
-        <p className="text-xs font-medium text-yellow-200">
+        <p className="text-xs font-medium text-yellow-900">
           Hvert element trenger tekst eller bilde.
         </p>
       )}
       {hasDuplicateTexts && (
-        <p className="text-xs font-medium text-yellow-200">Tekstene må være unike.</p>
+        <p className="text-xs font-medium text-yellow-900">Tekstene må være unike.</p>
       )}
 
       <div className="flex flex-wrap items-center gap-2">

@@ -86,7 +86,7 @@ export function PeerGradingQuestionCard({
         {acceptedAnswers.length > 0 && (
           <section className="rounded-xl border-2 border-green-500/35 bg-green-500/5 overflow-hidden">
             <div className="border-b border-green-500/25 bg-green-500/10 px-4 py-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-green-300">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-green-800">
                 Godkjente svar
               </h3>
             </div>

@@ -169,7 +169,7 @@ export function TeamResultsReviewView({
 
       {gradedCount === 0 && (
         <Card className="mb-5 border border-yellow-500/40 bg-yellow-500/10 p-4">
-          <p className="text-sm font-medium text-yellow-100">
+          <p className="text-sm font-medium text-yellow-900">
             Gjennomgang er åpnet, men ingen poeng er registrert ennå.
           </p>
         </Card>
@@ -256,7 +256,7 @@ export function TeamResultsReviewView({
 
                 <section className="rounded-xl border border-green-500/30 bg-green-500/5 overflow-hidden min-w-0">
                   <div className="border-b border-green-500/20 px-3 py-2">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-green-400">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-green-800">
                       Fasit
                     </h3>
                   </div>
@@ -292,7 +292,7 @@ export function TeamResultsReviewView({
                     <p className="text-sm text-quiz-muted">Ikke poengsatt ennå</p>
                   )}
                   {question.type === 'mc' && mcWasCorrect !== null && (
-                    <p className={`mt-2 text-sm ${mcWasCorrect ? 'text-green-300' : 'text-red-300'}`}>
+                    <p className={`mt-2 text-sm ${mcWasCorrect ? 'text-green-800' : 'text-red-800'}`}>
                       {mcWasCorrect ? 'Riktig valgt' : 'Feil valgt'} · automatisk rettet
                     </p>
                   )}
@@ -311,7 +311,7 @@ export function TeamResultsReviewView({
                   </div>
 
                   {activeProtest || locallySubmitted ? (
-                    <p className="text-sm font-medium text-yellow-200">Protest sendt</p>
+                    <p className="text-sm font-medium text-yellow-900">Protest sendt</p>
                   ) : resolvedProtest ? (
                     <p className="text-sm text-quiz-muted">
                       Siste protest er {protestStatusLabel(resolvedProtest.status).toLowerCase()}.

@@ -73,7 +73,7 @@ export function PeerGradingView({
   return (
     <PageShell showBrand="compact" title={teamName} subtitle={`Retter: ${targetTeam?.name ?? '…'}`}>
       {error && (
-        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 quiz-user-text">
+        <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800 quiz-user-text">
           {error}
         </p>
       )}
@@ -110,7 +110,7 @@ export function PeerGradingView({
         <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
           <p className="text-sm font-semibold text-quiz-text">Rettingsfremgang</p>
           <p
-            className={`text-base font-bold tabular-nums ${allDone ? 'text-green-400' : 'text-quiz-accent'}`}
+            className={`text-base font-bold tabular-nums ${allDone ? 'text-green-800' : 'text-quiz-accent'}`}
             aria-live="polite"
           >
             {graded} av {total} svar rettet
@@ -132,7 +132,7 @@ export function PeerGradingView({
           />
         </div>
         {allDone && (
-          <p className="mt-3 text-sm font-medium text-green-400">
+          <p className="mt-3 text-sm font-medium text-green-800">
             ✅ Alle svar er rettet — du er ferdig her.
           </p>
         )}

@@ -84,7 +84,7 @@ export function HostTeamList({
               <button
                 type="button"
                 onClick={() => onRemoveTeam(team.id, team.name)}
-                className="shrink-0 flex h-9 w-9 items-center justify-center rounded-lg border border-quiz-border/80 text-quiz-muted transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-300"
+                className="shrink-0 flex h-9 w-9 items-center justify-center rounded-lg border border-quiz-border/80 text-quiz-muted transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-800"
                 title={`Kast ut ${team.name}`}
                 aria-label={`Kast ut ${team.name}`}
               >

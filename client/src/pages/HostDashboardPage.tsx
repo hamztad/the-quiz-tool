@@ -274,7 +274,7 @@ export function HostDashboardPage() {
       )}
 
       {operationalError && (
-        <p className="text-red-400 mb-4 quiz-user-text">{operationalError}</p>
+        <p className="text-red-800 mb-4 quiz-user-text">{operationalError}</p>
       )}
 
       <div className="mb-6">
@@ -380,20 +380,20 @@ export function HostDashboardPage() {
           )}
 
           {room.settings.teamReviewOpen && (
-            <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
+            <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-900">
               Deltakerne kan nå se egne svar og poeng.
             </p>
           )}
 
           {room.settings.answerKeyOpen && (
-            <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-200">
+            <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-900">
               Lagene kan nå se fasit.
             </p>
           )}
 
           {room.settings.finalResultLocked ? (
             <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 px-4 py-4">
-              <p className="text-sm font-black text-green-200">Endelig resultat er låst</p>
+              <p className="text-sm font-black text-green-900">Endelig resultat er låst</p>
               <p className="mt-1 text-sm text-quiz-text">
                 {finalWinner
                   ? `Vinner: ${finalWinner.teamName} med ${finalWinner.totalPoints} poeng.`
@@ -418,7 +418,7 @@ export function HostDashboardPage() {
                     Lås sluttresultatet når retting og protester er ferdige.
                   </p>
                   {pendingProtests > 0 && (
-                    <p className="mt-1 text-xs text-yellow-200">
+                    <p className="mt-1 text-xs text-yellow-900">
                       {pendingProtests} protest{pendingProtests === 1 ? '' : 'er'} må behandles først.
                     </p>
                   )}
@@ -474,7 +474,7 @@ export function HostDashboardPage() {
           </div>
 
           {!room.settings.allowNewTeams && (
-            <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+            <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
               Nye deltakere er stengt. Eksisterende deltakere kan fortsatt koble til igjen.
             </p>
           )}
@@ -611,7 +611,7 @@ export function HostDashboardPage() {
                         className={incomplete ? 'border-dashed border-slate-400/40' : ''}
                       >
                         {incomplete && (
-                          <p className="text-xs text-slate-300 mt-2 mb-2">
+                          <p className="text-xs text-slate-700 mt-2 mb-2">
                             Utkast — fullfør i redigeringsvisningen
                           </p>
                         )}

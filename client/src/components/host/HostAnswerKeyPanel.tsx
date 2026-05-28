@@ -82,7 +82,7 @@ export function HostAnswerKeyPanel({ room, onClose }: HostAnswerKeyPanelProps) {
                           key={option.id}
                           className={`rounded-lg px-3 py-2 ${
                             option.isCorrect
-                              ? 'border border-green-500/50 bg-green-500/10 font-medium text-green-300'
+                              ? 'border border-green-500/50 bg-green-500/10 font-medium text-green-800'
                               : 'text-quiz-muted'
                           }`}
                         >

@@ -77,7 +77,7 @@ function ProtestCard({ protest, room }: { protest: Protest; room: PublicRoomStat
           </p>
         </div>
         <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-green-400 mb-1">Fasit</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-green-800 mb-1">Fasit</p>
           <p className="font-medium text-quiz-text break-words [overflow-wrap:anywhere]">
             {fasit ?? '—'}
           </p>

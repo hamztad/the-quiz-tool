@@ -151,7 +151,7 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
 
                   <section className="rounded-xl border border-green-500/30 bg-green-500/5 overflow-hidden min-w-0">
                     <div className="border-b border-green-500/20 px-3 py-2">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-green-400">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-green-800">
                         Fasit
                       </h3>
                     </div>
@@ -163,7 +163,7 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                         {question.options.map((option, optIndex) => (
                           <li
                             key={option.id}
-                            className={option.isCorrect ? 'text-green-300 font-medium' : undefined}
+                            className={option.isCorrect ? 'text-green-800 font-medium' : undefined}
                           >
                             {String.fromCharCode(65 + optIndex)}. {option.text}
                             {option.isCorrect ? ' ✓' : ''}
