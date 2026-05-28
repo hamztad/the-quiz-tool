@@ -292,6 +292,7 @@ export function HostEditPage() {
 
   const incompleteCount = draftQuestions.filter(isQuestionIncomplete).length;
   const savedCount = room?.questions.length ?? 0;
+  const applyToActiveLabel = savedCount === 0 ? '✨ Bruk' : '✨ Bruk endringer';
   const isSynced = !dirty && draftQuestions.length === savedCount;
   const draftHash = useMemo(() => quizContentHash(draftQuestions), [draftQuestions]);
   const hasUnexportedQuiz = draftQuestions.length > 0 && exportedHash !== draftHash;
@@ -699,7 +700,7 @@ export function HostEditPage() {
                 onClick={() => persistQuestions(draftQuestions)}
                 disabled={!dirty}
               >
-                ✨ Bruk endringer
+                {applyToActiveLabel}
               </Button>
               {canPresent && (
                 <Button type="button" variant="gold" className="w-full sm:w-auto" onClick={goToPresent}>

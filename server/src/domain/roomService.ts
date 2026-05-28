@@ -36,6 +36,7 @@ export function createRoom(title?: string): RoomRecord {
     scores: [],
     gradingAssignments: [],
     peerGrades: [],
+    aiGrades: [],
     protests: [],
     activeQuestionTimers: {},
     settings: {
@@ -46,6 +47,7 @@ export function createRoom(title?: string): RoomRecord {
       finalResultLocked: false,
       testMode: false,
       teamsLockedOut: false,
+      openAnswerGradingMode: 'peer',
     },
     hostToken,
     teamTokens: {},
@@ -165,6 +167,8 @@ export function setQuestions(room: RoomRecord, questions: Question[]): RoomRecor
     answeredByTeam: Object.fromEntries(room.teams.map((t) => [t.id, []])),
     gradingAssignments: [],
     peerGrades: [],
+    aiGrades: [],
+    aiGrading: undefined,
     protests: [],
   };
 }

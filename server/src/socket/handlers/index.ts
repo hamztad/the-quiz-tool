@@ -16,6 +16,9 @@ import {
 import { checkRoomAccess } from '../../domain/roomAccess.js';
 import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import { createProtest, mergePeerGradesToScores, upsertScore } from '../../domain/gradingService.js';
+import { setOpenAnswerGradingMode } from '../../domain/aiGradingService.js';
+import { runAiGradingBatch } from '../../domain/runAiGradingBatch.js';
+import { canStartAiGrading, collectOpenAnswerGradeJobs } from '@quiz-tool/shared';
 import { startTeamGame, submitGameResult } from '../../domain/gameService.js';
 import { forceReopenQuestion, lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
 import { cancelQuizSchedule, setQuizSchedule } from '../../domain/timing/scheduleService.js';
@@ -41,6 +44,27 @@ import { emitRoomStateToSocket, publishRoomState } from '../emitRoomState.js';
 
 function emitError(socket: Socket, message: string, code = 'ERROR') {
   socket.emit(SERVER_EVENTS.ERROR, { code, message });
+}
+
+function startAiGradingForRoom(io: Server, socket: Socket, roomId: string): void {
+  const room = roomStore.get(roomId);
+  if (!room) return;
+
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    emitError(socket, 'KI-retting er ikke konfigurert på serveren (OPENAI_API_KEY mangler).');
+    return;
+  }
+
+  const jobs = collectOpenAnswerGradeJobs(room.questions, room.answers);
+  const openCount = getOpenQuestionIds(room.questions).length;
+  const check = canStartAiGrading(openCount, jobs.length, room.aiGrading);
+  if (!check.ok) {
+    emitError(socket, check.message);
+    return;
+  }
+
+  void runAiGradingBatch(io, roomId, apiKey);
 }
 
 function emitRoomAccessError(socket: Socket, code: string) {
@@ -531,12 +555,44 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     },
   );
 
+  socket.on(
+    CLIENT_EVENTS.OPEN_ANSWER_GRADING_MODE_SET,
+    (payload: { mode: 'peer' | 'ai' }) => {
+      const roomId = socket.data.roomId as string;
+      if (!requireHost(socket, roomId)) return;
+      if (!ensureFinalResultUnlocked(socket, roomId)) return;
+      if (payload.mode !== 'peer' && payload.mode !== 'ai') {
+        emitError(socket, 'Ugyldig rettingsmodus.');
+        return;
+      }
+      try {
+        roomStore.update(roomId, (r) => setOpenAnswerGradingMode(r, payload.mode));
+        publishRoomState(io, roomId);
+      } catch (e) {
+        emitError(socket, e instanceof Error ? e.message : 'Kunne ikke lagre innstilling');
+      }
+    },
+  );
+
+  socket.on(CLIENT_EVENTS.AI_GRADING_START, () => {
+    const roomId = socket.data.roomId as string;
+    if (!requireHost(socket, roomId)) return;
+    if (!ensureFinalResultUnlocked(socket, roomId)) return;
+    startAiGradingForRoom(io, socket, roomId);
+  });
+
   socket.on(CLIENT_EVENTS.GRADING_START, () => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
     if (!ensureFinalResultUnlocked(socket, roomId)) return;
     const room = roomStore.get(roomId);
     if (!room) return;
+
+    const mode = room.settings.openAnswerGradingMode ?? 'peer';
+    if (mode === 'ai') {
+      startAiGradingForRoom(io, socket, roomId);
+      return;
+    }
 
     const openIds = getOpenQuestionIds(room.questions);
     const teamIds = room.teams.map((t) => t.id);
@@ -553,6 +609,8 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       phase: 'grading',
       gradingAssignments: assignments,
       peerGrades: [],
+      aiGrades: [],
+      aiGrading: undefined,
       settings: { ...r.settings, teamReviewOpen: false },
     }));
     publishRoomState(io, roomId);
@@ -654,9 +712,12 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         const peerGrade = r.peerGrades.find(
           (pg) => pg.targetTeamId === teamId && pg.questionId === payload.questionId,
         );
-        const awardedPoints = scoreEntry?.points ?? peerGrade?.points;
+        const aiGrade = r.aiGrades.find(
+          (g) => g.teamId === teamId && g.questionId === payload.questionId,
+        );
+        const awardedPoints = scoreEntry?.points ?? peerGrade?.points ?? aiGrade?.points;
         if (awardedPoints === undefined) {
-          throw new Error('Du kan protestere når spørsmålet er poengsatt.');
+          throw new Error('Du kan protestere når oppgaven er poengsatt.');
         }
 
         return {

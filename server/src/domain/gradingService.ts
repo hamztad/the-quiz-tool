@@ -15,7 +15,8 @@ export function mergePeerGradesToScores(room: RoomState): ScoreEntry[] {
     points: pg.points,
     source: 'peer' as const,
   }));
-  return [...nonPeer, ...peerScores];
+  const keepAi = room.scores.filter((s) => s.source === 'ai');
+  return [...nonPeer, ...keepAi, ...peerScores];
 }
 
 export function scoreMcAnswer(

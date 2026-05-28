@@ -105,6 +105,9 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                 formatGameSubmissionForHost(question, latestGameSubmission) ??
                 formatTeamAnswerDisplay(question, answer?.value);
               const score = getTeamQuestionScore(room, teamId, question.id);
+              const aiGrade = room.aiGrades.find(
+                (g) => g.teamId === teamId && g.questionId === question.id,
+              );
               const graderTeam = score.graderTeamId
                 ? room.teams.find((t) => t.id === score.graderTeamId)
                 : undefined;
@@ -190,6 +193,29 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                       {answerText ?? '—'}
                     </p>
                   </section>
+
+                  {aiGrade && question.type === 'open' && (
+                    <section className="rounded-xl border border-cyan-400/40 bg-cyan-50/90 overflow-hidden min-w-0">
+                      <div className="border-b border-cyan-300/50 px-3 py-2 flex flex-wrap items-center gap-2">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-900">
+                          KI-vurdering
+                        </h3>
+                        {aiGrade.confidence && (
+                          <span className="text-xs font-semibold text-cyan-800">
+                            ({aiGrade.confidence === 'high'
+                              ? 'høy'
+                              : aiGrade.confidence === 'medium'
+                                ? 'middels'
+                                : 'lav'}{' '}
+                            sikkerhet)
+                          </span>
+                        )}
+                      </div>
+                      <p className="px-3 py-3 text-sm text-cyan-950 leading-relaxed break-words [overflow-wrap:anywhere]">
+                        {aiGrade.reasoning}
+                      </p>
+                    </section>
+                  )}
 
                   {protest && (
                     <section className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-3 min-w-0">

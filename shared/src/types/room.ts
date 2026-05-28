@@ -100,7 +100,27 @@ export interface ScoreEntry {
   teamId: string;
   questionId: string;
   points: number;
-  source: 'auto' | 'peer' | 'override' | 'game';
+  source: 'auto' | 'peer' | 'override' | 'game' | 'ai';
+}
+
+export interface AiGrade {
+  teamId: string;
+  questionId: string;
+  points: number;
+  reasoning: string;
+  confidence?: 'high' | 'medium' | 'low';
+  submittedAt: number;
+}
+
+export type AiGradingStatus = 'idle' | 'running' | 'done' | 'error';
+
+export interface AiGradingProgress {
+  status: AiGradingStatus;
+  completed: number;
+  total: number;
+  startedAt?: number;
+  finishedAt?: number;
+  error?: string;
 }
 
 export interface Protest {
@@ -123,6 +143,8 @@ export interface GradingAssignment {
 
 export type RoomPhase = 'lobby' | 'live' | 'grading' | 'leaderboard' | 'post_quiz' | 'ended';
 
+export type OpenAnswerGradingMode = 'peer' | 'ai';
+
 export interface RoomSettings {
   showLeaderboard: boolean;
   teamReviewOpen: boolean;
@@ -134,6 +156,8 @@ export interface RoomSettings {
   testTeamId?: string;
   /** Deltakere kan ikke svare etter quiz-slutt (schedule end eller QUIZ_END). */
   teamsLockedOut?: boolean;
+  /** Hvordan åpne tekstsvar poengsettes etter quiz. */
+  openAnswerGradingMode: OpenAnswerGradingMode;
 }
 
 export interface FinalLeaderboardSnapshot {
@@ -161,6 +185,8 @@ export interface RoomState {
   finalLeaderboardSnapshot?: FinalLeaderboardSnapshot;
   gradingAssignments: GradingAssignment[];
   peerGrades: PeerGrade[];
+  aiGrades: AiGrade[];
+  aiGrading?: AiGradingProgress;
   protests: Protest[];
   settings: RoomSettings;
   schedule?: QuizSchedule;

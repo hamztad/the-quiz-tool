@@ -19,6 +19,17 @@ export function getTeamQuestionScore(
     return { points: scoreEntry.points, source: 'override' };
   }
 
+  if (scoreEntry?.source === 'ai') {
+    return { points: scoreEntry.points, source: 'ai' };
+  }
+
+  const aiGrade = room.aiGrades.find(
+    (g) => g.teamId === teamId && g.questionId === questionId,
+  );
+  if (aiGrade) {
+    return { points: aiGrade.points, source: 'ai' };
+  }
+
   if (scoreEntry?.source === 'auto') {
     return { points: scoreEntry.points, source: 'auto' };
   }
@@ -58,6 +69,8 @@ export function scoreSourceLabel(source: TeamQuestionScore['source']): string {
       return 'Auto (flervalg)';
     case 'peer':
       return 'Retterunde';
+    case 'ai':
+      return 'KI-retting';
     case 'override':
       return 'Overstyrt';
     case 'game':

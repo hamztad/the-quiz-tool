@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  canStartAiGrading,
   canStartPeerGrading,
   CLIENT_EVENTS,
+  collectOpenAnswerGradeJobs,
   getOpenQuestionIds,
   type PublicRoomState,
 } from '@quiz-tool/shared';
@@ -35,6 +37,7 @@ import {
   readHostDraftSession,
 } from '../lib/hostDraftSession';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
+import { HostOpenAnswerGradingPanel } from '../components/host/HostOpenAnswerGradingPanel';
 import { QuizScheduleBanner } from '../components/timing/QuizScheduleBanner';
 import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
 import { clearTeamSession } from '../lib/tokens';
@@ -140,17 +143,27 @@ export function HostDashboardPage() {
   const hasProtests = room.protests.length > 0;
   const isPostQuiz = room.phase === 'post_quiz';
   const teamsSeeLeaderboard = room.phase === 'leaderboard' || room.settings.showLeaderboard;
+  const gradingMode = room.settings.openAnswerGradingMode ?? 'peer';
+  const openQuestionCount = getOpenQuestionIds(room.questions).length;
+  const openAnswerJobs = collectOpenAnswerGradeJobs(room.questions, room.answers);
   const canControlTeamReview =
     room.phase === 'grading' ||
     room.phase === 'leaderboard' ||
     room.phase === 'post_quiz' ||
     (room.phase === 'live' &&
       (room.peerGrades.length > 0 ||
-        room.scores.some((s) => s.source === 'peer' || s.source === 'override')));
-  const peerGradingCheck = canStartPeerGrading(
-    room.teams.length,
-    getOpenQuestionIds(room.questions).length,
+        room.aiGrades.length > 0 ||
+        room.aiGrading?.status === 'done' ||
+        room.scores.some(
+          (s) => s.source === 'peer' || s.source === 'ai' || s.source === 'override',
+        )));
+  const peerGradingCheck = canStartPeerGrading(room.teams.length, openQuestionCount);
+  const aiGradingCheck = canStartAiGrading(
+    openQuestionCount,
+    openAnswerJobs.length,
+    room.aiGrading,
   );
+  const aiGradingRunning = room.aiGrading?.status === 'running';
   const pendingProtests = room.protests.filter((protest) => protest.status === 'pending').length;
   const canLockFinalResult =
     !room.settings.finalResultLocked &&
@@ -277,6 +290,10 @@ export function HostDashboardPage() {
       </div>
 
       <div className="space-y-6 min-w-0 max-w-full">
+          {showLeaderboardControls(room.phase) && openQuestionCount > 0 && (
+            <HostOpenAnswerGradingPanel room={room} />
+          )}
+
           {showLeaderboardControls(room.phase) && (
             <div className="flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
               {room.phase === 'leaderboard' ? (
@@ -298,7 +315,7 @@ export function HostDashboardPage() {
                   🏆 Vis leaderboard
                 </Button>
               )}
-              {room.phase === 'live' && (
+              {room.phase === 'live' && gradingMode === 'peer' && (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -310,6 +327,21 @@ export function HostDashboardPage() {
                   Start retterunde
                 </Button>
               )}
+              {room.phase === 'live' &&
+                gradingMode === 'ai' &&
+                !aiGradingRunning &&
+                room.aiGrading?.status !== 'done' && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                    disabled={!aiGradingCheck.ok}
+                    title={aiGradingCheck.ok ? undefined : aiGradingCheck.message}
+                    onClick={() => emit(CLIENT_EVENTS.GRADING_START)}
+                  >
+                    Start KI-retting
+                  </Button>
+                )}
               {room.phase === 'grading' && (
                 <Button size="sm" className="w-full sm:w-auto" onClick={() => emit(CLIENT_EVENTS.GRADING_END)}>
                   Avslutt retterunde
