@@ -5,6 +5,7 @@ export * from './timing/roomRetention.js';
 export * from './timing/timerEngine.js';
 export * from './timing/scheduleInput.js';
 export * from './media/mediaAttachment.js';
+export * from './media/mediaAttribution.js';
 export * from './choice/choiceItem.js';
 export * from './joinCodes/joinCode.js';
 export * from './teamQuestionVisibility.js';

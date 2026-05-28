@@ -1,4 +1,5 @@
-import type { Question } from '@quiz-tool/shared';
+import type { MediaCreditsDisplayMode, Question } from '@quiz-tool/shared';
+import { getGameplayImageAlt } from '@quiz-tool/shared';
 import { getQuestionTypeTheme } from '../../lib/questionTypeTheme';
 import { MediaAttribution } from '../media/MediaAttribution';
 
@@ -7,15 +8,19 @@ interface QuestionBodyProps {
   showHint?: boolean;
   /** Type badge is shown on QuestionCard header in team view — skip duplicate heading. */
   showTypeHeading?: boolean;
+  /** full = quizmaster/editor; deferred = participant during task; revealed = after lock/completion. */
+  mediaCreditsMode?: MediaCreditsDisplayMode;
 }
 
 export function QuestionBody({
   question,
   showHint = true,
   showTypeHeading = true,
+  mediaCreditsMode = 'full',
 }: QuestionBodyProps) {
   const lineClass = 'break-words [overflow-wrap:anywhere]';
   const typeTheme = getQuestionTypeTheme(question);
+  const spoilerSafeImage = mediaCreditsMode !== 'full';
 
   return (
     <div className="min-w-0 max-w-full space-y-3">
@@ -53,10 +58,16 @@ export function QuestionBody({
           <figure key={i} className="mt-3">
             <img
               src={m.url}
-              alt={m.alt ?? ''}
+              alt={
+                spoilerSafeImage
+                  ? getGameplayImageAlt('Illustrasjonsbilde')
+                  : m.alt?.trim() || 'Illustrasjon'
+              }
               className="max-h-64 max-w-full rounded-2xl object-contain shadow-md ring-2 ring-white/80"
+              loading="lazy"
+              decoding="async"
             />
-            <MediaAttribution media={m} className="mt-2" />
+            <MediaAttribution media={m} mode={mediaCreditsMode} className="mt-2" />
           </figure>
         ) : null,
       )}

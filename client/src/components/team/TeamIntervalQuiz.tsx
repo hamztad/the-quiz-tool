@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   CLIENT_EVENTS,
   isQuestionRevealedToTeam,
@@ -6,6 +6,12 @@ import {
   type Question,
 } from '@quiz-tool/shared';
 import { formatOppgaveLabel } from '../../lib/participantCopy';
+import { teamQuestionListAnchorId } from '../../lib/teamQuestionListNav';
+import { useScrollToQuestionOnListReturn } from '../../hooks/useScrollToQuestionOnListReturn';
+import { ParticipantBackToQuizLink } from './ParticipantBackToQuizLink';
+import { shouldHideParticipantChoiceLabels } from '../../lib/participantChoiceDisplay';
+
+const PARTICIPANT_ACTIVE_MEDIA_CREDITS = 'deferred' as const;
 import { QuestionBody } from '../question/QuestionBody';
 import { QuestionCard } from '../question/QuestionCard';
 import { LiveQuizClock } from '../timing/LiveQuizClock';
@@ -25,8 +31,6 @@ import {
 } from '@quiz-tool/shared';
 import { useSocket } from '../../hooks/useSocket';
 import { McOptionButtonContent } from '../question/McOptionButtonContent';
-
-const HIGHLIGHT_MS = 5000;
 
 interface TeamIntervalQuizProps {
   room: PublicRoomState;
@@ -48,22 +52,17 @@ export function TeamIntervalQuiz({
   const [answerText, setAnswerText] = useState('');
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
   const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
-  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const prepareReturnToQuizList = useScrollToQuestionOnListReturn(
+    activeQuestionId,
+    setHighlightedQuestionId,
+  );
 
   const getMyAnswer = (questionId: string) =>
     room.answers.find((a) => a.teamId === teamId && a.questionId === questionId);
 
   const hasAnswered = (questionId: string) =>
     (room.answeredByTeam[teamId] ?? []).includes(questionId);
-
-  const flashHighlight = useCallback((questionId: string) => {
-    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-    setHighlightedQuestionId(questionId);
-    highlightTimerRef.current = setTimeout(() => {
-      setHighlightedQuestionId(null);
-      highlightTimerRef.current = null;
-    }, HIGHLIGHT_MS);
-  }, []);
 
   const openQuestion = useCallback(
     (q: Question) => {
@@ -106,13 +105,22 @@ export function TeamIntervalQuiz({
       delete next[question.id];
       return next;
     });
+    prepareReturnToQuizList(question.id);
     setActiveQuestionId(null);
-    flashHighlight(question.id);
+  };
+
+  const closeActiveQuestion = () => {
+    prepareReturnToQuizList(activeQuestionId);
+    setActiveQuestionId(null);
   };
 
   const activeQuestion = room.questions.find((q) => q.id === activeQuestionId);
   const activeOrderingOrder =
     activeQuestion?.type === 'ordering' ? (parseOrderingAnswer(answerText) ?? []) : [];
+
+  const hideChoiceLabels = activeQuestion
+    ? shouldHideParticipantChoiceLabels(activeQuestion, hasAnswered(activeQuestion.id))
+    : false;
 
   return (
     <div className="space-y-4">
@@ -149,10 +157,14 @@ export function TeamIntervalQuiz({
               />
             </div>
           )}
-          <Button type="button" variant="secondary" size="sm" className="mb-4" onClick={() => setActiveQuestionId(null)}>
-            Til oversikt
-          </Button>
-          <QuestionBody question={activeQuestion} />
+          <ParticipantBackToQuizLink onClick={closeActiveQuestion} />
+          {activeQuestion.game?.gameId !== 'revealImage' && (
+            <QuestionBody
+              question={activeQuestion}
+              showTypeHeading={false}
+              mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+            />
+          )}
           {activeQuestion.type === 'game' ? (
             <TeamGameView room={room} question={activeQuestion} teamId={teamId} />
           ) : activeQuestion.type === 'open' ? (
@@ -165,18 +177,36 @@ export function TeamIntervalQuiz({
               topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
               bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
               dragHandleLabel="Dra"
-              getItemContent={(item) => <OrderingChoiceContent item={item} variant="participant" />}
+              getItemContent={(item, index) => (
+                <OrderingChoiceContent
+                  item={item}
+                  variant="participant"
+                  hideParticipantLabel={hideChoiceLabels}
+                  itemIndex={index}
+                  mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                />
+              )}
             />
           ) : (
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {activeQuestion.options?.map((opt) => (
+              {activeQuestion.options?.map((opt, optIndex) => (
                 <button
                   key={opt.id}
                   type="button"
                   onClick={() => setAnswerText(opt.id)}
+                  aria-label={
+                    hideChoiceLabels
+                      ? `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                      : opt.text.trim() || `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                  }
                   className={`rounded-2xl border-2 px-3 py-3 text-left ${answerText === opt.id ? 'border-violet-500 bg-violet-50' : 'border-indigo-200'}`}
                 >
-                  <McOptionButtonContent option={opt} />
+                  <McOptionButtonContent
+                    option={opt}
+                    hideParticipantLabel={hideChoiceLabels}
+                    optionIndex={optIndex}
+                    mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                  />
                 </button>
               ))}
             </div>
@@ -196,7 +226,7 @@ export function TeamIntervalQuiz({
             const myAnswer = getMyAnswer(q.id);
 
             return (
-              <div key={q.id} id={`team-question-${q.id}`}>
+              <div key={q.id} id={teamQuestionListAnchorId(q.id)}>
                 <QuestionCard
                   question={q}
                   status={status}

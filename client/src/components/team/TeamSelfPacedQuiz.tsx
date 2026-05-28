@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   CLIENT_EVENTS,
   canTeamWorkOnQuestion,
@@ -24,8 +24,12 @@ import { SortableOrderingList } from '../ordering/SortableOrderingList';
 import { McOptionButtonContent } from '../question/McOptionButtonContent';
 import { useSocket } from '../../hooks/useSocket';
 import { formatOppgaveLabel } from '../../lib/participantCopy';
+import { teamQuestionListAnchorId } from '../../lib/teamQuestionListNav';
+import { useScrollToQuestionOnListReturn } from '../../hooks/useScrollToQuestionOnListReturn';
+import { ParticipantBackToQuizLink } from './ParticipantBackToQuizLink';
+import { shouldHideParticipantChoiceLabels } from '../../lib/participantChoiceDisplay';
 
-const HIGHLIGHT_MS = 5000;
+const PARTICIPANT_ACTIVE_MEDIA_CREDITS = 'deferred' as const;
 
 interface TeamSelfPacedQuizProps {
   room: PublicRoomState;
@@ -50,7 +54,11 @@ export function TeamSelfPacedQuiz({
   const [answerText, setAnswerText] = useState('');
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
   const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
-  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const prepareReturnToQuizList = useScrollToQuestionOnListReturn(
+    activeQuestionId,
+    setHighlightedQuestionId,
+  );
 
   const locks = room.teamQuestionLocks ?? {};
   const teamsLockedOut = Boolean(room.settings.teamsLockedOut);
@@ -66,21 +74,6 @@ export function TeamSelfPacedQuiz({
   const hasAnswered = (questionId: string) =>
     (room.answeredByTeam[teamId] ?? []).includes(questionId);
 
-  const flashHighlight = useCallback((questionId: string) => {
-    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-    setHighlightedQuestionId(questionId);
-    highlightTimerRef.current = setTimeout(() => {
-      setHighlightedQuestionId(null);
-      highlightTimerRef.current = null;
-    }, HIGHLIGHT_MS);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-    };
-  }, []);
-
   const submitAnswer = (question: Question) => {
     const trimmed = (answerDrafts[question.id] ?? answerText).trim();
     if (!trimmed) return;
@@ -92,8 +85,8 @@ export function TeamSelfPacedQuiz({
       delete next[question.id];
       return next;
     });
+    prepareReturnToQuizList(question.id);
     setActiveQuestionId(null);
-    flashHighlight(question.id);
   };
 
   const openQuestion = useCallback((q: Question) => {
@@ -141,13 +134,17 @@ export function TeamSelfPacedQuiz({
   };
 
   const closeActiveQuestion = () => {
-    if (activeQuestionId) flashHighlight(activeQuestionId);
+    prepareReturnToQuizList(activeQuestionId);
     setActiveQuestionId(null);
   };
 
   const activeQuestion = room.questions.find((q) => q.id === activeQuestionId);
   const activeOrderingOrder =
     activeQuestion?.type === 'ordering' ? (parseOrderingAnswer(answerText) ?? []) : [];
+
+  const hideChoiceLabels = activeQuestion
+    ? shouldHideParticipantChoiceLabels(activeQuestion, hasAnswered(activeQuestion.id))
+    : false;
 
   const lockedNonGameCount = room.questions.filter(
     (q) => q.type !== 'game' && isTeamQuestionLocked(locks, teamId, q.id),
@@ -230,27 +227,29 @@ export function TeamSelfPacedQuiz({
 
       {activeQuestion && !teamsLockedOut ? (
         <Card elevated className="border-2 border-violet-400/50 p-4 sm:p-5 min-w-0">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-quiz-muted">
-                {formatOppgaveLabel(
-                  room.questions.findIndex((q) => q.id === activeQuestion.id) + 1,
-                )}
-              </p>
-              <p className="text-sm font-semibold text-quiz-text">
-                {activeQuestion.type === 'game'
-                  ? 'Spill — du kan prøve igjen til tidsfrist'
-                  : 'Send inn for å låse oppgaven'}
-              </p>
-            </div>
-            <Button type="button" variant="secondary" size="sm" onClick={closeActiveQuestion}>
-              Til oversikt
-            </Button>
+          <ParticipantBackToQuizLink onClick={closeActiveQuestion} className="mb-2" />
+          <div className="mb-4 min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-quiz-muted">
+              {formatOppgaveLabel(
+                room.questions.findIndex((q) => q.id === activeQuestion.id) + 1,
+              )}
+            </p>
+            <p className="text-sm font-semibold text-quiz-text">
+              {activeQuestion.type === 'game'
+                ? 'Spill — du kan prøve igjen til tidsfrist'
+                : 'Send inn for å låse oppgaven'}
+            </p>
           </div>
           {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
             activeQuestion.game?.gameId !== 'emojiHunt' &&
             activeQuestion.game?.gameId !== 'dropBall' &&
-            activeQuestion.game?.gameId !== 'anagram' && <QuestionBody question={activeQuestion} />}
+            activeQuestion.game?.gameId !== 'anagram' &&
+            activeQuestion.game?.gameId !== 'revealImage' && (
+              <QuestionBody
+                question={activeQuestion}
+                mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+              />
+            )}
           {activeQuestion.type === 'game' ? (
             <TeamGameView room={room} question={activeQuestion} teamId={teamId} />
           ) : activeQuestion.type === 'open' ? (
@@ -271,25 +270,41 @@ export function TeamSelfPacedQuiz({
                 topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
                 bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
                 dragHandleLabel="Dra svar"
-                getItemContent={(item) => (
-                  <OrderingChoiceContent item={item} variant="participant" />
+                getItemContent={(item, index) => (
+                  <OrderingChoiceContent
+                    item={item}
+                    variant="participant"
+                    hideParticipantLabel={hideChoiceLabels}
+                    itemIndex={index}
+                    mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                  />
                 )}
               />
             </div>
           ) : (
             <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {activeQuestion.options?.map((opt) => (
+              {activeQuestion.options?.map((opt, optIndex) => (
                 <button
                   key={opt.id}
                   type="button"
                   onClick={() => updateActiveAnswer(opt.id)}
+                  aria-label={
+                    hideChoiceLabels
+                      ? `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                      : opt.text.trim() || `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                  }
                   className={`rounded-2xl border-2 px-3 py-3 text-left min-h-[3.5rem] ${
                     answerText === opt.id
                       ? 'border-violet-500 bg-violet-50'
                       : 'border-indigo-200/80 bg-white'
                   }`}
                 >
-                  <McOptionButtonContent option={opt} />
+                  <McOptionButtonContent
+                    option={opt}
+                    hideParticipantLabel={hideChoiceLabels}
+                    optionIndex={optIndex}
+                    mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                  />
                 </button>
               ))}
             </div>
@@ -318,7 +333,7 @@ export function TeamSelfPacedQuiz({
             const myAnswer = getMyAnswer(q.id);
             const answerPreview = formatTeamAnswerDisplay(q, myAnswer?.value);
             return (
-              <div key={q.id} id={`team-question-${q.id}`}>
+              <div key={q.id} id={teamQuestionListAnchorId(q.id)}>
                 <QuestionCard
                   question={q}
                   status={teamLocked ? 'locked' : 'open'}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { teamQuestionListAnchorId } from '../lib/teamQuestionListNav';
 import {
   isQuestionRevealedToTeam,
   isSelfPacedQuiz,
@@ -62,7 +63,7 @@ export function useQuestionOpenNotifications(
     onNavigateToQuestion?.(questionId);
     requestAnimationFrame(() => {
       document
-        .getElementById(`team-question-${questionId}`)
+        .getElementById(teamQuestionListAnchorId(questionId))
         ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   };

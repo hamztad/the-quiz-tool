@@ -4,6 +4,7 @@ import { validateAnagramAnswerText } from '../games/modules/anagram.js';
 import { validateMathExpressionConfig } from '../games/modules/mathExpression.js';
 import { sanitizeRevealImageChoices } from '../games/modules/revealImage.js';
 import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
+import { validateMcChoices } from '../choice/choiceValidation.js';
 
 export interface ParseResult {
   questions: Omit<Question, 'id' | 'order'>[];
@@ -142,7 +143,15 @@ export function parseQuizText(raw: string): ParseResult {
 export function validateQuestionsForSave(
   questions: Pick<
     Question,
-    'type' | 'acceptedAnswers' | 'options' | 'lines' | 'game' | 'orderingItems' | 'orderingCorrectOrder' | 'media'
+    | 'type'
+    | 'acceptedAnswers'
+    | 'options'
+    | 'lines'
+    | 'game'
+    | 'orderingItems'
+    | 'orderingCorrectOrder'
+    | 'media'
+    | 'imageOnlyOptions'
   >[],
 ): string[] {
   const errors: string[] = [];
@@ -164,6 +173,8 @@ export function validateQuestionsForSave(
       if ((q.options?.length ?? 0) < 2) {
         errors.push(`Spørsmål ${i + 1}: MC må ha minst 2 alternativer.`);
       }
+      const mcChoiceErrors = validateMcChoices(q.options, q.imageOnlyOptions);
+      errors.push(...mcChoiceErrors.map((error) => `Spørsmål ${i + 1}: ${error}`));
     }
     if (q.type === 'ordering') {
       const orderingErrors = validateOrderingQuestion(q);

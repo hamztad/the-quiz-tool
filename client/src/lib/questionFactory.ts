@@ -1,5 +1,6 @@
 import {
-  choiceItemHasContent,
+  validateMcChoices,
+  validateOrderingChoiceItems,
   createDefaultAnagramConfig,
   createDefaultDropBallConfig,
   createDefaultEmojiHuntConfig,
@@ -206,22 +207,16 @@ export function isQuestionIncomplete(question: Question): boolean {
   if (question.type === 'ordering') {
     const items = question.orderingItems ?? [];
     const correctOrder = question.orderingCorrectOrder ?? [];
-    const filledItems = items.filter((item) => choiceItemHasContent(item));
-    const uniqueChoiceContent = new Set(
-      filledItems
-        .map((item) => {
-          const text = item.text.trim();
-          if (text) return `text:${text.toLocaleLowerCase('nb')}`;
-          const mediaUrl = item.media?.url?.trim();
-          return mediaUrl ? `media:${mediaUrl}` : '';
-        })
-        .filter(Boolean),
-    );
+    const normalizedTexts = items
+      .map((item) => item.text.trim().toLocaleLowerCase('nb'))
+      .filter(Boolean);
+    const uniqueTexts = new Set(normalizedTexts);
+    if (validateOrderingChoiceItems(items, question.imageOnlyOptions).length > 0) return true;
     return (
       items.length < 3 ||
       items.length > 5 ||
-      filledItems.length !== items.length ||
-      uniqueChoiceContent.size !== items.length ||
+      normalizedTexts.length !== items.length ||
+      uniqueTexts.size !== items.length ||
       correctOrder.length !== items.length ||
       !correctOrder.every((id) => items.some((item) => item.id === id))
     );
@@ -230,7 +225,7 @@ export function isQuestionIncomplete(question: Question): boolean {
   const options = question.options ?? [];
   if (options.length < 2) return true;
   if (!options.some((o) => o.isCorrect)) return true;
-  if (options.some((o) => !choiceItemHasContent(o))) return true;
+  if (validateMcChoices(options, question.imageOnlyOptions).length > 0) return true;
   return false;
 }
 
@@ -248,18 +243,24 @@ export function normalizeQuestionsForSave(questions: Question[]): Question[] {
       q.type === 'open'
         ? (q.acceptedAnswers?.map((a) => a.trim()).filter(Boolean) ?? ['svar'])
         : undefined,
+    imageOnlyOptions:
+      q.type === 'mc' || q.type === 'ordering'
+        ? q.imageOnlyOptions === true
+          ? true
+          : undefined
+        : undefined,
     options:
       q.type === 'mc'
         ? q.options?.map((o) => ({
             ...o,
-            text: o.text.trim() || (o.media?.url ? '' : 'Alternativ'),
+            text: o.text.trim(),
           }))
         : undefined,
     orderingItems:
       q.type === 'ordering'
-        ? q.orderingItems?.map((item, itemIndex) => ({
+        ? q.orderingItems?.map((item) => ({
             ...item,
-            text: item.text.trim() || (item.media?.url ? '' : `Element ${itemIndex + 1}`),
+            text: item.text.trim(),
           }))
         : undefined,
     orderingCorrectOrder: q.type === 'ordering' ? q.orderingCorrectOrder : undefined,

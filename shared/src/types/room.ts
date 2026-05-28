@@ -32,6 +32,8 @@ export interface MediaAttachment {
   previewUrl?: string;
   photographer?: string;
   pageUrl?: string;
+  /** Preformatted attribution line; stored for post-game display, not shown during play. */
+  attributionText?: string;
 }
 
 export interface McOption {
@@ -59,6 +61,8 @@ export interface Question {
   orderingCorrectOrder?: string[];
   orderingDirectionTop?: string;
   orderingDirectionBottom?: string;
+  /** MC/ordering: hide option labels from participants while answering; labels stay in data. */
+  imageOnlyOptions?: boolean;
   gameType?: GameId;
   game?: GameQuestionConfig;
   media?: MediaAttachment[];
@@ -209,8 +213,10 @@ export interface RevealImageTeamProgress {
   openedTileIndices: number[];
   usedChoices: boolean;
   wrongChoiceIds: string[];
-  /** Server-shuffled reveal order (next tile is first not yet in openedTileIndices). */
-  tileOrder: number[];
+  /** Opaque fill color per tile index (same order as grid, length gridSize²). */
+  tileColors: string[];
+  /** @deprecated Legacy random order — ignored when revealing by click. */
+  tileOrder?: number[];
 }
 
 export type SocketRole = 'host' | 'secretary';

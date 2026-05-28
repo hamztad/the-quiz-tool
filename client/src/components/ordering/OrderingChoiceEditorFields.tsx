@@ -30,7 +30,7 @@ export function OrderingChoiceEditorFields({
         <EditorTextArea
           value={item.text}
           onChange={(event) => onTextChange(event.target.value)}
-          placeholder={`Element ${index + 1}… (valgfritt med bilde)`}
+          placeholder={`Etikett / fasit for element ${index + 1}…`}
           minRows={1}
           className="min-w-0 flex-1 bg-quiz-surface py-2 text-sm"
         />
@@ -52,7 +52,7 @@ export function OrderingChoiceEditorFields({
         onMediaChange={onMediaChange}
         compact
         label="Bilde (valgfritt)"
-        hint="Tekst og/eller bilde. Bilder vises i passende størrelse på mobil og stor skjerm."
+        hint="Tekst er alltid påkrevd. Bilde er valgfritt (påkrevd ved «Bruk kun bildene»)."
       />
     </div>
   );

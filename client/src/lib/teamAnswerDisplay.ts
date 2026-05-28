@@ -14,10 +14,7 @@ export function formatTeamAnswerDisplay(
   if (question.type === 'mc') {
     const option = question.options?.find((o) => o.id === value);
     if (!option) return value;
-    const text = option.text.trim();
-    if (text) return text;
-    if (option.media) return getChoiceItemLabel(option, 'Bilde');
-    return value;
+    return getChoiceItemLabel(option, value);
   }
   if (question.type === 'ordering') {
     const order = parseOrderingAnswer(value);

@@ -18,7 +18,8 @@ export function isMediaAttachment(value: unknown): value is MediaAttachment {
     (value.creator === undefined || typeof value.creator === 'string') &&
     (value.license === undefined || typeof value.license === 'string') &&
     (value.photographer === undefined || typeof value.photographer === 'string') &&
-    (value.pageUrl === undefined || typeof value.pageUrl === 'string');
+    (value.pageUrl === undefined || typeof value.pageUrl === 'string') &&
+    (value.attributionText === undefined || typeof value.attributionText === 'string');
 
   return (
     value.type === 'image' &&
@@ -32,14 +33,17 @@ export function isMediaAttachment(value: unknown): value is MediaAttachment {
 
 export type ChoiceItemWithMedia = { text: string; media?: MediaAttachment };
 
+/** @deprecated Prefer choiceItemHasRequiredText — text is always required on save. */
 export function choiceItemHasContent(item: ChoiceItemWithMedia): boolean {
-  return Boolean(item.text.trim() || item.media?.url);
+  return choiceItemHasRequiredText(item);
+}
+
+export function choiceItemHasRequiredText(item: ChoiceItemWithMedia): boolean {
+  return Boolean(item.text.trim());
 }
 
 export function getChoiceItemLabel(item: ChoiceItemWithMedia, fallback = '—'): string {
   const text = item.text.trim();
   if (text) return text;
-  const alt = item.media?.alt?.trim();
-  if (alt) return alt;
-  return item.media?.url ? 'Bilde' : fallback;
+  return fallback;
 }

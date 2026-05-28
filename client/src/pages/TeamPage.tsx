@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   CLIENT_EVENTS,
   getTeamFinalPlacement,
@@ -33,12 +33,19 @@ import { TeamGameView } from '../games/registry';
 import { OrderingChoiceContent } from '../components/ordering/OrderingChoiceContent';
 import { SortableOrderingList } from '../components/ordering/SortableOrderingList';
 import { McOptionButtonContent } from '../components/question/McOptionButtonContent';
-import { TestModeBanner } from '../components/test/TestModeBanner';
+import { TestModeParticipantBar } from '../components/test/TestModeParticipantBar';
+import { emitTestSessionEnd } from '../lib/testSession';
+import { clearTestReturnPath, getTestReturnPath } from '../lib/testSessionReturn';
+import { clearTeamSession } from '../lib/tokens';
 import { LiveQuizClock } from '../components/timing/LiveQuizClock';
 import { TeamIntervalQuiz } from '../components/team/TeamIntervalQuiz';
 import { QuestionTimerBar } from '../components/timing/QuestionTimerBar';
+import { PARTICIPANT_BACK_TO_QUIZ_LABEL, teamQuestionListAnchorId } from '../lib/teamQuestionListNav';
+import { useScrollToQuestionOnListReturn } from '../hooks/useScrollToQuestionOnListReturn';
+import { ParticipantBackToQuizLink } from '../components/team/ParticipantBackToQuizLink';
+import { shouldHideParticipantChoiceLabels } from '../lib/participantChoiceDisplay';
 
-const HIGHLIGHT_MS = 5000;
+const PARTICIPANT_ACTIVE_MEDIA_CREDITS = 'deferred' as const;
 
 function WinnerCertificate({
   teamName,
@@ -155,8 +162,10 @@ function AnswerKeyCta({ to }: { to: string }) {
 
 export function TeamPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { socket, connected } = useSocket();
+  const [testEnding, setTestEnding] = useState(false);
   const {
     room,
     unavailable,
@@ -172,7 +181,11 @@ export function TeamPage() {
   const [answerText, setAnswerText] = useState('');
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
   const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
-  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const prepareReturnToQuizList = useScrollToQuestionOnListReturn(
+    activeQuestionId,
+    setHighlightedQuestionId,
+  );
   const hostedQuestionNavRef = useRef<((questionId: string) => void) | null>(null);
   const selfPacedQuestionNavRef = useRef<((questionId: string) => void) | null>(null);
   const bindSelfPacedQuestionNav = useCallback((navigate: (questionId: string) => void) => {
@@ -190,7 +203,7 @@ export function TeamPage() {
         return;
       }
       document
-        .getElementById(`team-question-${questionId}`)
+        .getElementById(teamQuestionListAnchorId(questionId))
         ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
   });
@@ -222,21 +235,6 @@ export function TeamPage() {
   }, [activeQuestionId, room, teamId]);
 
   useEffect(() => {
-    return () => {
-      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-    };
-  }, []);
-
-  const flashHighlight = useCallback((questionId: string) => {
-    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-    setHighlightedQuestionId(questionId);
-    highlightTimerRef.current = setTimeout(() => {
-      setHighlightedQuestionId(null);
-      highlightTimerRef.current = null;
-    }, HIGHLIGHT_MS);
-  }, []);
-
-  useEffect(() => {
     if (!room || !activeQuestionId) return;
     if (!isQuestionRevealedToTeam(room, activeQuestionId)) {
       setActiveQuestionId(null);
@@ -246,15 +244,6 @@ export function TeamPage() {
       setActiveQuestionId(null);
     }
   }, [activeQuestionId, room]);
-
-  useEffect(() => {
-    if (!highlightedQuestionId || activeQuestionId) return;
-    requestAnimationFrame(() => {
-      document
-        .getElementById(`team-question-${highlightedQuestionId}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-  }, [highlightedQuestionId, activeQuestionId]);
 
   const selfPacedLive =
     Boolean(room) &&
@@ -270,10 +259,6 @@ export function TeamPage() {
     hostedQuestionNavRef.current = (questionId) => {
       const q = room.questions.find((item) => item.id === questionId);
       if (!q || !isQuestionRevealedToTeam(room, q.id)) return;
-      if (highlightTimerRef.current) {
-        clearTimeout(highlightTimerRef.current);
-        highlightTimerRef.current = null;
-      }
       setHighlightedQuestionId(null);
       setActiveQuestionId(q.id);
       const ans = room.answers.find((a) => a.teamId === teamId && a.questionId === q.id);
@@ -380,16 +365,12 @@ export function TeamPage() {
       delete next[question.id];
       return next;
     });
+    prepareReturnToQuizList(question.id);
     setActiveQuestionId(null);
-    flashHighlight(question.id);
   };
 
   const openQuestion = (q: Question) => {
     if (!isQuestionRevealedToTeam(room, q.id)) return;
-    if (highlightTimerRef.current) {
-      clearTimeout(highlightTimerRef.current);
-      highlightTimerRef.current = null;
-    }
     setHighlightedQuestionId(null);
     setActiveQuestionId(q.id);
     const ans = getMyAnswer(q.id);
@@ -412,9 +393,7 @@ export function TeamPage() {
   };
 
   const closeActiveQuestion = () => {
-    if (activeQuestionId) {
-      flashHighlight(activeQuestionId);
-    }
+    prepareReturnToQuizList(activeQuestionId);
     setActiveQuestionId(null);
   };
 
@@ -423,6 +402,11 @@ export function TeamPage() {
     activeQuestion && (room.questionStatus[activeQuestion.id] ?? 'locked') === 'open';
   const activeOrderingOrder =
     activeQuestion?.type === 'ordering' ? (parseOrderingAnswer(answerText) ?? []) : [];
+
+  const hideChoiceLabels =
+    activeQuestion && teamId
+      ? shouldHideParticipantChoiceLabels(activeQuestion, hasAnswered(activeQuestion.id))
+      : false;
 
   const canReviewOwn = room.settings.teamReviewOpen === true;
   const canSeeAnswerKey = room.settings.answerKeyOpen === true;
@@ -451,7 +435,11 @@ export function TeamPage() {
         teamId={teamId}
         teamName={myTeam?.name ?? 'Deltaker'}
         onBack={closeOwnReview}
-        backLabel={room.phase === 'grading' && assignment ? 'Tilbake til retterunde' : 'Tilbake'}
+        backLabel={
+          room.phase === 'grading' && assignment
+            ? 'Tilbake til retterunde'
+            : PARTICIPANT_BACK_TO_QUIZ_LABEL
+        }
       />
     );
   }
@@ -598,7 +586,23 @@ export function TeamPage() {
   return (
     <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle={`Fase: ${room.phase}`}>
       {room.settings.testMode && roomId && (
-        <TestModeBanner hostDashboardHref={`/host/${roomId}`} />
+        <TestModeParticipantBar
+          editHref={`/host/${roomId}/edit`}
+          hostHref={`/host/${roomId}`}
+          ending={testEnding}
+          onEndTest={() => {
+            void (async () => {
+              setTestEnding(true);
+              const ok = await emitTestSessionEnd(socket, roomId);
+              setTestEnding(false);
+              if (!ok) return;
+              clearTeamSession();
+              const returnTo = getTestReturnPath(roomId) ?? `/host/${roomId}/edit`;
+              clearTestReturnPath(roomId);
+              navigate(returnTo);
+            })();
+          }}
+        />
       )}
       {!connected && (
         <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
@@ -638,31 +642,21 @@ export function TeamPage() {
                     />
                   </div>
                 )}
-              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0 text-left">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-quiz-muted">
-                    Åpen oppgave
-                  </p>
-                  <p className="text-sm font-semibold text-quiz-text break-words">
-                    Du kan gå tilbake til oppgavelisten og åpne denne igjen så lenge quizmaster holder den åpen.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  onClick={closeActiveQuestion}
-                >
-                  Til oppgaver
-                </Button>
-              </div>
+              <ParticipantBackToQuizLink onClick={closeActiveQuestion} />
+              <p className="mb-4 text-sm text-quiz-muted leading-relaxed">
+                Du kan gå tilbake til oppgavelisten og åpne denne igjen så lenge quizmaster holder den
+                åpen.
+              </p>
               {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
                 activeQuestion.game?.gameId !== 'emojiHunt' &&
                 activeQuestion.game?.gameId !== 'dropBall' &&
                 activeQuestion.game?.gameId !== 'anagram' &&
                 activeQuestion.game?.gameId !== 'revealImage' && (
-                <QuestionBody question={activeQuestion} />
+                <QuestionBody
+                  question={activeQuestion}
+                  showTypeHeading={false}
+                  mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                />
               )}
               {activeQuestion.type === 'game' ? (
                 <TeamGameView
@@ -693,25 +687,41 @@ export function TeamPage() {
                     topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
                     bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
                     dragHandleLabel="Dra svar"
-                    getItemContent={(item) => (
-                      <OrderingChoiceContent item={item} variant="participant" />
+                    getItemContent={(item, index) => (
+                      <OrderingChoiceContent
+                        item={item}
+                        variant="participant"
+                        hideParticipantLabel={hideChoiceLabels}
+                        itemIndex={index}
+                        mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                      />
                     )}
                   />
                 </div>
               ) : (
                 <div className="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-2 sm:grid-cols-2">
-                  {activeQuestion.options?.map((opt) => (
+                  {activeQuestion.options?.map((opt, optIndex) => (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => updateActiveAnswer(opt.id)}
+                      aria-label={
+                        hideChoiceLabels
+                          ? `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                          : opt.text.trim() || `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                      }
                       className={`quiz-hover-lift box-border flex w-full min-w-0 max-w-full flex-col items-stretch justify-center rounded-2xl border-2 px-3 py-3 text-left min-h-[3.5rem] transition-all quiz-user-text sm:min-h-[4.75rem] ${
                         answerText === opt.id
                           ? 'border-violet-500 bg-gradient-to-br from-violet-100 to-fuchsia-50 shadow-md ring-2 ring-violet-300/40'
                           : 'border-indigo-200/80 bg-white/95 hover:border-violet-300'
                       }`}
                     >
-                      <McOptionButtonContent option={opt} />
+                      <McOptionButtonContent
+                        option={opt}
+                        hideParticipantLabel={hideChoiceLabels}
+                        optionIndex={optIndex}
+                        mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                      />
                     </button>
                   ))}
                 </div>
@@ -745,7 +755,7 @@ export function TeamPage() {
                 const canOpen = revealed && status === 'open';
 
                 return (
-                  <div key={q.id} id={`team-question-${q.id}`} className="min-w-0 max-w-full">
+                  <div key={q.id} id={teamQuestionListAnchorId(q.id)} className="min-w-0 max-w-full">
                     <QuestionCard
                       question={q}
                       status={status}

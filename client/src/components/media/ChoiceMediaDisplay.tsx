@@ -1,4 +1,5 @@
 import type { MediaAttachment } from '@quiz-tool/shared';
+import { getGameplayImageAlt } from '@quiz-tool/shared';
 
 export type ChoiceMediaVariant = 'mc-option' | 'ordering-card' | 'editor-preview' | 'comparison-row';
 
@@ -15,14 +16,27 @@ interface ChoiceMediaDisplayProps {
   media: MediaAttachment;
   variant: ChoiceMediaVariant;
   className?: string;
+  /** Use neutral alt only — hides spoiler metadata from alt/title during gameplay. */
+  spoilerSafe?: boolean;
+  genericAlt?: string;
 }
 
-export function ChoiceMediaDisplay({ media, variant, className = '' }: ChoiceMediaDisplayProps) {
+export function ChoiceMediaDisplay({
+  media,
+  variant,
+  className = '',
+  spoilerSafe = false,
+  genericAlt,
+}: ChoiceMediaDisplayProps) {
   const src = media.previewUrl || media.url;
+  const alt = spoilerSafe
+    ? getGameplayImageAlt(genericAlt ?? 'Illustrasjon')
+    : media.alt?.trim() || genericAlt?.trim() || 'Illustrasjon';
+
   return (
     <img
       src={src}
-      alt={media.alt?.trim() || ''}
+      alt={alt}
       loading="lazy"
       decoding="async"
       className={`${variantClass[variant]} ${className}`.trim()}

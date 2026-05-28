@@ -1,6 +1,7 @@
 import type { PublicRoomState } from '@quiz-tool/shared';
 import { Leaderboard } from '../leaderboard/Leaderboard';
 import { Card } from '../ui/Card';
+import { ParticipantBackToQuizLink } from './ParticipantBackToQuizLink';
 
 interface ProvisionalLeaderboardPanelProps {
   room: PublicRoomState;
@@ -12,13 +13,7 @@ export function ProvisionalLeaderboardPanel({ room, onBack }: ProvisionalLeaderb
 
   return (
     <div className="space-y-4">
-      <button
-        type="button"
-        onClick={onBack}
-        className="text-sm font-semibold text-violet-700 hover:underline"
-      >
-        ← Tilbake til oppgavene
-      </button>
+      <ParticipantBackToQuizLink onClick={onBack} className="mb-0" />
 
       {!finalLocked && (
         <Card className="border-2 border-amber-300/70 bg-amber-50/90 p-4 space-y-2">

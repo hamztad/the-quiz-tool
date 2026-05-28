@@ -6,6 +6,7 @@ import {
   isLiveQuizEditPhase,
   isQuestionEditableDuringLiveQuiz,
   mergeDraftWithLockedOpenQuestions,
+  migrateQuestionsChoiceLabelsFromMedia,
   questionsToQuizText,
   type GameId,
   type Question,
@@ -98,16 +99,18 @@ export function HostEditPage() {
         const roomHash = quizContentHash(room.questions);
         setExportedHash(stored?.exportedHash ?? '');
         if (stored && stored.questions.length > 0 && storedHash !== roomHash) {
-          setDraftQuestions(stored.questions);
-          syncImportTextFromDraft(stored.questions);
+          const restored = migrateQuestionsChoiceLabelsFromMedia(stored.questions);
+          setDraftQuestions(restored);
+          syncImportTextFromDraft(restored);
           setExpandedIds(new Set());
           setDirty(true);
           setRecoveryMessage('Quiz gjenopprettet fra nettleseren. Last ned quizfil for permanent lagring.');
           return;
         }
       }
-      setDraftQuestions(room.questions);
-      syncImportTextFromDraft(room.questions);
+      const migrated = migrateQuestionsChoiceLabelsFromMedia(room.questions);
+      setDraftQuestions(migrated);
+      syncImportTextFromDraft(migrated);
       setExpandedIds(new Set());
     }
   }, [room?.questions, roomId, dirty, syncImportTextFromDraft]);
@@ -378,7 +381,9 @@ export function HostEditPage() {
   const handleStartTest = async () => {
     if (!roomId || !room) return;
     setTestBusy('start');
-    const result = await emitTestSessionStart(socket, roomId, room.joinCode);
+    const result = await emitTestSessionStart(socket, roomId, room.joinCode, {
+      returnPath: `/host/${roomId}/edit`,
+    });
     setTestBusy(null);
     if (result.ok) {
       navigate(`/team/${roomId}`);
@@ -390,7 +395,7 @@ export function HostEditPage() {
   const handleEndTest = async () => {
     if (!roomId) return;
     setTestBusy('end');
-    const ok = await emitTestSessionEnd(socket);
+    const ok = await emitTestSessionEnd(socket, roomId);
     setTestBusy(null);
     if (ok) {
       clearTeamSession();

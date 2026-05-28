@@ -22,7 +22,7 @@ import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import { canStartAiGrading, collectOpenAnswerGradeJobs } from '@quiz-tool/shared';
 import { startTeamGame, submitGameResult } from '../../domain/gameService.js';
 import {
-  revealNextRevealImageTile,
+  revealRevealImageTile,
   showRevealImageChoices,
 } from '../../domain/revealImageService.js';
 import {
@@ -366,9 +366,22 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     }
   });
 
-  socket.on(CLIENT_EVENTS.TEST_SESSION_END, (_payload: Record<string, never>, ack?: (res: unknown) => void) => {
+  socket.on(
+    CLIENT_EVENTS.TEST_SESSION_END,
+    (payload: { hostToken?: string } | undefined, ack?: (res: unknown) => void) => {
     const roomId = socket.data.roomId as string;
-    if (!requireHost(socket, roomId)) return;
+    const room = roomStore.get(roomId);
+    const asHost = socket.data.role === 'host' && socket.data.roomId === roomId;
+    const asTestParticipant =
+      room?.settings.testMode === true &&
+      socket.data.role === 'secretary' &&
+      socket.data.teamId === room.settings.testTeamId &&
+      typeof payload?.hostToken === 'string' &&
+      payload.hostToken === room.hostToken;
+    if (!asHost && !asTestParticipant) {
+      emitError(socket, 'Kun quizmaster kan avslutte testmodus.');
+      return;
+    }
 
     try {
       const testTeamId = roomStore.get(roomId)?.settings.testTeamId;
@@ -381,7 +394,8 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke avslutte testmodus');
     }
-  });
+    },
+  );
 
   socket.on('disconnect', () => {
     const roomId = socket.data.roomId as string | undefined;
@@ -571,31 +585,34 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     },
   );
 
-  socket.on(CLIENT_EVENTS.REVEAL_IMAGE_TILE, (payload: { questionId: string }) => {
-    const roomId = socket.data.roomId as string;
-    const teamId = socket.data.teamId as string;
-    if (!requireSecretary(socket, roomId)) return;
-    try {
-      const room = roomStore.get(roomId);
-      const question = room?.questions.find((item) => item.id === payload.questionId);
-      const game =
-        question?.type === 'game' && question.game?.gameId === 'revealImage' ? question.game : null;
-      if (!game) {
-        emitError(socket, 'Ugyldig spill.');
-        return;
+  socket.on(
+    CLIENT_EVENTS.REVEAL_IMAGE_TILE,
+    (payload: { questionId: string; tileIndex: number }) => {
+      const roomId = socket.data.roomId as string;
+      const teamId = socket.data.teamId as string;
+      if (!requireSecretary(socket, roomId)) return;
+      try {
+        const room = roomStore.get(roomId);
+        const question = room?.questions.find((item) => item.id === payload.questionId);
+        const game =
+          question?.type === 'game' && question.game?.gameId === 'revealImage' ? question.game : null;
+        if (!game) {
+          emitError(socket, 'Ugyldig spill.');
+          return;
+        }
+        if (room && hasTeamSolvedRevealImage(room, payload.questionId, teamId)) {
+          emitError(socket, 'Forsøket er allerede låst etter riktig svar.');
+          return;
+        }
+        roomStore.update(roomId, (r) =>
+          revealRevealImageTile(r, payload.questionId, teamId, game.gridSize, payload.tileIndex),
+        );
+        publishRoomState(io, roomId);
+      } catch (e) {
+        emitError(socket, e instanceof Error ? e.message : 'Kunne ikke åpne rute');
       }
-      if (room && hasTeamSolvedRevealImage(room, payload.questionId, teamId)) {
-        emitError(socket, 'Forsøket er allerede låst etter riktig svar.');
-        return;
-      }
-      roomStore.update(roomId, (r) =>
-        revealNextRevealImageTile(r, payload.questionId, teamId, game.gridSize),
-      );
-      publishRoomState(io, roomId);
-    } catch (e) {
-      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke åpne rute');
-    }
-  });
+    },
+  );
 
   socket.on(CLIENT_EVENTS.REVEAL_IMAGE_SHOW_CHOICES, (payload: { questionId: string }) => {
     const roomId = socket.data.roomId as string;

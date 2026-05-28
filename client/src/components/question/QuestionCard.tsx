@@ -1,6 +1,7 @@
 import {
   formatOrderingOrder,
   getChoiceItemLabel,
+  getParticipantMediaCreditsMode,
   type ActiveQuestionTimer,
   type Question,
   type QuestionStatus,
@@ -73,6 +74,8 @@ export function QuestionCard({
 
   const lockedUnanswered = status === 'locked' && !answered;
   const teamWaiting = viewMode === 'team' && !teamRevealed;
+  const mediaCreditsMode =
+    viewMode === 'team' ? getParticipantMediaCreditsMode(status) : 'full';
 
   return (
     <Card
@@ -134,6 +137,7 @@ export function QuestionCard({
           question={question}
           showHint={viewMode !== 'team' || teamRevealed}
           showTypeHeading={viewMode !== 'team'}
+          mediaCreditsMode={mediaCreditsMode}
         />
       )}
       {showHostQuestionDetails && question.type === 'mc' && teamRevealed && (

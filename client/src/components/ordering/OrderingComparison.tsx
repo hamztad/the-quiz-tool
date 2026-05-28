@@ -31,7 +31,11 @@ export function OrderingComparison({ question, submittedValue }: OrderingCompari
               >
                 <span className="shrink-0 font-black tabular-nums">{index + 1}</span>
                 {itemsById.get(itemId) ? (
-                  <OrderingChoiceContent item={itemsById.get(itemId)!} variant="comparison" />
+                  <OrderingChoiceContent
+                    item={itemsById.get(itemId)!}
+                    variant="comparison"
+                    mediaCreditsMode="revealed"
+                  />
                 ) : (
                   <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{itemId}</span>
                 )}

@@ -24,6 +24,7 @@ import { buildFinalLeaderboardSnapshot } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
 import { generateId, generateJoinCode, generateToken } from '../utils/id.js';
 import { computeLeaderboard } from './leaderboardService.js';
+import { lockQuestion, openQuestion } from './questionService.js';
 
 export function createRoom(title?: string): RoomRecord {
   const roomId = generateId('room');
@@ -287,6 +288,29 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
   };
 }
 
+/** Start live phase if needed and open every question for quizmaster test run. */
+export function prepareRoomForTestSession(room: RoomRecord): RoomRecord {
+  let next: RoomRecord =
+    room.phase === 'lobby'
+      ? { ...room, phase: 'live', liveStartedAt: Date.now() }
+      : room;
+
+  for (const question of next.questions) {
+    next = openQuestion(next, question.id, { allowWhenTeamsLockedOut: true });
+  }
+  return next;
+}
+
+function lockAllQuestionsAfterTest(room: RoomRecord): RoomRecord {
+  let next = room;
+  for (const question of next.questions) {
+    if (next.questionStatus[question.id] === 'open') {
+      next = lockQuestion(next, question.id);
+    }
+  }
+  return next;
+}
+
 export function startTestSession(
   room: RoomRecord,
 ): { room: RoomRecord; teamId: string; teamToken: string } {
@@ -299,18 +323,21 @@ export function startTestSession(
   if (existingTestId) {
     const token = room.teamTokens[existingTestId];
     if (token) {
+      const prepared = prepareRoomForTestSession({
+        ...room,
+        settings: { ...room.settings, testMode: true, testTeamId: existingTestId },
+      });
       return {
-        room: {
-          ...room,
-          settings: { ...room.settings, testMode: true, testTeamId: existingTestId },
-        },
+        room: prepared,
         teamId: existingTestId,
         teamToken: token,
       };
     }
   }
 
-  const joined = joinTeam(room, RESERVED_TEST_PARTICIPANT_NAME, { isTest: true });
+  const joined = joinTeam(prepareRoomForTestSession(room), RESERVED_TEST_PARTICIPANT_NAME, {
+    isTest: true,
+  });
   return {
     room: {
       ...joined.room,
@@ -336,6 +363,7 @@ export function endTestSession(room: RoomRecord): RoomRecord {
   }
 
   let next = removeTeam(room, testTeamId);
+  next = lockAllQuestionsAfterTest(next);
   next = {
     ...next,
     settings: { ...next.settings, testMode: false, testTeamId: undefined },
@@ -344,7 +372,7 @@ export function endTestSession(room: RoomRecord): RoomRecord {
   const onlyTestWasPlaying =
     next.teams.length === 0 && next.phase !== 'lobby' && next.phase !== 'ended';
   if (onlyTestWasPlaying) {
-    next = { ...next, phase: 'lobby' };
+    next = { ...next, phase: 'lobby', liveStartedAt: undefined };
   }
 
   return next;

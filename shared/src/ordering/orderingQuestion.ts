@@ -1,4 +1,5 @@
-import { choiceItemHasContent, getChoiceItemLabel } from '../media/mediaAttachment.js';
+import { getChoiceItemLabel } from '../media/mediaAttachment.js';
+import { validateOrderingChoiceItems } from '../choice/choiceValidation.js';
 import type { OrderingItem, Question, ScoreEntry } from '../types/room.js';
 
 export const ORDERING_MIN_ITEMS = 3;
@@ -8,7 +9,9 @@ export function normalizeOrderingItemText(text: string): string {
   return text.trim().replace(/\s+/g, ' ');
 }
 
-export function validateOrderingQuestion(question: Pick<Question, 'orderingItems' | 'orderingCorrectOrder'>): string[] {
+export function validateOrderingQuestion(
+  question: Pick<Question, 'orderingItems' | 'orderingCorrectOrder' | 'imageOnlyOptions'>,
+): string[] {
   const errors: string[] = [];
   const items = question.orderingItems ?? [];
   const correctOrder = question.orderingCorrectOrder ?? [];
@@ -17,15 +20,14 @@ export function validateOrderingQuestion(question: Pick<Question, 'orderingItems
     errors.push(`rekkefølge må ha ${ORDERING_MIN_ITEMS}-${ORDERING_MAX_ITEMS} elementer.`);
   }
 
+  errors.push(...validateOrderingChoiceItems(items, question.imageOnlyOptions));
+
   const ids = new Set<string>();
   const normalizedTexts = new Set<string>();
   for (const item of items) {
     const text = normalizeOrderingItemText(item.text);
     if (!item.id.trim()) {
       errors.push('rekkefølge har et element uten id.');
-    }
-    if (!choiceItemHasContent(item)) {
-      errors.push('rekkefølge har tomme elementer (tekst eller bilde).');
     }
     if (ids.has(item.id)) {
       errors.push('rekkefølge har dupliserte element-id-er.');

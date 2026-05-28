@@ -152,6 +152,9 @@ function isQuestion(value: unknown): value is Question {
   if (!isQuestionType(value.type)) return false;
   if (!Array.isArray(value.lines) || !value.lines.every(isQuestionLine)) return false;
   if (typeof value.maxPoints !== 'number') return false;
+  if (value.imageOnlyOptions !== undefined && typeof value.imageOnlyOptions !== 'boolean') {
+    return false;
+  }
   if (value.timer !== undefined && !isValidQuestionTimerConfig(value.timer)) return false;
   if (value.type !== 'game' && value.game !== undefined) return false;
   if (value.type !== 'game' && value.gameType !== undefined) return false;
@@ -208,7 +211,8 @@ function isQuestion(value: unknown): value is Question {
     return validateOrderingQuestion({
       orderingItems: value.orderingItems,
       orderingCorrectOrder: value.orderingCorrectOrder,
-    } as Pick<Question, 'orderingItems' | 'orderingCorrectOrder'>).length === 0;
+      imageOnlyOptions: value.imageOnlyOptions === true ? true : undefined,
+    } as Pick<Question, 'orderingItems' | 'orderingCorrectOrder' | 'imageOnlyOptions'>).length === 0;
   }
 
   if (value.orderingItems !== undefined || value.orderingCorrectOrder !== undefined) return false;

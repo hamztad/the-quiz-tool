@@ -229,7 +229,9 @@ export function HostDashboardPage() {
   const handleStartTest = async () => {
     if (!roomId) return;
     setTestBusy('start');
-    const result = await emitTestSessionStart(socket, roomId, room.joinCode);
+    const result = await emitTestSessionStart(socket, roomId, room.joinCode, {
+      returnPath: `/host/${roomId}`,
+    });
     setTestBusy(null);
     if (result.ok) {
       window.open(`/team/${roomId}`, '_blank', 'noopener,noreferrer');
@@ -238,7 +240,7 @@ export function HostDashboardPage() {
 
   const handleEndTest = async () => {
     setTestBusy('end');
-    const ok = await emitTestSessionEnd(socket);
+    const ok = await emitTestSessionEnd(socket, roomId);
     setTestBusy(null);
     if (ok) {
       clearTeamSession();

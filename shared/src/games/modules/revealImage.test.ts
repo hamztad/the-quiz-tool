@@ -4,6 +4,7 @@ import {
   buildRevealImageResults,
   calculateRevealImageScore,
   createDefaultRevealImageConfig,
+  generateRevealImageTileColors,
   isRevealImageAnswerCorrect,
   normalizeRevealImageAnswer,
 } from './revealImage.js';
@@ -13,6 +14,13 @@ describe('revealImage', () => {
     expect(normalizeRevealImageAnswer('  Ære   Være  ')).toBe('ære være');
   });
 
+  it('generates opaque varied tile colors', () => {
+    const colors = generateRevealImageTileColors(9, 'team-q1');
+    expect(colors).toHaveLength(9);
+    expect(new Set(colors).size).toBeGreaterThan(1);
+    expect(colors.every((c) => c.startsWith('hsl(') && !c.includes('rgba'))).toBe(true);
+  });
+
   it('matches accepted answers', () => {
     const config = createDefaultRevealImageConfig();
     config.correctAnswer = 'Kong Harald';
@@ -20,6 +28,15 @@ describe('revealImage', () => {
     expect(isRevealImageAnswerCorrect('harald   v', config)).toBe(true);
     expect(isRevealImageAnswerCorrect('Kong Harald', config)).toBe(true);
     expect(isRevealImageAnswerCorrect('Kronprins', config)).toBe(false);
+  });
+
+  it('is case-insensitive for correct and alternative answers', () => {
+    const config = createDefaultRevealImageConfig();
+    config.correctAnswer = 'Erling Braut Haaland';
+    config.acceptedAnswers = ['Håland', 'Erling'];
+    expect(isRevealImageAnswerCorrect('HÅLAND', config)).toBe(true);
+    expect(isRevealImageAnswerCorrect('ERLING BRAUT HAALAND', config)).toBe(true);
+    expect(isRevealImageAnswerCorrect('erling', config)).toBe(true);
   });
 
   it('calculates free text score', () => {

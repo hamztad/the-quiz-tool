@@ -4,7 +4,7 @@ import type { RoomRecord } from '../store/RoomStore.js';
 import {
   clearRevealImageProgressForQuestion,
   getRevealImageProgress,
-  revealNextRevealImageTile,
+  revealRevealImageTile,
   showRevealImageChoices,
 } from './revealImageService.js';
 
@@ -59,24 +59,29 @@ function baseRoom(): RoomRecord {
 }
 
 describe('revealImageService', () => {
-  it('reveals tiles in server order and persists progress', () => {
+  it('opens the tile index the participant clicked', () => {
     let room = baseRoom();
-    room = revealNextRevealImageTile(room, 'q1', 'team1', 5);
-    room = revealNextRevealImageTile(room, 'q1', 'team1', 5);
+    room = revealRevealImageTile(room, 'q1', 'team1', 5, 7);
+    room = revealRevealImageTile(room, 'q1', 'team1', 5, 12);
     const progress = getRevealImageProgress(room, 'q1', 'team1');
-    expect(progress?.openedTileIndices).toHaveLength(2);
-    expect(progress?.tileOrder).toHaveLength(25);
-    expect(new Set(progress?.openedTileIndices).size).toBe(2);
+    expect(progress?.openedTileIndices).toEqual([7, 12]);
+    expect(progress?.tileColors).toHaveLength(25);
+    expect(progress?.tileColors.every((color) => !color.includes('rgba'))).toBe(true);
+  });
+
+  it('rejects opening the same tile twice', () => {
+    let room = revealRevealImageTile(baseRoom(), 'q1', 'team1', 5, 3);
+    expect(() => revealRevealImageTile(room, 'q1', 'team1', 5, 3)).toThrow(/allerede åpnet/);
   });
 
   it('locks usedChoices after show choices', () => {
-    let room = revealNextRevealImageTile(baseRoom(), 'q1', 'team1', 5);
+    let room = revealRevealImageTile(baseRoom(), 'q1', 'team1', 5, 0);
     room = showRevealImageChoices(room, 'q1', 'team1', 5);
     expect(getRevealImageProgress(room, 'q1', 'team1')?.usedChoices).toBe(true);
   });
 
   it('clears progress when question is reset', () => {
-    let room = revealNextRevealImageTile(baseRoom(), 'q1', 'team1', 5);
+    let room = revealRevealImageTile(baseRoom(), 'q1', 'team1', 5, 1);
     room = clearRevealImageProgressForQuestion(room, 'q1');
     expect(getRevealImageProgress(room, 'q1', 'team1')).toBeUndefined();
   });

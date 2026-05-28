@@ -17,6 +17,8 @@ import { OrderingComparison } from '../ordering/OrderingComparison';
 import { useSocket } from '../../hooks/useSocket';
 import { getQuestionFasitText } from '../../lib/hostAnswerKey';
 import { formatOppgaveLabel } from '../../lib/participantCopy';
+import { PARTICIPANT_BACK_TO_QUIZ_LABEL } from '../../lib/teamQuestionListNav';
+import { ParticipantBackToQuizLink } from './ParticipantBackToQuizLink';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
 import {
   getTeamQuestionScore,
@@ -103,7 +105,7 @@ export function TeamResultsReviewView({
   teamId,
   teamName,
   onBack,
-  backLabel = 'Tilbake',
+  backLabel = PARTICIPANT_BACK_TO_QUIZ_LABEL,
 }: TeamResultsReviewViewProps) {
   const { socket } = useSocket();
   const [protestDrafts, setProtestDrafts] = useState<Record<string, string>>({});
@@ -150,13 +152,16 @@ export function TeamResultsReviewView({
 
   return (
     <PageShell showBrand="compact" title={teamName} subtitle="Egne svar og poeng">
-      {onBack && (
-        <div className="mb-4">
-          <Button type="button" variant="secondary" size="sm" onClick={onBack}>
-            ← {backLabel}
-          </Button>
-        </div>
-      )}
+      {onBack &&
+        (backLabel === PARTICIPANT_BACK_TO_QUIZ_LABEL ? (
+          <ParticipantBackToQuizLink onClick={onBack} />
+        ) : (
+          <div className="mb-4">
+            <Button type="button" variant="secondary" size="sm" onClick={onBack}>
+              ← {backLabel}
+            </Button>
+          </div>
+        ))}
 
       <p className="text-sm text-quiz-muted mb-5 leading-relaxed">
         Se hvordan svarene dine ble vurdert. Du kan sende protest til quizmaster hvis du mener
@@ -239,7 +244,7 @@ export function TeamResultsReviewView({
                   <Badge variant={status.variant}>{status.label}</Badge>
                 </div>
 
-                <QuestionBody question={question} showHint={false} />
+                <QuestionBody question={question} showHint={false} mediaCreditsMode="revealed" />
 
                 <section className="rounded-xl border border-quiz-border/80 bg-quiz-bg/40 overflow-hidden min-w-0">
                   <div className="border-b border-quiz-border/80 px-3 py-2">

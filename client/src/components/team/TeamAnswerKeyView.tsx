@@ -1,7 +1,7 @@
 import type { PublicRoomState } from '@quiz-tool/shared';
 import { QuestionBody } from '../question/QuestionBody';
 import { PageShell } from '../layout/PageShell';
-import { Button } from '../ui/Button';
+import { ParticipantBackToQuizLink } from './ParticipantBackToQuizLink';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { getQuestionFasitText } from '../../lib/hostAnswerKey';
@@ -16,11 +16,7 @@ interface TeamAnswerKeyViewProps {
 export function TeamAnswerKeyView({ room, teamName, onBack }: TeamAnswerKeyViewProps) {
   return (
     <PageShell showBrand="compact" title={teamName} subtitle="Fasit">
-      <div className="mb-4">
-        <Button type="button" variant="secondary" size="sm" onClick={onBack}>
-          Tilbake
-        </Button>
-      </div>
+      <ParticipantBackToQuizLink onClick={onBack} />
 
       <p className="mb-5 text-sm text-quiz-muted">
         Offisiell fasit fra quizmaster. Her vises ikke andre deltakeres svar.
@@ -53,7 +49,7 @@ export function TeamAnswerKeyView({ room, teamName, onBack }: TeamAnswerKeyViewP
                 <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-quiz-muted">
                   Oppgavetekst
                 </h3>
-                <QuestionBody question={question} showHint={false} />
+                <QuestionBody question={question} showHint={false} mediaCreditsMode="revealed" />
               </section>
 
               <section className="rounded-xl border border-green-500/30 bg-green-500/5 overflow-hidden min-w-0">

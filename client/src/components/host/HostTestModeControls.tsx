@@ -1,6 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import type { PublicRoomState } from '@quiz-tool/shared';
+import {
+  testModeAlertBodyClass,
+  testModeAlertButtonOutlineClass,
+  testModeAlertPanelClass,
+  testModeAlertTitleClass,
+} from '../test/testModeAlertStyles';
 
 interface HostTestModeControlsProps {
   room: PublicRoomState;
@@ -27,11 +33,12 @@ export function HostTestModeControls({
 
   if (room.settings.testMode) {
     return (
-      <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 space-y-3">
+      <div className={testModeAlertPanelClass}>
         <div>
-          <p className="text-sm font-semibold text-amber-100">Testmodus er aktiv</p>
-          <p className="mt-1 text-xs text-amber-100/80 leading-relaxed">
-            Én testdeltaker er opprettet. Styr quizen her og svar som deltaker i deltakervisningen.
+          <p className={testModeAlertTitleClass}>Testmodus er aktiv</p>
+          <p className={`mt-1 ${testModeAlertBodyClass}`}>
+            Alle oppgaver er åpne. Styr quizen her eller svar i deltakervisningen — der finner du
+            knapper tilbake til redigering og for å avslutte test.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -43,7 +50,7 @@ export function HostTestModeControls({
           <Button
             type="button"
             variant="ghost"
-            className="w-full sm:w-auto border border-amber-400/30"
+            className={`w-full sm:w-auto ${testModeAlertButtonOutlineClass}`}
             disabled={ending}
             onClick={onEndTest}
           >
@@ -59,8 +66,8 @@ export function HostTestModeControls({
       <div>
         <p className="text-sm font-semibold text-quiz-text">Prøv quizen</p>
         <p className="mt-1 text-xs text-quiz-muted leading-relaxed">
-          Oppretter én testdeltaker slik at du kan gå gjennom spørsmål, spill og leaderboard uten ekte
-          deltakere.
+          Oppretter én testdeltaker, setter quizen i gang og åpner alle oppgaver automatisk, slik at du
+          kan prøve hele opplegget uten ekte deltakere.
         </p>
       </div>
       <Button

@@ -16,6 +16,26 @@ export const DEFAULT_REVEAL_IMAGE_MAX_POINTS = 100;
 export const DEFAULT_REVEAL_IMAGE_CHOICE_MULTIPLIER = 0.6;
 export const DEFAULT_REVEAL_IMAGE_MIN_SCORE = 10;
 
+/** Seeded opaque HSL colors — one per tile, varied per game session. */
+export function generateRevealImageTileColors(totalTiles: number, seed: string): string[] {
+  let state = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    state = (state * 31 + seed.charCodeAt(i)) | 0;
+  }
+  const next = () => {
+    state = (state * 1103515245 + 12345) | 0;
+    return ((state >>> 16) & 0x7fff) / 0x7fff;
+  };
+  const colors: string[] = [];
+  for (let i = 0; i < totalTiles; i += 1) {
+    const hue = Math.floor(next() * 360);
+    const saturation = 58 + Math.floor(next() * 22);
+    const lightness = 38 + Math.floor(next() * 16);
+    colors.push(`hsl(${hue} ${saturation}% ${lightness}%)`);
+  }
+  return colors;
+}
+
 export function normalizeRevealImageAnswer(value: string): string {
   return value
     .normalize('NFKC')

@@ -19,8 +19,10 @@ import {
   validateAnagramAnswerText,
   validateMathExpression,
   validateMathExpressionConfig,
-  choiceItemHasContent,
+  validateMcChoices,
+  validateOrderingChoiceItems,
 } from '@quiz-tool/shared';
+import { ImageOnlyOptionsSetting } from './ImageOnlyOptionsSetting';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -392,6 +394,48 @@ function OpenAnswersEditor({
   );
 }
 
+function parseRevealImageAcceptedAnswersInput(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/** Keeps raw comma-separated text while typing (trailing comma/space allowed). */
+function RevealImageAcceptedAnswersInput({
+  questionId,
+  acceptedAnswers,
+  onAcceptedAnswersChange,
+}: {
+  questionId: string;
+  acceptedAnswers: string[];
+  onAcceptedAnswersChange: (answers: string[]) => void;
+}) {
+  const [draft, setDraft] = useState(() => acceptedAnswers.join(', '));
+
+  useEffect(() => {
+    setDraft(acceptedAnswers.join(', '));
+  }, [questionId]);
+
+  return (
+    <Input
+      value={draft}
+      onChange={(event) => {
+        const raw = event.target.value;
+        setDraft(raw);
+        onAcceptedAnswersChange(parseRevealImageAcceptedAnswersInput(raw));
+      }}
+      onBlur={() => {
+        const parsed = parseRevealImageAcceptedAnswersInput(draft);
+        const normalized = parsed.join(', ');
+        setDraft(normalized);
+        onAcceptedAnswersChange(parsed);
+      }}
+      placeholder="Harald V, Kongen"
+    />
+  );
+}
+
 function GameQuestionEditor({
   question,
   onChange,
@@ -464,18 +508,10 @@ function GameQuestionEditor({
         </label>
         <label className="block min-w-0">
           <span className="mb-1 block text-xs font-medium text-quiz-muted">Alternative godkjente svar (kommaseparert)</span>
-          <Input
-            value={config.acceptedAnswers.join(', ')}
-            onChange={(event) =>
-              updateGame({
-                ...config,
-                acceptedAnswers: event.target.value
-                  .split(',')
-                  .map((part) => part.trim())
-                  .filter(Boolean),
-              })
-            }
-            placeholder="Harald V, Kongen"
+          <RevealImageAcceptedAnswersInput
+            questionId={question.id}
+            acceptedAnswers={config.acceptedAnswers}
+            onAcceptedAnswersChange={(acceptedAnswers) => updateGame({ ...config, acceptedAnswers })}
           />
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -1240,12 +1276,21 @@ function McOptionsEditor({
     });
   };
 
+  const choiceErrors = validateMcChoices(options, question.imageOnlyOptions);
+
   return (
     <div className="rounded-lg border border-quiz-border bg-quiz-bg p-3 space-y-2 min-w-0 max-w-full overflow-x-hidden">
       <p className="text-xs font-semibold text-quiz-text">Svaralternativer — trykk for riktig</p>
       <p className="text-xs text-quiz-muted">
-        Tekst og/eller bilde per alternativ. Bilder skaleres for mobil og stor skjerm.
+        Hvert alternativ må ha tekst (fasit/etikett). Bilde er valgfritt, eller påkrevd ved «Bruk kun
+        bildene».
       </p>
+      <ImageOnlyOptionsSetting question={question} onChange={onChange} />
+      {choiceErrors.map((message) => (
+        <p key={message} className="text-xs font-medium text-amber-900">
+          {message}
+        </p>
+      ))}
       {options.map((opt, i) => (
         <div
           key={opt.id}
@@ -1267,7 +1312,7 @@ function McOptionsEditor({
             <EditorTextArea
               value={opt.text}
               onChange={(e) => setOptionText(opt.id, e.target.value)}
-              placeholder={`Alternativ ${i + 1}… (valgfritt med bilde)`}
+              placeholder={`Etikett / fasit for alternativ ${i + 1}…`}
               minRows={1}
               className="flex-1 min-w-0 bg-quiz-surface py-2 text-sm"
             />
@@ -1316,7 +1361,7 @@ function OrderingQuestionEditor({
     .map((item) => item.text.trim().toLocaleLowerCase('nb'))
     .filter(Boolean);
   const hasDuplicateTexts = new Set(trimmedTexts).size !== trimmedTexts.length;
-  const hasEmptyItems = items.some((item) => !choiceItemHasContent(item));
+  const choiceErrors = validateOrderingChoiceItems(items, question.imageOnlyOptions);
 
   const setItemsAndOrder = (nextItems: OrderingItem[], nextOrder = order) => {
     const itemIds = new Set(nextItems.map((item) => item.id));
@@ -1356,10 +1401,17 @@ function OrderingQuestionEditor({
       <div>
         <p className="text-xs font-semibold text-quiz-text">Rekkefølge — fasit er topp til bunn</p>
         <p className="mt-1 text-xs text-quiz-muted">
-          Dra elementene i riktig vertikal rekkefølge. Deltakerne får dem tilfeldig stokket. Hvert
-          element kan ha tekst og/eller bilde.
+          Dra elementene i riktig vertikal rekkefølge. Hvert element må ha tekst (fasit/etikett).
+          Bilde er valgfritt, eller påkrevd ved «Bruk kun bildene».
         </p>
       </div>
+
+      <ImageOnlyOptionsSetting question={question} onChange={onChange} />
+      {choiceErrors.map((message) => (
+        <p key={message} className="text-xs font-medium text-amber-900">
+          {message}
+        </p>
+      ))}
 
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="block min-w-0">
@@ -1406,11 +1458,6 @@ function OrderingQuestionEditor({
         )}
       />
 
-      {hasEmptyItems && (
-        <p className="text-xs font-medium text-yellow-900">
-          Hvert element trenger tekst eller bilde.
-        </p>
-      )}
       {hasDuplicateTexts && (
         <p className="text-xs font-medium text-yellow-900">Tekstene må være unike.</p>
       )}

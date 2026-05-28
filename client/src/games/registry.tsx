@@ -3,6 +3,7 @@ import {
   formatDropBallScore,
   formatEmojiHuntMs,
   formatTimerMs,
+  getParticipantMediaCreditsMode,
   isRevealImageAnswerCorrect,
   rankGameEntries,
   type PublicRoomState,
@@ -494,8 +495,13 @@ function RevealImageTeamView({ room, question, teamId }: TeamGameViewProps) {
         isRevealImageAnswerCorrect(submission.payload.answer, config),
       )
     : false;
-  const hasImage = question.media?.some((item) => item.type === 'image');
-  if (!config || !hasImage || !teamToken) {
+  const imageMedia = question.media?.find((item) => item.type === 'image');
+  const questionStatus = room.questionStatus[question.id] ?? 'locked';
+  const mediaCreditsMode =
+    solved || questionStatus === 'locked'
+      ? 'revealed'
+      : getParticipantMediaCreditsMode('open');
+  if (!config || !imageMedia || !teamToken) {
     return (
       <p className="mt-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-900">
         Spillbildet mangler. Be quizmaster legge til bilde.
@@ -512,8 +518,10 @@ function RevealImageTeamView({ room, question, teamId }: TeamGameViewProps) {
       progress={progress}
       maxPoints={question.maxPoints}
       disabled={solved}
-      onRevealTile={() =>
-        socket.emit(CLIENT_EVENTS.REVEAL_IMAGE_TILE, { questionId: question.id })
+      imageMedia={imageMedia}
+      mediaCreditsMode={mediaCreditsMode}
+      onRevealTile={(tileIndex) =>
+        socket.emit(CLIENT_EVENTS.REVEAL_IMAGE_TILE, { questionId: question.id, tileIndex })
       }
       onShowChoices={() =>
         socket.emit(CLIENT_EVENTS.REVEAL_IMAGE_SHOW_CHOICES, { questionId: question.id })

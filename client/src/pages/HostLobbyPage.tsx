@@ -109,7 +109,8 @@ export function HostLobbyPage() {
   const handleStartTest = async () => {
     if (!roomId) return;
     setTestBusy('start');
-    const result = await emitTestSessionStart(socket, roomId, room.joinCode);
+    const returnPath = inviteOnly ? `/host/${roomId}` : `/host/${roomId}/edit`;
+    const result = await emitTestSessionStart(socket, roomId, room.joinCode, { returnPath });
     setTestBusy(null);
     if (result.ok) {
       navigate(`/team/${roomId}`);
@@ -118,7 +119,7 @@ export function HostLobbyPage() {
 
   const handleEndTest = async () => {
     setTestBusy('end');
-    const ok = await emitTestSessionEnd(socket);
+    const ok = await emitTestSessionEnd(socket, roomId);
     setTestBusy(null);
     if (ok) {
       clearTeamSession();
