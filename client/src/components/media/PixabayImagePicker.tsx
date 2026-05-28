@@ -30,6 +30,7 @@ export function PixabayImagePicker({
   const [pixabayLoading, setPixabayLoading] = useState<'nb' | 'en' | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [pixabayResults, setPixabayResults] = useState<PixabayImageResult[]>([]);
+  const [selectedPixabayResult, setSelectedPixabayResult] = useState<PixabayImageResult | null>(null);
   const [resultsVisible, setResultsVisible] = useState(false);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [activeSearch, setActiveSearch] = useState<{
@@ -44,12 +45,14 @@ export function PixabayImagePicker({
     onMediaChange(pixabayResultToMedia(result));
     setResultsVisible(false);
     setExpanded(false);
+    setSelectedPixabayResult(null);
     setError(null);
   };
 
   const removeImage = () => {
     onMediaChange(undefined);
     setPixabayResults([]);
+    setSelectedPixabayResult(null);
     setExpanded(true);
     setError(null);
   };
@@ -75,6 +78,7 @@ export function PixabayImagePicker({
     setError(null);
     setSearchNotice(null);
     setNoMoreResults(false);
+    setSelectedPixabayResult(null);
     try {
       const response = await searchPixabayImages(session, query, language, 1);
       setPixabayResults(response.results);
@@ -186,11 +190,11 @@ export function PixabayImagePicker({
                   key={result.id}
                   type="button"
                   className={`min-w-0 rounded-lg border p-1.5 text-left hover:border-quiz-accent ${
-                    media?.url === result.imageUrl
+                    selectedPixabayResult?.id === result.id || media?.url === result.imageUrl
                       ? 'border-quiz-accent bg-quiz-accent/10'
                       : 'border-quiz-border bg-quiz-bg'
                   }`}
-                  onClick={() => attachPixabay(result)}
+                  onClick={() => setSelectedPixabayResult(result)}
                 >
                   <img
                     src={result.previewUrl || result.imageUrl}
@@ -199,6 +203,26 @@ export function PixabayImagePicker({
                   />
                 </button>
               ))}
+            </div>
+          )}
+          {resultsVisible && selectedPixabayResult && (
+            <div className="rounded-xl border border-quiz-accent/40 bg-quiz-accent/10 p-2">
+              <p className="mb-2 text-xs font-semibold text-quiz-text">Valgt bilde</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <img
+                  src={selectedPixabayResult.previewUrl || selectedPixabayResult.imageUrl}
+                  alt={selectedPixabayResult.tags}
+                  className="h-14 w-20 rounded object-cover"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => attachPixabay(selectedPixabayResult)}
+                >
+                  + Legg til bilde
+                </Button>
+              </div>
             </div>
           )}
           {resultsVisible && activeSearch && !noMoreResults && activeSearch.hasMore && (
@@ -253,15 +277,9 @@ export function PixabayImagePicker({
           </div>
         </div>
       ) : (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="w-full sm:w-auto"
-          onClick={() => setExpanded(true)}
-        >
-          + Legg til bilde
-        </Button>
+        <p className="text-xs text-quiz-muted">
+          Velg et bilde fra trefflisten. Knappen for å legge til vises først når et bilde er valgt.
+        </p>
       )}
 
       {searchPanel}

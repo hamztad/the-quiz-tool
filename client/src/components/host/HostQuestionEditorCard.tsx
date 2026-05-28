@@ -218,6 +218,7 @@ export function HostQuestionEditorCard({
               className="text-sm sm:text-base font-medium bg-quiz-bg border-quiz-accent/30 py-2"
             />
           </div>
+          <ImageAttachmentEditor question={question} onChange={onChange} roomId={roomId} />
 
           {question.type === 'open' ? (
             <OpenAnswersEditor question={question} onChange={onChange} />
@@ -228,8 +229,6 @@ export function HostQuestionEditorCard({
           ) : (
             <GameQuestionEditor question={question} onChange={onChange} />
           )}
-
-          <ImageAttachmentEditor question={question} onChange={onChange} roomId={roomId} />
 
           <details
             open={moreOpen}
