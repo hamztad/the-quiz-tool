@@ -389,10 +389,14 @@ export function unlockFinalResult(room: RoomRecord): RoomRecord {
 }
 
 /** Soft end: teams see avsluttet-melding; host keeps post-quiz access */
-export function endQuizForTeams(room: RoomRecord): RoomRecord {
+export function endQuizForTeams(room: RoomRecord, now = Date.now()): RoomRecord {
   return {
     ...room,
     phase: 'post_quiz',
+    schedule:
+      room.schedule?.enabled && !room.schedule.completedAt
+        ? { ...room.schedule, completedAt: now }
+        : room.schedule,
     settings: {
       ...room.settings,
       showLeaderboard: true,

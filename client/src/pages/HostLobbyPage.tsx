@@ -124,6 +124,17 @@ export function HostLobbyPage() {
     socket.emit(CLIENT_EVENTS.QUIZ_START);
   };
 
+  const endQuizNow = () => {
+    if (
+      !window.confirm(
+        'Avslutte quizen for deltakerne nå? Quizmaster kan fortsatt se resultater og administrere etterpå.',
+      )
+    ) {
+      return;
+    }
+    socket.emit(CLIENT_EVENTS.QUIZ_END);
+  };
+
   const leavePresent = () => {
     if (inviteOnly) {
       navigate(`/host/${roomId}`);
@@ -248,6 +259,11 @@ export function HostLobbyPage() {
               }
             >
               {scheduleBlocksManualStart ? '⏰ Planlagt start' : '🚀 Start quiz'}
+            </Button>
+          )}
+          {inviteOnly && room.phase === 'live' && (
+            <Button size="lg" variant="secondary" className="w-full" onClick={endQuizNow}>
+              ⛔ Avslutt quiz nå
             </Button>
           )}
           <Button size="lg" variant="secondary" className="w-full" onClick={leavePresent}>

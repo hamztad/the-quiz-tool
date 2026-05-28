@@ -7,6 +7,11 @@ export function useSyncedCountdown(
   openedAt?: number,
 ): { remaining: number; progress: number; urgency: 'normal' | 'warning' | 'critical' } {
   const [now, setNow] = useState(() => Date.now());
+  // Keep hook order stable even when `endsAt` toggles on/off.
+  const serverOffsetMs = useMemo(
+    () => (serverNow ? serverNow - Date.now() : 0),
+    [serverNow],
+  );
 
   useEffect(() => {
     if (!endsAt) return;
@@ -18,11 +23,6 @@ export function useSyncedCountdown(
     return { remaining: 0, progress: 0, urgency: 'normal' };
   }
 
-  // Capture server/client skew when room state arrives, then let local clock tick from there.
-  const serverOffsetMs = useMemo(
-    () => (serverNow ? serverNow - Date.now() : 0),
-    [serverNow],
-  );
   const adjustedNow = now + serverOffsetMs;
   const remaining = remainingMs(endsAt, adjustedNow);
   const duration =
