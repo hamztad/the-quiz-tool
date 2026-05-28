@@ -48,7 +48,7 @@ export function QuestionBody({
       )}
       {question.type === 'ordering' &&
         (question.orderingDirectionTop || question.orderingDirectionBottom) && (
-          <div className="mt-2 rounded-2xl border-2 border-cyan-200/70 bg-gradient-to-r from-cyan-50 to-teal-50 px-4 py-3 text-sm sm:text-base font-bold text-cyan-900">
+          <div className="mt-2 rounded-2xl border-2 border-cyan-200/70 bg-gradient-to-r from-cyan-50 to-teal-50 px-4 py-3 text-sm sm:text-base font-bold text-cyan-900 break-words [overflow-wrap:anywhere]">
             {question.orderingDirectionTop || 'Øverst'} →{' '}
             {question.orderingDirectionBottom || 'Nederst'}
           </div>

@@ -24,8 +24,8 @@ export function OrderingChoiceEditorFields({
   onRemove,
 }: OrderingChoiceEditorFieldsProps) {
   return (
-    <div className="min-w-0 flex-1 space-y-2">
-      <div className="flex min-h-[52px] items-start gap-2">
+    <div className="min-w-0 max-w-full flex-1 space-y-2 overflow-hidden">
+      <div className="flex min-h-[52px] min-w-0 items-start gap-2">
         {item.media && <ChoiceMediaDisplay media={item.media} variant="editor-preview" />}
         <EditorTextArea
           value={item.text}

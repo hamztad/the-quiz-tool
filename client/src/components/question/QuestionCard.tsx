@@ -246,7 +246,13 @@ export function QuestionCard({
           <p className="text-[10px] font-medium uppercase tracking-wide text-quiz-muted sm:text-xs">
             Deres svar
           </p>
-          <p className="mt-1 text-sm font-medium text-quiz-text quiz-user-text">{teamAnswerPreview}</p>
+          <p
+            className={`mt-1 text-sm font-medium text-quiz-text quiz-user-text ${
+              question.type === 'ordering' ? 'whitespace-pre-line' : ''
+            }`}
+          >
+            {teamAnswerPreview}
+          </p>
         </div>
       )}
       {children}

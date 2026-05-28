@@ -72,7 +72,7 @@ function SortableOrderingCard({
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex items-stretch gap-2 rounded-2xl border p-2 shadow-sm transition-shadow ${
+      className={`flex min-w-0 max-w-full items-stretch gap-2 rounded-2xl border p-2 shadow-sm transition-shadow ${
         isDragging ? 'z-10 scale-[1.02] border-quiz-accent bg-quiz-accent/15 shadow-xl' : ''
       } ${className ?? 'border-quiz-border bg-quiz-surface-elevated/70'}`}
     >
@@ -122,12 +122,12 @@ export function SortableOrderingList({
   };
 
   return (
-    <div className="rounded-3xl border border-quiz-border bg-gradient-to-b from-quiz-accent/10 via-quiz-bg to-quiz-surface p-3 sm:p-4">
-      <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-quiz-accent">
-        <span className="rounded-full border border-quiz-accent/40 bg-quiz-accent/15 px-3 py-1">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-quiz-border bg-gradient-to-b from-quiz-accent/10 via-quiz-bg to-quiz-surface p-3 sm:p-4">
+      <div className="mb-2 flex min-w-0 items-center gap-2 text-xs font-bold text-quiz-accent">
+        <span className="max-w-[min(100%,18rem)] shrink-0 rounded-full border border-quiz-accent/40 bg-quiz-accent/15 px-3 py-1 break-words [overflow-wrap:anywhere] leading-snug">
           {topLabel || 'Øverst'}
         </span>
-        <span className="h-px flex-1 bg-quiz-accent/30" aria-hidden />
+        <span className="h-px min-w-4 flex-1 bg-quiz-accent/30" aria-hidden />
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
@@ -153,9 +153,9 @@ export function SortableOrderingList({
           </ol>
         </SortableContext>
       </DndContext>
-      <div className="mt-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-quiz-muted">
-        <span className="h-px flex-1 bg-quiz-border" aria-hidden />
-        <span className="rounded-full border border-quiz-border bg-quiz-bg/80 px-3 py-1">
+      <div className="mt-2 flex min-w-0 items-center gap-2 text-xs font-bold text-quiz-muted">
+        <span className="h-px min-w-4 flex-1 bg-quiz-border" aria-hidden />
+        <span className="max-w-[min(100%,18rem)] shrink-0 rounded-full border border-quiz-border bg-quiz-bg/80 px-3 py-1 break-words [overflow-wrap:anywhere] leading-snug">
           {bottomLabel || 'Nederst'}
         </span>
       </div>
