@@ -29,6 +29,7 @@ export function useRoomGate(
   const [reconnectAttempted, setReconnectAttempted] = useState(false);
   const [sessionInvalid, setSessionInvalid] = useState(false);
   const [sessionRestored, setSessionRestored] = useState(false);
+  const [selfPacedReconnectNotice, setSelfPacedReconnectNotice] = useState(false);
   const [reconnectTick, setReconnectTick] = useState(0);
 
   const session = useMemo(() => {
@@ -40,12 +41,15 @@ export function useRoomGate(
     if (!roomId || !session) return;
     setReconnectAttempted(false);
     setSessionInvalid(false);
-    const onDone = (res?: { ok?: boolean; code?: string }) => {
+    const onDone = (res?: { ok?: boolean; code?: string; selfPacedRestored?: boolean }) => {
       if (res?.ok === false && res.code === ROOM_ERROR_CODES.SESSION_INVALID) {
         setSessionInvalid(true);
       }
       if (res?.ok === true && mode === 'team') {
         setSessionRestored(true);
+      }
+      if (res?.ok === true && mode === 'host' && res.selfPacedRestored) {
+        setSelfPacedReconnectNotice(true);
       }
       setReconnectAttempted(true);
     };
@@ -121,6 +125,8 @@ export function useRoomGate(
     connected,
     operationalError,
     sessionRestored,
+    selfPacedReconnectNotice,
+    dismissSelfPacedReconnectNotice: () => setSelfPacedReconnectNotice(false),
     /** @deprecated use reconnecting */
     loading: reconnecting,
   };

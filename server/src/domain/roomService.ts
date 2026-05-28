@@ -13,7 +13,13 @@ import {
   validateQuestionsForSave,
   validateTeamName,
 } from '@quiz-tool/shared';
-import { createConnectedTeamPresence, markTeamConnected, markTeamDisconnected } from '@quiz-tool/shared';
+import {
+  computeRoomExpiresAt,
+  createConnectedTeamPresence,
+  DEFAULT_ROOM_TTL_MS,
+  markTeamConnected,
+  markTeamDisconnected,
+} from '@quiz-tool/shared';
 import { buildFinalLeaderboardSnapshot } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
 import { generateId, generateJoinCode, generateToken } from '../utils/id.js';
@@ -59,7 +65,7 @@ export function createRoom(title?: string): RoomRecord {
     hostToken,
     teamTokens: {},
     teamBrowserTokens: {},
-    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+    expiresAt: Date.now() + DEFAULT_ROOM_TTL_MS,
   };
 
   void title;

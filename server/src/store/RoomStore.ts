@@ -12,6 +12,7 @@ export interface RoomStore {
   create(room: RoomRecord): void;
   get(roomId: string): RoomRecord | undefined;
   getByJoinCode(joinCode: string): RoomRecord | undefined;
+  list(): RoomRecord[];
   update(roomId: string, updater: (room: RoomRecord) => RoomRecord): RoomRecord | undefined;
   delete(roomId: string): void;
 }

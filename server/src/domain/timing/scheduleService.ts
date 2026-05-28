@@ -1,6 +1,8 @@
 import {
   armQuizSchedule,
+  computeRoomExpiresAt,
   getFirstQuestionId,
+  isSelfPacedQuiz,
   validateScheduleInput,
   type QuizSchedule,
   type SetScheduleInput,
@@ -9,8 +11,8 @@ import type { RoomRecord } from '../../store/RoomStore.js';
 import { endQuizForTeams, startQuiz } from '../roomService.js';
 import { lockRound, openQuestion } from '../questionService.js';
 import { applySelfPacedQuizStart } from '../selfPacedService.js';
-import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import { clearAllQuestionTimers } from './questionTimerService.js';
+import { logScheduleLifecycle } from './scheduleLifecycleLog.js';
 
 export type { SetScheduleInput };
 export { validateScheduleInput };
@@ -29,14 +31,24 @@ export function setQuizSchedule(
 
   const generation = (room.schedule?.generation ?? 0) + 1;
   const schedule = armQuizSchedule(input, now, generation, room.questions);
+  const expiresAt = computeRoomExpiresAt({ ...room, schedule }, now);
 
-  return { ...room, schedule };
+  const next = { ...room, schedule, expiresAt };
+  logScheduleLifecycle('schedule_armed', {
+    roomId: room.id,
+    phase: next.phase,
+    schedule: next.schedule,
+    expiresAt: next.expiresAt,
+    note: isSelfPacedQuiz(schedule) ? 'self_paced' : undefined,
+  });
+  return next;
 }
 
 export function cancelQuizSchedule(room: RoomRecord): RoomRecord {
   if (room.phase !== 'lobby') {
     throw new Error('Tidsplan kan bare avbrytes før quizen starter.');
   }
+  logScheduleLifecycle('schedule_cancelled', { roomId: room.id, phase: room.phase });
   return { ...room, schedule: undefined };
 }
 
@@ -61,6 +73,17 @@ export function applyScheduledQuizStart(room: RoomRecord, now = Date.now()): Roo
     }
   }
 
+  next = {
+    ...next,
+    expiresAt: computeRoomExpiresAt(next, now),
+  };
+  logScheduleLifecycle('schedule_start_applied', {
+    roomId: next.id,
+    phase: next.phase,
+    schedule: next.schedule,
+    expiresAt: next.expiresAt,
+    note: isSelfPacedQuiz(schedule) ? 'self_paced' : undefined,
+  });
   return next;
 }
 
@@ -80,7 +103,17 @@ export function applyScheduledQuizEnd(room: RoomRecord, now = Date.now()): RoomR
   next = {
     ...next,
     schedule: { ...schedule, completedAt: now },
+    expiresAt: computeRoomExpiresAt(
+      { ...next, schedule: { ...schedule, completedAt: now } },
+      now,
+    ),
   };
+  logScheduleLifecycle('schedule_end_applied', {
+    roomId: next.id,
+    phase: next.phase,
+    schedule: next.schedule,
+    expiresAt: next.expiresAt,
+  });
   return next;
 }
 

@@ -291,9 +291,12 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
         if (payload.hostToken && payload.hostToken === activeRoom.hostToken) {
           attachSocket(socket, activeRoom.id, 'host');
-          emitRoomStateToSocket(socket, activeRoom.id);
-          ack?.({ ok: true, role: 'host' });
           publishRoomState(io, activeRoom.id);
+          const refreshed = roomStore.get(activeRoom.id) ?? activeRoom;
+          const selfPacedRestored =
+            isSelfPacedQuiz(refreshed.schedule) &&
+            (refreshed.phase === 'live' || refreshed.phase === 'lobby');
+          ack?.({ ok: true, role: 'host', selfPacedRestored });
           return;
         }
 

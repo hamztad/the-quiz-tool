@@ -14,6 +14,7 @@ import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
+import { HostSelfPacedReconnectBanner } from '../components/host/HostSelfPacedReconnectBanner';
 import { HostScheduleCard } from '../components/timing/HostScheduleCard';
 import { LiveQuizClock } from '../components/timing/LiveQuizClock';
 import { QuizBackupPanel } from '../components/host/QuizBackupPanel';
@@ -29,12 +30,15 @@ export function HostLobbyPage() {
   const { socket, connected } = useSocket();
   const [exportedHash, setExportedHash] = useState('');
   const [testBusy, setTestBusy] = useState<'start' | 'end' | null>(null);
-  const { room, unavailable, loading, noSession, operationalError } = useRoomGate(
-    roomId,
-    'host',
-    socket,
-    connected,
-  );
+  const {
+    room,
+    unavailable,
+    loading,
+    noSession,
+    operationalError,
+    selfPacedReconnectNotice,
+    dismissSelfPacedReconnectNotice,
+  } = useRoomGate(roomId, 'host', socket, connected);
   const activeQuestions = room?.questions ?? [];
   const activeQuestionsHash = quizContentHash(activeQuestions);
   const hasUnexportedQuiz = activeQuestions.length > 0 && exportedHash !== activeQuestionsHash;
@@ -184,6 +188,11 @@ export function HostLobbyPage() {
           {operationalError}
         </p>
       )}
+
+      <HostSelfPacedReconnectBanner
+        visible={selfPacedReconnectNotice}
+        onDismiss={dismissSelfPacedReconnectNotice}
+      />
 
       <div className="w-full min-w-0 max-w-full space-y-6">
         <LiveQuizClock room={room} />

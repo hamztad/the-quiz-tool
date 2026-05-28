@@ -20,6 +20,10 @@ class InMemoryRoomStore implements RoomStore {
     return this.rooms.get(roomId);
   }
 
+  list(): RoomRecord[] {
+    return [...this.rooms.values()];
+  }
+
   update(roomId: string, updater: (room: RoomRecord) => RoomRecord): RoomRecord | undefined {
     const room = this.rooms.get(roomId);
     if (!room) return undefined;

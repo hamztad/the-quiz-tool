@@ -28,6 +28,7 @@ import { HostTeamAnswersPanel } from '../components/host/HostTeamAnswersPanel';
 import { HostProtestsOverview } from '../components/host/HostProtestsOverview';
 import { HostTeamList } from '../components/host/HostTeamList';
 import { HostGameResults } from '../games/registry';
+import { HostSelfPacedReconnectBanner } from '../components/host/HostSelfPacedReconnectBanner';
 import { useRoomGate } from '../hooks/useRoomGate';
 import { useSocket } from '../hooks/useSocket';
 import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
@@ -65,12 +66,15 @@ export function HostDashboardPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const { socket, connected } = useSocket();
-  const { room, unavailable, loading, noSession, operationalError } = useRoomGate(
-    roomId,
-    'host',
-    socket,
-    connected,
-  );
+  const {
+    room,
+    unavailable,
+    loading,
+    noSession,
+    operationalError,
+    selfPacedReconnectNotice,
+    dismissSelfPacedReconnectNotice,
+  } = useRoomGate(roomId, 'host', socket, connected);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [showFinalLockConfirm, setShowFinalLockConfirm] = useState(false);
@@ -258,6 +262,11 @@ export function HostDashboardPage() {
       />
 
       <LiveQuizClock room={room} />
+
+      <HostSelfPacedReconnectBanner
+        visible={selfPacedReconnectNotice}
+        onDismiss={dismissSelfPacedReconnectNotice}
+      />
 
       {room.settings.teamsLockedOut && (
         <p className="mb-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">

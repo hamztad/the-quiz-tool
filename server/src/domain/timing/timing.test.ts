@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SCHEDULED_ROOM_GRACE_MS } from '@quiz-tool/shared';
 import { createRoom, startQuiz } from '../roomService.js';
 import { openQuestion, lockQuestion } from '../questionService.js';
 import { setQuizSchedule, applyScheduledQuizStart, applyScheduledQuizEnd } from './scheduleService.js';
@@ -93,6 +94,24 @@ describe('quiz schedule', () => {
     );
     expect(room.schedule?.startsAt).toBe(startsAt);
     expect(room.schedule?.endsAt).toBe(startsAt + 30 * 60_000);
+  });
+
+  it('extends room expiry through scheduled self-paced end plus grace', () => {
+    const now = 100_000;
+    let room = createRoom();
+    room = { ...room, questions: [sampleQuestion()], expiresAt: now + 60_000 };
+    room = setQuizSchedule(
+      room,
+      {
+        startDelayMs: 60_000,
+        durationMs: 24 * 60 * 60_000,
+        runMode: 'manual',
+        deliveryMode: 'self_paced',
+      },
+      now,
+    );
+    expect(room.expiresAt).toBeGreaterThan(now + 24 * 60 * 60_000);
+    expect(room.expiresAt).toBe((room.schedule?.endsAt ?? 0) + SCHEDULED_ROOM_GRACE_MS);
   });
 
   it('ends quiz at schedule end', () => {
