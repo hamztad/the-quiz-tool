@@ -215,6 +215,7 @@ export function EmojiHuntGame({
           : 'text-white';
   const displayedTargets = remainingTargets.length > 0 ? remainingTargets : targets;
   const optionRows = Math.max(1, Math.ceil(options.length / 4));
+  const showResetButton = phase === 'playing';
 
   return (
     <div className="mt-4 grid min-h-[30rem] grid-rows-[auto_auto_auto_minmax(12rem,1fr)_auto_auto] gap-2 rounded-3xl border-2 border-sky-300/35 bg-[radial-gradient(circle_at_top,#4b1165,#220033)] p-3 text-center shadow-[0_0_32px_rgba(125,211,252,0.16)]">
@@ -225,18 +226,24 @@ export function EmojiHuntGame({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-xs font-black sm:grid-cols-[1fr_auto_1fr]">
+      <div
+        className={`grid grid-cols-2 gap-2 text-xs font-black ${
+          showResetButton ? 'sm:grid-cols-[1fr_auto_1fr]' : ''
+        }`}
+      >
         <div className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-white">
           {progressText}
         </div>
-        <button
-          type="button"
-          onClick={resetAttempt}
-          disabled={disabled}
-          className="rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-2 font-black text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-50 sm:order-none"
-        >
-          Start på nytt
-        </button>
+        {showResetButton && (
+          <button
+            type="button"
+            onClick={resetAttempt}
+            disabled={disabled}
+            className="rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-2 font-black text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Start på nytt
+          </button>
+        )}
         <div className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-white">
           {formatEmojiHuntMs(displayMs)}
         </div>
