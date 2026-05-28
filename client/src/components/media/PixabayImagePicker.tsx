@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { MediaAttachment } from '@quiz-tool/shared';
 import {
   searchImageProvider,
@@ -35,8 +35,8 @@ export function PixabayImagePicker({
   const [pixabayQuery, setPixabayQuery] = useState('');
   const [pixabayLoading, setPixabayLoading] = useState<'nb' | 'en' | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [pixabayResults, setPixabayResults] = useState<ImageSearchResult[]>([]);
-  const [selectedPixabayResult, setSelectedPixabayResult] = useState<ImageSearchResult | null>(null);
+  const [resultPages, setResultPages] = useState<ImageSearchResult[][]>([]);
+  const [pageIndex, setPageIndex] = useState(0);
   const [resultsVisible, setResultsVisible] = useState(false);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [activeSearch, setActiveSearch] = useState<{
@@ -50,24 +50,38 @@ export function PixabayImagePicker({
   const [ownershipConfirmed, setOwnershipConfirmed] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  const currentResults = useMemo(
+    () => resultPages[pageIndex] ?? [],
+    [resultPages, pageIndex],
+  );
+  const totalPages = resultPages.length;
+  const onLatestPage = pageIndex === totalPages - 1;
+
   useEffect(() => {
     if (media?.source === 'pixabay' || media?.source === 'wikimedia' || media?.source === 'upload') {
       setProvider(media.source);
     }
   }, [media?.source]);
 
+  const resetSearchResults = () => {
+    setResultPages([]);
+    setPageIndex(0);
+    setResultsVisible(false);
+    setActiveSearch(null);
+    setNoMoreResults(false);
+    setSearchNotice(null);
+  };
+
   const attachPixabay = (result: ImageSearchResult) => {
     onMediaChange(imageResultToMedia(result, provider));
     setResultsVisible(false);
     setExpanded(false);
-    setSelectedPixabayResult(null);
     setError(null);
   };
 
   const removeImage = () => {
     onMediaChange(undefined);
-    setPixabayResults([]);
-    setSelectedPixabayResult(null);
+    resetSearchResults();
     setExpanded(true);
     setError(null);
   };
@@ -100,10 +114,10 @@ export function PixabayImagePicker({
     setError(null);
     setSearchNotice(null);
     setNoMoreResults(false);
-    setSelectedPixabayResult(null);
     try {
       const response = await searchImageProvider(session, provider, query, language, 1);
-      setPixabayResults(response.results);
+      setResultPages(response.results.length > 0 ? [response.results] : []);
+      setPageIndex(0);
       setResultsVisible(response.results.length > 0);
       setActiveSearch({ query, language, page: response.page, hasMore: response.hasMore });
       if (response.translatedQuery) {
@@ -114,13 +128,13 @@ export function PixabayImagePicker({
       if (response.results.length === 0) {
         setError(
           provider === 'wikimedia'
-            ? 'No Wikimedia images found for this search.'
+            ? 'Fant ingen bilder på Wikimedia for dette søket.'
             : 'Fant ingen bilder på Pixabay for dette søket.',
         );
         setNoMoreResults(true);
       }
     } catch (err) {
-      setPixabayResults([]);
+      resetSearchResults();
       setError(
         err instanceof Error
           ? err.message
@@ -153,17 +167,33 @@ export function PixabayImagePicker({
         activeSearch.language,
         nextPage,
       );
-      setPixabayResults((current) => {
-        const seen = new Set(current.map((item) => item.id));
-        return [...current, ...response.results.filter((item) => !seen.has(item.id))];
+      const seen = new Set(resultPages.flatMap((page) => page.map((item) => item.id)));
+      const nextBatch = response.results.filter((item) => !seen.has(item.id));
+
+      if (nextBatch.length === 0 && !response.hasMore) {
+        setNoMoreResults(true);
+        setActiveSearch({
+          query: activeSearch.query,
+          language: activeSearch.language,
+          page: response.page,
+          hasMore: false,
+        });
+        return;
+      }
+
+      setResultPages((pages) => {
+        const next = nextBatch.length > 0 ? [...pages, nextBatch] : pages;
+        setPageIndex(next.length - 1);
+        return next;
       });
+      setResultsVisible(true);
       setActiveSearch({
         query: activeSearch.query,
         language: activeSearch.language,
         page: response.page,
         hasMore: response.hasMore,
       });
-      if (response.results.length === 0 || !response.hasMore) {
+      if (!response.hasMore) {
         setNoMoreResults(true);
       }
     } catch (err) {
@@ -189,7 +219,7 @@ export function PixabayImagePicker({
       return;
     }
     if (file.size > 1_000_000) {
-      setError('Image must be smaller than 1 MB.');
+      setError('Bildet må være mindre enn 1 MB.');
       return;
     }
     if (!ownershipConfirmed) {
@@ -208,8 +238,7 @@ export function PixabayImagePicker({
       const result = await uploadPrivateImage(session, file, ownershipConfirmed);
       onMediaChange(imageResultToMedia(result, 'upload'));
       setExpanded(false);
-      setResultsVisible(false);
-      setSelectedPixabayResult(null);
+      resetSearchResults();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunne ikke laste opp bilde.');
     } finally {
@@ -254,7 +283,7 @@ export function PixabayImagePicker({
             checked={provider === 'upload'}
             onChange={() => setProvider('upload')}
           />
-          Upload image
+          Last opp bilde
         </label>
       </div>
       {provider !== 'upload' ? (
@@ -297,15 +326,15 @@ export function PixabayImagePicker({
             }
           }}
         >
-          <p className="text-xs text-quiz-text font-semibold">Upload image (JPG/JPEG/PNG/WEBP, max 1 MB)</p>
-          <p className="mt-1 text-[11px] text-quiz-muted">Do not upload copyrighted or illegal material.</p>
+          <p className="text-xs text-quiz-text font-semibold">Last opp bilde (JPG/PNG/WEBP, maks 1 MB)</p>
+          <p className="mt-1 text-[11px] text-quiz-muted">Ikke last opp opphavsrettsbeskyttet materiale.</p>
           <label className="mt-3 flex items-start gap-2 text-xs text-quiz-text">
             <input
               type="checkbox"
               checked={ownershipConfirmed}
               onChange={(e) => setOwnershipConfirmed(e.target.checked)}
             />
-            <span>I confirm that I own this image or have permission to use it in this quiz.</span>
+            <span>Jeg bekrefter at jeg eier bildet eller har tillatelse til å bruke det i quizen.</span>
           </label>
           <div className="mt-3">
             <input
@@ -326,63 +355,72 @@ export function PixabayImagePicker({
         </div>
       )}
       {searchNotice && <p className="text-xs text-quiz-muted break-words">{searchNotice}</p>}
-      {provider !== 'upload' && pixabayResults.length > 0 && (
+      {provider !== 'upload' && totalPages > 0 && (
         <div className="space-y-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => setResultsVisible((current) => !current)}
-          >
-            {resultsVisible ? 'Skjul treff' : `Vis ${pixabayResults.length} treff`}
-          </Button>
-          {resultsVisible && (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {pixabayResults.map((result) => (
-                <button
-                  key={result.id}
-                  type="button"
-                  className={`min-w-0 rounded-lg border p-1.5 text-left hover:border-quiz-accent ${
-                    selectedPixabayResult?.id === result.id || media?.url === result.imageUrl
-                      ? 'border-quiz-accent bg-quiz-accent/10'
-                      : 'border-quiz-border bg-quiz-bg'
-                  }`}
-                  onClick={() => setSelectedPixabayResult(result)}
-                >
-                  <img
-                    src={result.previewUrl || result.imageUrl}
-                    alt={result.tags}
-                    className="mx-auto h-14 w-full rounded object-cover sm:h-16"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-          {resultsVisible && selectedPixabayResult && (
-            <div className="rounded-xl border border-quiz-accent/40 bg-quiz-accent/10 p-2">
-              <p className="mb-2 text-xs font-semibold text-quiz-text">Valgt bilde</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <img
-                  src={selectedPixabayResult.previewUrl || selectedPixabayResult.imageUrl}
-                  alt={selectedPixabayResult.tags}
-                  className="h-14 w-20 rounded object-cover"
-                />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setResultsVisible((current) => !current)}
+            >
+              {resultsVisible ? 'Skjul treff' : 'Vis treff'}
+            </Button>
+            {resultsVisible && totalPages > 1 && (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-quiz-muted">
                 <Button
                   type="button"
+                  variant="ghost"
                   size="sm"
-                  className="shrink-0"
-                  onClick={() => attachPixabay(selectedPixabayResult)}
+                  disabled={pageIndex <= 0}
+                  onClick={() => setPageIndex((index) => Math.max(0, index - 1))}
                 >
-                  + Legg til bilde
+                  ← Forrige sett
+                </Button>
+                <span className="tabular-nums font-medium text-quiz-text">
+                  Sett {pageIndex + 1} av {totalPages}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={pageIndex >= totalPages - 1}
+                  onClick={() => setPageIndex((index) => Math.min(totalPages - 1, index + 1))}
+                >
+                  Neste sett →
                 </Button>
               </div>
-              <p className="mt-2 text-[11px] text-quiz-muted">
-                📄 {provider === 'wikimedia' ? 'Wikimedia Commons' : 'Pixabay'}
+            )}
+          </div>
+          {resultsVisible && (
+            <>
+              <p className="text-[11px] text-quiz-muted">
+                Klikk et bilde for å bruke det med én gang. Bruk «Bytt bilde» for å søke på nytt.
               </p>
-            </div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {currentResults.map((result) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    title="Bruk dette bildet"
+                    className={`min-w-0 rounded-lg border p-1.5 text-left transition-colors hover:border-quiz-accent hover:ring-2 hover:ring-quiz-accent/30 ${
+                      media?.url === result.imageUrl
+                        ? 'border-quiz-accent bg-quiz-accent/10 ring-2 ring-quiz-accent/40'
+                        : 'border-quiz-border bg-quiz-bg'
+                    }`}
+                    onClick={() => attachPixabay(result)}
+                  >
+                    <img
+                      src={result.previewUrl || result.imageUrl}
+                      alt={result.tags}
+                      className="mx-auto h-14 w-full rounded object-cover sm:h-16"
+                    />
+                  </button>
+                ))}
+              </div>
+            </>
           )}
-          {resultsVisible && activeSearch && !noMoreResults && activeSearch.hasMore && (
+          {resultsVisible && onLatestPage && activeSearch && !noMoreResults && activeSearch.hasMore && (
             <Button
               type="button"
               variant="secondary"
@@ -391,8 +429,11 @@ export function PixabayImagePicker({
               onClick={loadMorePixabayResults}
               disabled={loadingMore}
             >
-              {loadingMore ? 'Laster…' : 'Flere bilder'}
+              {loadingMore ? 'Laster…' : 'Flere bilder (nytt sett)'}
             </Button>
+          )}
+          {resultsVisible && onLatestPage && noMoreResults && totalPages > 0 && (
+            <p className="text-center text-[11px] text-quiz-muted">Ingen flere bilder for dette søket.</p>
           )}
         </div>
       )}
@@ -410,7 +451,12 @@ export function PixabayImagePicker({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setExpanded((open) => !open)}
+            onClick={() => {
+              setExpanded((open) => !open);
+              if (!expanded) {
+                setResultsVisible(totalPages > 0);
+              }
+            }}
           >
             {expanded ? 'Skjul søk' : 'Bytt bilde'}
           </Button>
@@ -436,7 +482,11 @@ export function PixabayImagePicker({
                     rel="noreferrer"
                     className="underline underline-offset-2"
                   >
-                    {media.source === 'wikimedia' ? 'Wikimedia Commons' : media.source === 'upload' ? 'Privat bilde' : 'Kilde'}
+                    {media.source === 'wikimedia'
+                      ? 'Wikimedia Commons'
+                      : media.source === 'upload'
+                        ? 'Privat bilde'
+                        : 'Kilde'}
                   </a>
                 </p>
               )}
@@ -454,7 +504,7 @@ export function PixabayImagePicker({
         </div>
       ) : (
         <p className="text-xs text-quiz-muted">
-          Velg et bilde fra trefflisten, eller bytt kilde til Upload image for privat opplasting.
+          Søk og klikk et bilde i trefflisten for å legge det inn med én gang.
         </p>
       )}
 

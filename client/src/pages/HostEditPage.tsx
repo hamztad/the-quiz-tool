@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  builtInGames,
   CLIENT_EVENTS,
   isLiveQuizEditPhase,
   isQuestionEditableDuringLiveQuiz,
@@ -11,6 +10,7 @@ import {
   type GameId,
   type Question,
 } from '@quiz-tool/shared';
+import { HostQuestionAddBar } from '../components/host/HostQuestionAddBar';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
 import { HostQuestionEditorCard } from '../components/host/HostQuestionEditorCard';
@@ -524,54 +524,15 @@ export function HostEditPage() {
           className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 min-w-0 max-w-full overflow-hidden box-border"
         >
           {!isLiveEdit && (
-          <div className="rounded-xl bg-quiz-bg/60 border border-quiz-accent/20 p-4 mb-6 min-w-0 max-w-full overflow-hidden">
-            <p className="text-sm font-medium text-quiz-text mb-3">Legg til spørsmål</p>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={() => addQuestion('open')}>
-                + Åpent spørsmål
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => addQuestion('mc')}>
-                + Flervalg (MC)
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => addQuestion('ordering')}>
-                + Rekkefølge
-              </Button>
-            </div>
-            <div className="mt-3 rounded-xl border border-quiz-border/70 bg-quiz-bg/50 p-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setGamePickerOpen((open) => !open)}
-                aria-expanded={gamePickerOpen}
-              >
-                + Spill
-              </Button>
-              {gamePickerOpen && (
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  {builtInGames.map((game) => (
-                    <button
-                      key={game.id}
-                      type="button"
-                      onClick={() => addGameQuestion(game.id)}
-                      className="min-h-[64px] rounded-xl border border-quiz-border bg-quiz-surface-elevated px-3 py-2 text-left transition-colors hover:border-quiz-accent hover:bg-quiz-accent/10"
-                    >
-                      <span className="block text-sm font-bold text-quiz-text">{game.label}</span>
-                      <span className="mt-0.5 block text-xs text-quiz-muted">{game.description}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {addedNotice && (
-              <p
-                className="mt-3 text-sm font-medium text-quiz-accent animate-pulse"
-                role="status"
-                aria-live="polite"
-              >
-                {addedNotice}
-              </p>
-            )}
-          </div>
+            <HostQuestionAddBar
+              variant="top"
+              onAddOpen={() => addQuestion('open')}
+              onAddMc={() => addQuestion('mc')}
+              onAddOrdering={() => addQuestion('ordering')}
+              onAddGame={addGameQuestion}
+              gamePickerOpen={gamePickerOpen}
+              onGamePickerOpenChange={setGamePickerOpen}
+            />
           )}
 
           <div
@@ -639,6 +600,28 @@ export function HostEditPage() {
                   }
                 />
               ))
+            )}
+
+            {addedNotice && (
+              <p
+                className="mt-2 text-sm font-medium text-quiz-accent animate-pulse"
+                role="status"
+                aria-live="polite"
+              >
+                {addedNotice}
+              </p>
+            )}
+
+            {!isLiveEdit && draftQuestions.length > 0 && (
+              <HostQuestionAddBar
+                variant="bottom"
+                onAddOpen={() => addQuestion('open')}
+                onAddMc={() => addQuestion('mc')}
+                onAddOrdering={() => addQuestion('ordering')}
+                onAddGame={addGameQuestion}
+                gamePickerOpen={gamePickerOpen}
+                onGamePickerOpenChange={setGamePickerOpen}
+              />
             )}
           </div>
         </section>
