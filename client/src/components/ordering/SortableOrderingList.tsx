@@ -72,13 +72,13 @@ function SortableOrderingCard({
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex min-w-0 max-w-full items-stretch gap-2 rounded-2xl border p-2 shadow-sm transition-shadow ${
+      className={`flex min-w-0 max-w-full items-stretch gap-1.5 rounded-2xl border p-1.5 shadow-sm transition-shadow sm:gap-2 sm:p-2 ${
         isDragging ? 'z-10 scale-[1.02] border-quiz-accent bg-quiz-accent/15 shadow-xl' : ''
       } ${className ?? 'border-quiz-border bg-quiz-surface-elevated/70'}`}
     >
       <button
         type="button"
-        className="flex min-h-[52px] w-12 shrink-0 touch-none select-none flex-col items-center justify-center rounded-xl border border-quiz-border bg-quiz-bg/80 text-quiz-muted active:scale-95 disabled:opacity-60"
+        className="flex min-h-[3rem] w-9 shrink-0 touch-none select-none flex-col items-center justify-center rounded-lg border border-quiz-border bg-quiz-bg/80 px-0.5 text-quiz-muted active:scale-95 disabled:opacity-60 sm:min-h-[52px] sm:w-10"
         aria-label={`${dragHandleLabel}: ${item.text || `element ${index + 1}`}`}
         disabled={disabled}
         {...attributes}
@@ -122,7 +122,7 @@ export function SortableOrderingList({
   };
 
   return (
-    <div className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-quiz-border bg-gradient-to-b from-quiz-accent/10 via-quiz-bg to-quiz-surface p-3 sm:p-4">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-quiz-border bg-gradient-to-b from-quiz-accent/10 via-quiz-bg to-quiz-surface p-2 sm:p-4">
       <div className="mb-2 flex min-w-0 items-center gap-2 text-xs font-bold text-quiz-accent">
         <span className="max-w-[min(100%,18rem)] shrink-0 rounded-full border border-quiz-accent/40 bg-quiz-accent/15 px-3 py-1 break-words [overflow-wrap:anywhere] leading-snug">
           {topLabel || 'Øverst'}

@@ -26,7 +26,6 @@ export function OrderingChoiceContent({
   const spoilerSafe = mediaCreditsMode !== 'full';
   const creditsMode =
     variant === 'comparison' && mediaCreditsMode === 'full' ? 'full' : mediaCreditsMode;
-
   if (variant === 'comparison') {
     return (
       <div className="flex min-w-0 flex-1 items-start gap-2 overflow-hidden">
@@ -48,37 +47,50 @@ export function OrderingChoiceContent({
   }
 
   const hasMedia = Boolean(item.media?.url?.trim());
+  const showDeferredCredits =
+    hasMedia && mediaCreditsMode === 'deferred';
 
   return (
-    <div className="flex min-h-[3.25rem] w-full min-w-0 flex-col justify-center gap-2 overflow-hidden rounded-xl border border-cyan-100/80 bg-white/80 px-3 py-2 sm:flex-row sm:items-center sm:gap-3">
+    <div className="flex min-h-[3rem] w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-xl border border-cyan-100/80 bg-white/80 px-2 py-2 sm:gap-3 sm:px-3">
       {hasMedia && (
-        <div className="flex w-full min-w-0 shrink-0 flex-col items-center gap-1 sm:w-auto sm:items-start">
-          <ChoiceMediaDisplay
-            media={item.media!}
-            variant="ordering-card"
-            spoilerSafe={spoilerSafe}
-            genericAlt={genericAlt}
-          />
-          <MediaAttribution
-            media={item.media!}
-            mode={mediaCreditsMode}
-            className="w-full max-w-[5.5rem] text-center sm:text-left"
-          />
-        </div>
+        <ChoiceMediaDisplay
+          media={item.media!}
+          variant="ordering-card"
+          spoilerSafe={spoilerSafe}
+          genericAlt={genericAlt}
+          className="!h-12 !w-[4.25rem] !max-w-[38%] !object-contain sm:!h-16 sm:!w-20 sm:!max-w-none"
+        />
       )}
-      {showText ? (
-        <div className="min-w-0 w-full flex-1">
-          <span className="block text-base font-bold text-quiz-text break-words [overflow-wrap:anywhere] quiz-user-text">
+      <div className="min-w-0 flex-1">
+        {showText && (
+          <span className="block text-base font-bold leading-snug text-quiz-text break-words [overflow-wrap:anywhere] quiz-user-text">
             {item.text}
           </span>
-        </div>
-      ) : (
-        !hasMedia && (
+        )}
+        {showDeferredCredits && (
+          <MediaAttribution
+            media={item.media!}
+            mode="deferred"
+            compact
+            className={showText ? 'mt-1' : ''}
+          />
+        )}
+        {hasMedia && mediaCreditsMode === 'full' && (
+          <MediaAttribution media={item.media!} mode="full" className={showText ? 'mt-1' : ''} />
+        )}
+        {hasMedia && mediaCreditsMode === 'revealed' && (
+          <MediaAttribution
+            media={item.media!}
+            mode="revealed"
+            className={showText ? 'mt-1' : ''}
+          />
+        )}
+        {!hasMedia && !showText && (
           <span className="text-sm font-medium text-quiz-muted italic">
             {hideParticipantLabel ? `Element ${itemIndex + 1}` : '—'}
           </span>
-        )
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -31,7 +31,11 @@ export function McOptionButtonContent({
             spoilerSafe={spoilerSafe}
             genericAlt={genericAlt}
           />
-          <MediaAttribution media={option.media} mode={mediaCreditsMode} />
+          <MediaAttribution
+            media={option.media}
+            mode={mediaCreditsMode}
+            compact={mediaCreditsMode === 'deferred'}
+          />
         </>
       )}
       {showText && (

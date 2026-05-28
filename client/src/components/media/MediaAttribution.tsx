@@ -11,6 +11,8 @@ interface MediaAttributionProps {
   media: MediaAttachment;
   mode?: MediaCreditsDisplayMode;
   className?: string;
+  /** Tighter single- or two-line hint (e.g. ordering cards on mobile). */
+  compact?: boolean;
 }
 
 function FullMediaAttribution({
@@ -75,11 +77,14 @@ export function MediaAttribution({
   media,
   mode = 'full',
   className = '',
+  compact = false,
 }: MediaAttributionProps) {
   if (mode === 'deferred') {
     if (!mediaHasAttribution(media)) return null;
     return (
-      <p className={`text-[11px] text-quiz-muted italic leading-relaxed ${className}`.trim()}>
+      <p
+        className={`text-quiz-muted ${compact ? 'text-[10px] leading-snug' : 'text-[11px] italic leading-relaxed'} ${className}`.trim()}
+      >
         {DEFERRED_MEDIA_CREDITS_MESSAGE}
       </p>
     );

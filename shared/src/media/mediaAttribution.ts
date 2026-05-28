@@ -2,8 +2,7 @@ import type { MediaAttachment } from '../types/room.js';
 
 export type MediaCreditsDisplayMode = 'full' | 'deferred' | 'revealed';
 
-export const DEFERRED_MEDIA_CREDITS_MESSAGE =
-  'Bildekreditering vises etter at oppgaven er avsluttet';
+export const DEFERRED_MEDIA_CREDITS_MESSAGE = 'Kreditering vises etter oppgaven';
 
 export const REVEAL_MEDIA_CREDITS_BUTTON_LABEL = 'Vis bildekreditering';
 
