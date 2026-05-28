@@ -245,7 +245,25 @@ export interface RevealImageSubmissionPayload {
   source: 'text' | 'choice';
 }
 
+/** Client → server answer submit (tile/score state comes from server progress). */
+export interface RevealImageClientAnswerPayload {
+  gameId: 'revealImage';
+  answer: string;
+  source: 'text' | 'choice';
+  choiceId?: string;
+}
+
 export type GameSubmissionPayload =
+  | TimerChallengeSubmissionPayload
+  | RainbowPuzzleSubmissionPayload
+  | EmojiHuntSubmissionPayload
+  | AnagramSubmissionPayload
+  | MathExpressionSubmissionPayload
+  | MathRaceSubmissionPayload
+  | DropBallSubmissionPayload
+  | RevealImageClientAnswerPayload;
+
+export type StoredGameSubmissionPayload =
   | TimerChallengeSubmissionPayload
   | RainbowPuzzleSubmissionPayload
   | EmojiHuntSubmissionPayload
@@ -259,7 +277,7 @@ export interface GameSubmission {
   questionId: string;
   teamId: string;
   gameId: GameId;
-  payload: GameSubmissionPayload;
+  payload: StoredGameSubmissionPayload;
   submittedAt: number;
   serverReceivedAt: number;
 }

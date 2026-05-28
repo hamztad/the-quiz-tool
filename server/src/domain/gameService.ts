@@ -14,15 +14,22 @@ import {
   isDropBallSubmissionPayload,
   isEmojiHuntSubmissionPayload,
   isMathExpressionSubmissionPayload,
-  isRevealImageSubmissionPayload,
+  isRevealImageAnswerCorrect,
+  isRevealImageClientAnswerPayload,
   isRainbowPuzzleSubmissionPayload,
   type GameSubmissionPayload,
+  type StoredGameSubmissionPayload,
 } from '@quiz-tool/shared';
 import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import type { GameResult, GameRound, GameSubmission } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
 import { generateId } from '../utils/id.js';
 import { upsertScore } from './gradingService.js';
+import {
+  ensureRevealImageProgress,
+  getRevealImageProgress,
+  recordRevealImageWrongChoice,
+} from './revealImageService.js';
 
 function markAnswered(room: RoomRecord, teamId: string, questionId: string): Record<string, string[]> {
   const current = room.answeredByTeam[teamId] ?? [];
@@ -128,13 +135,14 @@ export function submitGameResult(
     throw new Error('Spillet er ikke åpent.');
   }
 
-  const question = room.questions.find((q) => q.id === questionId);
+  let activeRoom = room;
+  const question = activeRoom.questions.find((q) => q.id === questionId);
   if (question?.type !== 'game' || !question.game) {
     throw new Error('Spørsmålet er ikke et spill.');
   }
 
-  const round = room.gameRounds.find((item) => item.questionId === questionId && !item.lockedAt);
-  const teamStart = room.gameStarts.find(
+  const round = activeRoom.gameRounds.find((item) => item.questionId === questionId && !item.lockedAt);
+  const teamStart = activeRoom.gameStarts.find(
     (item) => item.questionId === questionId && item.teamId === teamId,
   );
   if (!round || (question.game.gameId === 'timerChallenge' && !teamStart)) {
@@ -142,7 +150,7 @@ export function submitGameResult(
   }
 
   const now = Date.now();
-  let submissionPayload: GameSubmissionPayload;
+  let submissionPayload: StoredGameSubmissionPayload;
   if (question.game.gameId === 'timerChallenge') {
     if (payload.gameId !== 'timerChallenge') {
       throw new Error('Ugyldig spillinnsending.');
@@ -206,14 +214,14 @@ export function submitGameResult(
       };
     } else {
       if (payload.mode !== 'race') throw new Error('Ugyldig spillinnsending.');
-      const alreadyCompleted = room.gameSubmissions.some(
+      const alreadyCompleted = activeRoom.gameSubmissions.some(
         (submission) =>
           submission.questionId === questionId &&
           submission.teamId === teamId &&
           submission.payload.gameId === 'mathExpression' &&
           submission.payload.mode === 'race',
       );
-      if (alreadyCompleted) return room;
+      if (alreadyCompleted) return activeRoom;
       submissionPayload = {
         gameId: 'mathExpression',
         mode: 'race',
@@ -222,15 +230,33 @@ export function submitGameResult(
       };
     }
   } else if (question.game.gameId === 'revealImage') {
-    if (!isRevealImageSubmissionPayload(payload)) {
+    if (!isRevealImageClientAnswerPayload(payload)) {
       throw new Error('Ugyldig spillinnsending.');
+    }
+    const config = question.game;
+    const totalTiles = config.gridSize * config.gridSize;
+    activeRoom = ensureRevealImageProgress(activeRoom, questionId, teamId, config.gridSize);
+    const progress = getRevealImageProgress(activeRoom, questionId, teamId);
+    if (!progress) {
+      throw new Error('Spilltilstand mangler.');
+    }
+    const usedChoices = progress.usedChoices || payload.source === 'choice';
+    const answer = payload.answer.slice(0, 200);
+    const correct = isRevealImageAnswerCorrect(answer, config);
+    if (payload.source === 'choice' && payload.choiceId && !correct) {
+      activeRoom = recordRevealImageWrongChoice(
+        activeRoom,
+        questionId,
+        teamId,
+        payload.choiceId,
+      );
     }
     submissionPayload = {
       gameId: 'revealImage',
-      answer: payload.answer.slice(0, 200),
-      openedTiles: Math.max(0, Math.round(payload.openedTiles)),
-      totalTiles: Math.max(1, Math.round(payload.totalTiles)),
-      usedChoices: payload.usedChoices,
+      answer,
+      openedTiles: progress.openedTileIndices.length,
+      totalTiles,
+      usedChoices,
       source: payload.source,
     };
   } else {
@@ -247,15 +273,15 @@ export function submitGameResult(
   };
 
   const updated: RoomRecord = {
-    ...room,
+    ...activeRoom,
     gameSubmissions: [
-      ...room.gameSubmissions,
+      ...activeRoom.gameSubmissions,
       submission,
     ],
-    gameStarts: room.gameStarts.filter(
+    gameStarts: activeRoom.gameStarts.filter(
       (item) => !(item.questionId === questionId && item.teamId === teamId),
     ),
-    answeredByTeam: markAnswered(room, teamId, questionId),
+    answeredByTeam: markAnswered(activeRoom, teamId, questionId),
   };
 
   return calculateGameQuestionResults(updated, questionId, { lockRound: false });

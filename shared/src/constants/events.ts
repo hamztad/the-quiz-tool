@@ -14,6 +14,8 @@ export const CLIENT_EVENTS = {
   ANSWER_UPDATE: 'answer:update',
   GAME_START: 'game:start',
   GAME_SUBMIT: 'game:submit',
+  REVEAL_IMAGE_TILE: 'revealImage:tile',
+  REVEAL_IMAGE_SHOW_CHOICES: 'revealImage:showChoices',
   GRADING_START: 'grading:start',
   GRADING_END: 'grading:end',
   OPEN_ANSWER_GRADING_MODE_SET: 'settings:openAnswerGradingMode',

@@ -199,6 +199,18 @@ export interface RoomState {
   activeQuestionTimers: Record<string, ActiveQuestionTimer>;
   /** Server clock hint for client countdown skew correction (updated on state emit). */
   serverNow?: number;
+  /** Avslør bildet: per-lag fremdrift (ruter, valg) — synkroniseres fra server. */
+  revealImageProgress?: RevealImageTeamProgress[];
+}
+
+export interface RevealImageTeamProgress {
+  questionId: string;
+  teamId: string;
+  openedTileIndices: number[];
+  usedChoices: boolean;
+  wrongChoiceIds: string[];
+  /** Server-shuffled reveal order (next tile is first not yet in openedTileIndices). */
+  tileOrder: number[];
 }
 
 export type SocketRole = 'host' | 'secretary';

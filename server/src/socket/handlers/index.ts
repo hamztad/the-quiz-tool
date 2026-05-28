@@ -22,6 +22,10 @@ import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import { canStartAiGrading, collectOpenAnswerGradeJobs } from '@quiz-tool/shared';
 import { startTeamGame, submitGameResult } from '../../domain/gameService.js';
 import {
+  revealNextRevealImageTile,
+  showRevealImageChoices,
+} from '../../domain/revealImageService.js';
+import {
   forceReopenQuestion,
   hasTeamSolvedRevealImage,
   lockQuestion,
@@ -563,6 +567,58 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       }
     },
   );
+
+  socket.on(CLIENT_EVENTS.REVEAL_IMAGE_TILE, (payload: { questionId: string }) => {
+    const roomId = socket.data.roomId as string;
+    const teamId = socket.data.teamId as string;
+    if (!requireSecretary(socket, roomId)) return;
+    try {
+      const room = roomStore.get(roomId);
+      const question = room?.questions.find((item) => item.id === payload.questionId);
+      const game =
+        question?.type === 'game' && question.game?.gameId === 'revealImage' ? question.game : null;
+      if (!game) {
+        emitError(socket, 'Ugyldig spill.');
+        return;
+      }
+      if (room && hasTeamSolvedRevealImage(room, payload.questionId, teamId)) {
+        emitError(socket, 'Forsøket er allerede låst etter riktig svar.');
+        return;
+      }
+      roomStore.update(roomId, (r) =>
+        revealNextRevealImageTile(r, payload.questionId, teamId, game.gridSize),
+      );
+      publishRoomState(io, roomId);
+    } catch (e) {
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke åpne rute');
+    }
+  });
+
+  socket.on(CLIENT_EVENTS.REVEAL_IMAGE_SHOW_CHOICES, (payload: { questionId: string }) => {
+    const roomId = socket.data.roomId as string;
+    const teamId = socket.data.teamId as string;
+    if (!requireSecretary(socket, roomId)) return;
+    try {
+      const room = roomStore.get(roomId);
+      const question = room?.questions.find((item) => item.id === payload.questionId);
+      const game =
+        question?.type === 'game' && question.game?.gameId === 'revealImage' ? question.game : null;
+      if (!game) {
+        emitError(socket, 'Ugyldig spill.');
+        return;
+      }
+      if (room && hasTeamSolvedRevealImage(room, payload.questionId, teamId)) {
+        emitError(socket, 'Forsøket er allerede låst etter riktig svar.');
+        return;
+      }
+      roomStore.update(roomId, (r) =>
+        showRevealImageChoices(r, payload.questionId, teamId, game.gridSize),
+      );
+      publishRoomState(io, roomId);
+    } catch (e) {
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke vise alternativer');
+    }
+  });
 
   socket.on(
     CLIENT_EVENTS.GAME_SUBMIT,

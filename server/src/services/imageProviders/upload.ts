@@ -6,6 +6,7 @@ import { roomStore } from '../../store/memoryStore.js';
 
 const MAX_UPLOAD_BYTES = 1_000_000;
 const MAX_IMAGE_SIDE = 1920;
+const GAMEPLAY_SIDE = 1200;
 const THUMB_SIDE = 480;
 const UPLOAD_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
@@ -15,6 +16,7 @@ const allowedExt = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 const uploadRoot = path.resolve(process.cwd(), 'data', 'uploads');
 const imageRoot = path.join(uploadRoot, 'images');
+const gameplayRoot = path.join(uploadRoot, 'gameplay');
 const thumbRoot = path.join(uploadRoot, 'thumbs');
 const metadataRoot = path.join(uploadRoot, 'meta');
 
@@ -29,8 +31,10 @@ export interface UploadedImageMetadata {
   filename: string;
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
   imagePath: string;
+  gameplayPath: string;
   thumbPath: string;
   imageUrlPath: string;
+  gameplayUrlPath: string;
   thumbUrlPath: string;
 }
 
@@ -55,6 +59,7 @@ function ipToHash(ip: string | undefined): string {
 async function ensureFolders() {
   await Promise.all([
     fs.mkdir(imageRoot, { recursive: true }),
+    fs.mkdir(gameplayRoot, { recursive: true }),
     fs.mkdir(thumbRoot, { recursive: true }),
     fs.mkdir(metadataRoot, { recursive: true }),
   ]);
@@ -75,6 +80,7 @@ export function initUploadCleanup() {
 async function removeUploadByMeta(meta: UploadedImageMetadata) {
   await Promise.allSettled([
     fs.rm(meta.imagePath, { force: true }),
+    fs.rm(meta.gameplayPath, { force: true }),
     fs.rm(meta.thumbPath, { force: true }),
     fs.rm(path.join(metadataRoot, `${meta.imageId}.json`), { force: true }),
   ]);
@@ -150,29 +156,40 @@ export async function storeUploadedImage(params: {
   if (mimeType === 'image/webp') normalizedMime = 'image/webp';
 
   let normalizedBuffer: Buffer;
+  let gameplayBuffer: Buffer;
   let thumbBuffer: Buffer;
   try {
-    const pipeline = sharp(fileBuffer, { failOn: 'error' }).rotate().resize({
+    const base = sharp(fileBuffer, { failOn: 'error' }).rotate();
+    const fullPipeline = base.clone().resize({
       width: MAX_IMAGE_SIDE,
       height: MAX_IMAGE_SIDE,
       fit: 'inside',
       withoutEnlargement: true,
     });
+    const gameplayPipeline = base.clone().resize({
+      width: GAMEPLAY_SIDE,
+      height: GAMEPLAY_SIDE,
+      fit: 'inside',
+      withoutEnlargement: true,
+    });
     if (normalizedMime === 'image/png') {
-      normalizedBuffer = await pipeline.png({ compressionLevel: 9 }).toBuffer();
+      normalizedBuffer = await fullPipeline.png({ compressionLevel: 9 }).toBuffer();
+      gameplayBuffer = await gameplayPipeline.png({ compressionLevel: 9 }).toBuffer();
       thumbBuffer = await sharp(normalizedBuffer)
         .resize({ width: THUMB_SIDE, height: THUMB_SIDE, fit: 'inside', withoutEnlargement: true })
         .png({ compressionLevel: 9 })
         .toBuffer();
     } else if (normalizedMime === 'image/webp') {
-      normalizedBuffer = await pipeline.webp({ quality: 82 }).toBuffer();
+      normalizedBuffer = await fullPipeline.webp({ quality: 82 }).toBuffer();
+      gameplayBuffer = await gameplayPipeline.webp({ quality: 80 }).toBuffer();
       thumbBuffer = await sharp(normalizedBuffer)
         .resize({ width: THUMB_SIDE, height: THUMB_SIDE, fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 78 })
         .toBuffer();
     } else {
       normalizedMime = 'image/jpeg';
-      normalizedBuffer = await pipeline.jpeg({ quality: 84, mozjpeg: true }).toBuffer();
+      normalizedBuffer = await fullPipeline.jpeg({ quality: 84, mozjpeg: true }).toBuffer();
+      gameplayBuffer = await gameplayPipeline.jpeg({ quality: 82, mozjpeg: true }).toBuffer();
       thumbBuffer = await sharp(normalizedBuffer)
         .resize({ width: THUMB_SIDE, height: THUMB_SIDE, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 78, mozjpeg: true })
@@ -192,10 +209,12 @@ export async function storeUploadedImage(params: {
   const extension = extForMime(normalizedMime);
   const safeName = sanitizeFilename(originalFilename);
   const imagePath = path.join(imageRoot, `${imageId}${extension}`);
+  const gameplayPath = path.join(gameplayRoot, `${imageId}${extension}`);
   const thumbPath = path.join(thumbRoot, `${imageId}${extension}`);
 
   await Promise.all([
     fs.writeFile(imagePath, normalizedBuffer),
+    fs.writeFile(gameplayPath, gameplayBuffer),
     fs.writeFile(thumbPath, thumbBuffer),
   ]);
 
@@ -208,8 +227,10 @@ export async function storeUploadedImage(params: {
     filename: safeName,
     mimeType: normalizedMime,
     imagePath,
+    gameplayPath,
     thumbPath,
     imageUrlPath: `/api/ai/uploaded-images/${imageId}`,
+    gameplayUrlPath: `/api/game-images/${imageId}`,
     thumbUrlPath: `/api/ai/uploaded-images/${imageId}?thumb=1`,
   };
   await writeMetadataFile(metadata);

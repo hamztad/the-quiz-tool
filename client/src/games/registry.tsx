@@ -19,6 +19,7 @@ import type {
 } from '@quiz-tool/shared';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useSocket } from '../hooks/useSocket';
+import { getTeamSession } from '../lib/tokens';
 import { isQuestionFrozen } from '../lib/gameFreeze';
 import { AnagramGame } from './anagram/AnagramGame';
 import { DropBallGame } from './dropBall/DropBallGame';
@@ -476,7 +477,11 @@ function MathExpressionTeamView({ room, question, teamId }: TeamGameViewProps) {
 function RevealImageTeamView({ room, question, teamId }: TeamGameViewProps) {
   const { socket } = useSocket();
   const config = question.game?.gameId === 'revealImage' ? question.game : null;
-  const imageUrl = question.media?.find((m) => m.type === 'image')?.url ?? '';
+  const teamToken = getTeamSession(room.id)?.teamToken ?? '';
+  const progress =
+    room.revealImageProgress?.find(
+      (entry) => entry.questionId === question.id && entry.teamId === teamId,
+    ) ?? null;
   const teamSubmissions = room.gameSubmissions.filter(
     (submission) =>
       submission.questionId === question.id &&
@@ -489,7 +494,8 @@ function RevealImageTeamView({ room, question, teamId }: TeamGameViewProps) {
         isRevealImageAnswerCorrect(submission.payload.answer, config),
       )
     : false;
-  if (!config || !imageUrl) {
+  const hasImage = question.media?.some((item) => item.type === 'image');
+  if (!config || !hasImage || !teamToken) {
     return (
       <p className="mt-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-900">
         Spillbildet mangler. Be quizmaster legge til bilde.
@@ -500,9 +506,18 @@ function RevealImageTeamView({ room, question, teamId }: TeamGameViewProps) {
   return (
     <RevealImageGame
       config={config}
-      imageUrl={imageUrl}
+      roomId={room.id}
+      questionId={question.id}
+      teamToken={teamToken}
+      progress={progress}
       maxPoints={question.maxPoints}
       disabled={solved}
+      onRevealTile={() =>
+        socket.emit(CLIENT_EVENTS.REVEAL_IMAGE_TILE, { questionId: question.id })
+      }
+      onShowChoices={() =>
+        socket.emit(CLIENT_EVENTS.REVEAL_IMAGE_SHOW_CHOICES, { questionId: question.id })
+      }
       onSubmit={(payload) =>
         socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
           questionId: question.id,

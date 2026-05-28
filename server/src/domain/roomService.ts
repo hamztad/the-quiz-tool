@@ -44,6 +44,7 @@ export function createRoom(title?: string): RoomRecord {
     peerGrades: [],
     aiGrades: [],
     protests: [],
+    revealImageProgress: [],
     activeQuestionTimers: {},
     settings: {
       showLeaderboard: false,
@@ -410,6 +411,18 @@ export function endQuizForTeams(room: RoomRecord, now = Date.now()): RoomRecord 
   };
 }
 
+function redactRevealImageMediaUrl(question: Question, stripUrl: boolean): Question {
+  if (!stripUrl || question.game?.gameId !== 'revealImage' || !question.media?.length) {
+    return question;
+  }
+  return {
+    ...question,
+    media: question.media.map((item) =>
+      item.type === 'image' ? { ...item, url: '' } : item,
+    ),
+  };
+}
+
 export function toPublicState(
   room: RoomState,
   role: 'host' | 'secretary',
@@ -467,6 +480,9 @@ export function toPublicState(
     return false;
   });
   const visibleProtests = room.protests.filter((p) => p.teamId === teamId);
+  const visibleRevealImageProgress = teamId
+    ? (room.revealImageProgress ?? []).filter((entry) => entry.teamId === teamId)
+    : [];
   const visibleGradingAssignments = assignment ? [assignment] : [];
   const leaderboardVisible = isProvisionalLeaderboardVisible(room.schedule, room.phase, {
     showLeaderboard: room.settings.showLeaderboard,
@@ -497,22 +513,28 @@ export function toPublicState(
     const showGradingFasit = assignedQuestionIds.has(q.id);
     const revealed = isQuestionRevealedToTeam(room, q.id) || showReviewFasit || showGradingFasit;
     const redacted = redactQuestionForTeam(q, revealed);
+    const stripRevealImageUrl =
+      q.game?.gameId === 'revealImage' && room.questionStatus[q.id] === 'open';
     if (showReviewFasit || showGradingFasit || redacted.lines.length === 0) {
-      return redacted;
+      return redactRevealImageMediaUrl(redacted, stripRevealImageUrl);
     }
-    return hideTeamOnlySecrets({
-      ...redacted,
-      acceptedAnswers: undefined,
-      options:
-        redacted.type === 'mc'
-          ? redacted.options?.map((o) => ({ ...o, isCorrect: false }))
+    return redactRevealImageMediaUrl(
+      hideTeamOnlySecrets({
+        ...redacted,
+        acceptedAnswers: undefined,
+        options:
+          redacted.type === 'mc'
+            ? redacted.options?.map((o) => ({ ...o, isCorrect: false }))
           : undefined,
-    });
+      }),
+      stripRevealImageUrl,
+    );
   });
 
   return {
     ...roomWithClock,
     questions,
+    revealImageProgress: visibleRevealImageProgress,
     leaderboard: leaderboardVisible
       ? room.settings.finalResultLocked && room.finalLeaderboardSnapshot
         ? room.finalLeaderboardSnapshot.entries

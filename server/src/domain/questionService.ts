@@ -1,6 +1,7 @@
 import type { RoomRecord } from '../store/RoomStore.js';
 import { isRevealImageAnswerCorrect } from '@quiz-tool/shared';
 import { calculateGameQuestionResults, calculateGameResultsForQuestions, startGameRound } from './gameService.js';
+import { clearRevealImageProgressForQuestion } from './revealImageService.js';
 import { armQuestionTimer, clearQuestionTimer } from './timing/questionTimerService.js';
 
 export interface OpenQuestionOptions {
@@ -44,7 +45,7 @@ export function openQuestion(
     : room.answeredByTeam;
 
   const baseRoom: RoomRecord = shouldResetRevealImage
-    ? {
+    ? clearRevealImageProgressForQuestion({
         ...room,
         gameSubmissions: room.gameSubmissions.filter(
           (submission) =>
@@ -57,7 +58,7 @@ export function openQuestion(
           (score) => !(score.questionId === questionId && score.source === 'game'),
         ),
         answeredByTeam: resetAnsweredByTeam,
-      }
+      }, questionId)
     : room;
 
   let opened: RoomRecord = {

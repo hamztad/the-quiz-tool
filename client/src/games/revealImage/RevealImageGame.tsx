@@ -1,78 +1,206 @@
-import { useMemo, useState } from 'react';
-import type { RevealImageChoiceOption, RevealImageConfig } from '@quiz-tool/shared';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { RevealImageChoiceOption, RevealImageConfig, RevealImageTeamProgress } from '@quiz-tool/shared';
 import { calculateRevealImageScore, isRevealImageAnswerCorrect } from '@quiz-tool/shared';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 
 interface RevealImageGameProps {
   config: RevealImageConfig;
-  imageUrl: string;
   maxPoints: number;
+  roomId: string;
+  questionId: string;
+  teamToken: string;
+  progress: RevealImageTeamProgress | null;
   disabled?: boolean;
+  onRevealTile: () => void;
+  onShowChoices: () => void;
   onSubmit: (payload: {
     answer: string;
-    openedTiles: number;
-    totalTiles: number;
-    usedChoices: boolean;
     source: 'text' | 'choice';
+    choiceId?: string;
   }) => void;
 }
 
-function shuffleTiles(total: number): number[] {
-  const ids = Array.from({ length: total }, (_, i) => i);
-  for (let i = ids.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [ids[i], ids[j]] = [ids[j], ids[i]];
+function drawRevealCanvas(params: {
+  ctx: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  bitmap: ImageBitmap;
+  gridSize: number;
+  openedTiles: Set<number>;
+}) {
+  const { ctx, width, height, bitmap, gridSize, openedTiles } = params;
+  ctx.clearRect(0, 0, width, height);
+
+  const imageAspect = bitmap.width / bitmap.height;
+  const canvasAspect = width / height;
+  let drawWidth = width;
+  let drawHeight = height;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (imageAspect > canvasAspect) {
+    drawHeight = width / imageAspect;
+    offsetY = (height - drawHeight) / 2;
+  } else {
+    drawWidth = height * imageAspect;
+    offsetX = (width - drawWidth) / 2;
   }
-  return ids;
+
+  ctx.drawImage(bitmap, offsetX, offsetY, drawWidth, drawHeight);
+
+  const tileWidth = drawWidth / gridSize;
+  const tileHeight = drawHeight / gridSize;
+  const totalTiles = gridSize * gridSize;
+
+  for (let tile = 0; tile < totalTiles; tile += 1) {
+    if (openedTiles.has(tile)) continue;
+    const col = tile % gridSize;
+    const row = Math.floor(tile / gridSize);
+    const x = offsetX + col * tileWidth;
+    const y = offsetY + row * tileHeight;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+    ctx.fillRect(x, y, tileWidth, tileHeight);
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.35)';
+    ctx.strokeRect(x, y, tileWidth, tileHeight);
+  }
 }
 
-export function RevealImageGame({ config, imageUrl, maxPoints, disabled = false, onSubmit }: RevealImageGameProps) {
+export function RevealImageGame({
+  config,
+  maxPoints,
+  roomId,
+  questionId,
+  teamToken,
+  progress,
+  disabled = false,
+  onRevealTile,
+  onShowChoices,
+  onSubmit,
+}: RevealImageGameProps) {
   const totalTiles = config.gridSize * config.gridSize;
-  const [revealed, setRevealed] = useState<Set<number>>(() => new Set());
+  const openedTiles = useMemo(
+    () => new Set(progress?.openedTileIndices ?? []),
+    [progress?.openedTileIndices],
+  );
+  const usedChoices = progress?.usedChoices ?? false;
+  const wrongChoiceIds = useMemo(
+    () => new Set(progress?.wrongChoiceIds ?? []),
+    [progress?.wrongChoiceIds],
+  );
+
   const [answer, setAnswer] = useState('');
   const [wrongMessage, setWrongMessage] = useState<string | null>(null);
-  const [usedChoices, setUsedChoices] = useState(false);
-  const [wrongChoiceIds, setWrongChoiceIds] = useState<Set<string>>(new Set());
-  const [order] = useState<number[]>(() => shuffleTiles(totalTiles));
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [bitmap, setBitmap] = useState<ImageBitmap | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const bitmapRef = useRef<ImageBitmap | null>(null);
+
+  const playUrl = `/api/game-images/play/${roomId}/${questionId}`;
 
   const currentScore = useMemo(
     () =>
       calculateRevealImageScore({
         maxPoints,
         totalTiles,
-        openedTiles: revealed.size,
+        openedTiles: openedTiles.size,
         usedChoices,
         choiceMultiplier: config.choiceMultiplier,
         minCorrectScore: config.minCorrectScore,
       }),
-    [config.choiceMultiplier, config.minCorrectScore, maxPoints, revealed.size, totalTiles, usedChoices],
+    [config.choiceMultiplier, config.minCorrectScore, maxPoints, openedTiles.size, totalTiles, usedChoices],
   );
 
-  const revealOne = () => {
-    if (disabled) return;
-    for (const tile of order) {
-      if (!revealed.has(tile)) {
-        const next = new Set(revealed);
-        next.add(tile);
-        setRevealed(next);
-        break;
+  const paint = useCallback(() => {
+    const canvas = canvasRef.current;
+    const image = bitmapRef.current;
+    if (!canvas || !image) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    drawRevealCanvas({
+      ctx,
+      width: canvas.width,
+      height: canvas.height,
+      bitmap: image,
+      gridSize: config.gridSize,
+      openedTiles,
+    });
+  }, [config.gridSize, openedTiles]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setImageError(null);
+    setBitmap(null);
+    bitmapRef.current = null;
+
+    (async () => {
+      try {
+        const response = await fetch(playUrl, {
+          headers: { Authorization: `Bearer ${teamToken}` },
+        });
+        if (!response.ok) {
+          throw new Error('Kunne ikke laste spillbilde.');
+        }
+        const blob = await response.blob();
+        const nextBitmap = await createImageBitmap(blob);
+        if (cancelled) {
+          nextBitmap.close();
+          return;
+        }
+        bitmapRef.current = nextBitmap;
+        setBitmap(nextBitmap);
+      } catch {
+        if (!cancelled) {
+          setImageError('Kunne ikke laste spillbilde. Prøv å oppdatere siden.');
+        }
       }
-    }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (bitmapRef.current) {
+        bitmapRef.current.close();
+        bitmapRef.current = null;
+      }
+    };
+  }, [playUrl, teamToken]);
+
+  useEffect(() => {
+    if (!bitmap || !containerRef.current || !canvasRef.current) return;
+
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    const resize = () => {
+      const width = Math.max(1, Math.floor(container.clientWidth));
+      const height = Math.max(1, Math.floor(width * (bitmap.height / bitmap.width)));
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.height = `${height}px`;
+      paint();
+    };
+
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [bitmap, paint]);
+
+  useEffect(() => {
+    paint();
+  }, [paint, openedTiles]);
+
+  const handleCanvasClick = () => {
+    if (disabled || openedTiles.size >= totalTiles) return;
+    onRevealTile();
   };
 
   const submitText = () => {
     const value = answer.trim();
     if (!value || disabled) return;
-    const correct = isRevealImageAnswerCorrect(value, config);
-    onSubmit({
-      answer: value,
-      openedTiles: revealed.size,
-      totalTiles,
-      usedChoices,
-      source: 'text',
-    });
-    if (correct) {
+    onSubmit({ answer: value, source: 'text' });
+    if (isRevealImageAnswerCorrect(value, config)) {
       setWrongMessage(null);
     } else {
       setWrongMessage('Ikke riktig ennå.');
@@ -81,18 +209,11 @@ export function RevealImageGame({ config, imageUrl, maxPoints, disabled = false,
 
   const submitChoice = (choice: RevealImageChoiceOption) => {
     if (disabled) return;
-    onSubmit({
-      answer: choice.text,
-      openedTiles: revealed.size,
-      totalTiles,
-      usedChoices: true,
-      source: 'choice',
-    });
+    onSubmit({ answer: choice.text, source: 'choice', choiceId: choice.id });
     if (choice.isCorrect) {
       setWrongMessage(null);
       return;
     }
-    setWrongChoiceIds((prev) => new Set(prev).add(choice.id));
     setWrongMessage('Ikke riktig ennå.');
   };
 
@@ -100,7 +221,12 @@ export function RevealImageGame({ config, imageUrl, maxPoints, disabled = false,
   const choices = config.choices ?? [];
 
   return (
-    <div className="mt-4 space-y-3">
+    <div
+      className="mt-4 space-y-3 select-none"
+      style={{ WebkitUserDrag: 'none' } as React.CSSProperties}
+      onContextMenu={(event) => event.preventDefault()}
+      onDragStart={(event) => event.preventDefault()}
+    >
       <p className="text-sm text-quiz-muted">Jo færre ruter du åpner, jo flere poeng kan du få.</p>
       {disabled && (
         <p className="rounded-xl border border-green-500/40 bg-green-500/10 px-3 py-2 text-sm text-green-800">
@@ -108,30 +234,39 @@ export function RevealImageGame({ config, imageUrl, maxPoints, disabled = false,
         </p>
       )}
 
-      <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl border border-quiz-border/80 bg-quiz-bg">
-        <img src={imageUrl} alt="Skjult motiv" className="block h-auto w-full object-cover" />
-        <div
-          className="absolute inset-0 grid"
-          style={{ gridTemplateColumns: `repeat(${config.gridSize}, minmax(0, 1fr))` }}
-        >
-          {Array.from({ length: totalTiles }, (_, tile) => {
-            const isOpen = revealed.has(tile);
-            return (
-              <button
-                key={tile}
-                type="button"
-                onClick={revealOne}
-                disabled={disabled || isOpen}
-                className={`border border-slate-900/30 ${isOpen ? 'pointer-events-none bg-transparent' : 'bg-slate-900/75 hover:bg-slate-900/60'}`}
-                aria-label={`Rute ${tile + 1}`}
-              />
-            );
-          })}
-        </div>
+      <div
+        ref={containerRef}
+        className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl border border-quiz-border/80 bg-quiz-bg"
+      >
+        <canvas
+          ref={canvasRef}
+          className="block w-full cursor-pointer touch-manipulation"
+          onClick={handleCanvasClick}
+          role="button"
+          tabIndex={0}
+          aria-label="Åpne neste rute"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleCanvasClick();
+            }
+          }}
+        />
+        {imageError && (
+          <p className="absolute inset-0 flex items-center justify-center bg-quiz-bg/90 px-3 text-center text-sm text-red-800">
+            {imageError}
+          </p>
+        )}
+        {!bitmap && !imageError && (
+          <p className="absolute inset-0 flex items-center justify-center bg-quiz-bg/80 text-sm text-quiz-muted">
+            Laster bilde…
+          </p>
+        )}
       </div>
 
       <div className="rounded-xl border border-quiz-border/70 bg-quiz-surface/40 px-3 py-2 text-xs text-quiz-muted">
-        Åpnet: {revealed.size}/{totalTiles} ruter · mulig poeng nå: <span className="font-bold text-quiz-text">{currentScore}</span>
+        Åpnet: {openedTiles.size}/{totalTiles} ruter · mulig poeng nå:{' '}
+        <span className="font-bold text-quiz-text">{currentScore}</span>
       </div>
 
       <div className="flex gap-2">
@@ -148,7 +283,7 @@ export function RevealImageGame({ config, imageUrl, maxPoints, disabled = false,
       </div>
 
       {!usedChoices && showChoices && (
-        <Button type="button" variant="secondary" onClick={() => setUsedChoices(true)} disabled={disabled}>
+        <Button type="button" variant="secondary" onClick={onShowChoices} disabled={disabled}>
           Vis alternativer
         </Button>
       )}

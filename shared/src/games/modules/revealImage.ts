@@ -2,6 +2,7 @@ import type {
   GameResult,
   GameSubmission,
   RevealImageChoiceOption,
+  RevealImageClientAnswerPayload,
   RevealImageConfig,
   RevealImageSubmissionPayload,
 } from '../types.js';
@@ -93,6 +94,19 @@ export function calculateRevealImageScore(params: {
   const multiplier = params.usedChoices ? params.choiceMultiplier : 1;
   const raw = Math.round(Math.max(0, params.maxPoints) * Math.max(0, multiplier) * ratio);
   return Math.max(Math.max(0, Math.round(params.minCorrectScore)), raw);
+}
+
+export function isRevealImageClientAnswerPayload(
+  payload: unknown,
+): payload is RevealImageClientAnswerPayload {
+  if (typeof payload !== 'object' || payload === null) return false;
+  const record = payload as Record<string, unknown>;
+  return (
+    record.gameId === 'revealImage' &&
+    typeof record.answer === 'string' &&
+    (record.source === 'text' || record.source === 'choice') &&
+    (record.choiceId === undefined || typeof record.choiceId === 'string')
+  );
 }
 
 export function isRevealImageSubmissionPayload(payload: unknown): payload is RevealImageSubmissionPayload {
