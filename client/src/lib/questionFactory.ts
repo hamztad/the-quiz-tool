@@ -188,16 +188,21 @@ export function isQuestionIncomplete(question: Question): boolean {
     const items = question.orderingItems ?? [];
     const correctOrder = question.orderingCorrectOrder ?? [];
     const filledItems = items.filter((item) => choiceItemHasContent(item));
-    const uniqueTexts = new Set(
+    const uniqueChoiceContent = new Set(
       filledItems
-        .map((item) => item.text.trim().toLocaleLowerCase('nb'))
+        .map((item) => {
+          const text = item.text.trim();
+          if (text) return `text:${text.toLocaleLowerCase('nb')}`;
+          const mediaUrl = item.media?.url?.trim();
+          return mediaUrl ? `media:${mediaUrl}` : '';
+        })
         .filter(Boolean),
     );
     return (
       items.length < 3 ||
       items.length > 5 ||
       filledItems.length !== items.length ||
-      uniqueTexts.size !== items.length ||
+      uniqueChoiceContent.size !== items.length ||
       correctOrder.length !== items.length ||
       !correctOrder.every((id) => items.some((item) => item.id === id))
     );

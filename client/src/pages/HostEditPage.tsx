@@ -177,6 +177,28 @@ export function HostEditPage() {
     [scrollToQuestion],
   );
 
+  const focusFirstIncompleteQuestion = useCallback(
+    (message: string) => {
+      const firstIncompleteIndex = draftQuestions.findIndex(isQuestionIncomplete);
+      const firstIncomplete = firstIncompleteIndex >= 0 ? draftQuestions[firstIncompleteIndex] : null;
+      if (!firstIncomplete) {
+        setSaveMessage(message);
+        return;
+      }
+      setEditMode('editor');
+      setExpandedIds(new Set([firstIncomplete.id]));
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      setHighlightedId(firstIncomplete.id);
+      scrollToQuestion(firstIncomplete.id);
+      highlightTimerRef.current = setTimeout(() => {
+        setHighlightedId(null);
+        highlightTimerRef.current = null;
+      }, HIGHLIGHT_MS);
+      setSaveMessage(`${message} Hopper til spørsmål ${firstIncompleteIndex + 1}.`);
+    },
+    [draftQuestions, scrollToQuestion],
+  );
+
   const persistQuestions = useCallback(
     (questions: Question[]) => {
       const normalized = normalizeQuestionsForSave(questions);
@@ -381,8 +403,16 @@ export function HostEditPage() {
       setSaveMessage('Bruk endringene før du presenterer.');
       return;
     }
-    if (savedCount === 0 || incompleteCount > 0) {
+    if (savedCount === 0) {
+      setEditMode('editor');
+      editorEntryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       setSaveMessage('Oppdater aktiv quiz med minst ett fullført spørsmål før du presenterer.');
+      return;
+    }
+    if (incompleteCount > 0) {
+      focusFirstIncompleteQuestion(
+        'Fullfør mangler før presentasjon.',
+      );
       return;
     }
     setHostPresenting(roomId, true);
