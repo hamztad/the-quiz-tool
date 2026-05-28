@@ -7,6 +7,7 @@ import { isMediaAttachment } from '../media/mediaAttachment.js';
 import { isValidQuestionTimerConfig, normalizeQuestionTimerConfig } from '../timing/timerConfig.js';
 import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
 import type { Question, QuestionType } from '../types/room.js';
+import { prepareQuizFileQuestionsForImport } from './quizFileImport.js';
 
 export const QUIZ_FILE_FORMAT = 'the-quiz-tool-quiz' as const;
 export const QUIZ_FILE_VERSION = 2 as const;
@@ -240,6 +241,11 @@ export function buildQuizFileExport(
   };
 }
 
+/** @internal Exported for import regression tests */
+export function isQuizFileQuestion(value: unknown): value is Question {
+  return isQuestion(value);
+}
+
 export function parseQuizFile(raw: unknown): { ok: true; data: QuizFileExport } | { ok: false; error: string } {
   if (!isRecord(raw)) {
     return { ok: false, error: 'Filen er ikke gyldig JSON.' };
@@ -261,8 +267,13 @@ export function parseQuizFile(raw: unknown): { ok: true; data: QuizFileExport } 
     return { ok: false, error: 'Quizfilen inneholder ingen spørsmål.' };
   }
 
-  if (!raw.questions.every(isQuestion)) {
-    return { ok: false, error: 'Quizfilen inneholder ugyldige spørsmål.' };
+  const preparedQuestions = prepareQuizFileQuestionsForImport(raw.questions);
+  const invalidIndex = preparedQuestions.findIndex((question) => !isQuestion(question));
+  if (invalidIndex >= 0) {
+    return {
+      ok: false,
+      error: `Spørsmål ${invalidIndex + 1} i quizfilen er ugyldig eller ufullstendig.`,
+    };
   }
 
   if (raw.title !== undefined && typeof raw.title !== 'string') {
@@ -285,7 +296,7 @@ export function parseQuizFile(raw: unknown): { ok: true; data: QuizFileExport } 
       ...(typeof raw.title === 'string' ? { title: raw.title } : {}),
       ...(typeof raw.createdAt === 'string' ? { createdAt: raw.createdAt } : {}),
       exportedAt: raw.exportedAt,
-      questions: (raw.questions as Question[]).map((q, i) => ({
+      questions: (preparedQuestions as Question[]).map((q, i) => ({
         ...q,
         order: i,
         timer: normalizeQuestionTimerConfig(q.timer),

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createAnagramConfigForAnswer } from '../games/modules/anagram.js';
 import { createDefaultDropBallConfig } from '../games/modules/dropBall.js';
 import { createDefaultEmojiHuntConfig } from '../games/modules/emojiHunt.js';
+import { createDefaultRevealImageConfig } from '../games/modules/revealImage.js';
 import type { Question } from '../types/room.js';
 import { buildQuizFileExport, parseQuizFile, QUIZ_FILE_FORMAT } from './quizFile.js';
 import { questionsToQuizText } from './questionsToQuizText.js';
@@ -125,6 +126,102 @@ describe('parseQuizFile', () => {
     const invalid = JSON.parse(JSON.stringify(exported));
     invalid.questions[0].game.resultKind = 'ranked';
     expect(parseQuizFile(invalid).ok).toBe(false);
+  });
+
+  it('accepts legacy image-only ordering without imageOnlyOptions flag', () => {
+    const legacy = {
+      format: QUIZ_FILE_FORMAT,
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      questions: [
+        {
+          id: 'q-ordering',
+          order: 0,
+          type: 'ordering',
+          lines: [{ text: 'Sorter flagg', style: 'title' }],
+          orderingItems: [
+            {
+              id: 'a',
+              text: '',
+              media: { type: 'image', url: 'https://example.com/no.png', alt: 'Norge' },
+            },
+            {
+              id: 'b',
+              text: '',
+              media: { type: 'image', url: 'https://example.com/se.png', alt: 'Sverige' },
+            },
+            {
+              id: 'c',
+              text: '',
+              media: { type: 'image', url: 'https://example.com/dk.png', alt: 'Danmark' },
+            },
+          ],
+          orderingCorrectOrder: ['a', 'b', 'c'],
+          maxPoints: 2,
+        },
+      ],
+    };
+
+    const parsed = parseQuizFile(legacy);
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.data.questions[0].orderingItems?.[0].text).toBe('Norge');
+      expect(parsed.data.questions[0].orderingItems?.[1].text).toBe('Sverige');
+    }
+  });
+
+  it('accepts legacy image-only ordering with media but no labels', () => {
+    const legacy = {
+      format: QUIZ_FILE_FORMAT,
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      questions: [
+        {
+          id: 'q-ordering',
+          order: 0,
+          type: 'ordering',
+          lines: [{ text: 'Sorter flagg', style: 'title' }],
+          orderingItems: [
+            { id: 'a', text: '', media: { type: 'image', url: 'https://example.com/no.png' } },
+            { id: 'b', text: '', media: { type: 'image', url: 'https://example.com/se.png' } },
+            { id: 'c', text: '', media: { type: 'image', url: 'https://example.com/dk.png' } },
+          ],
+          orderingCorrectOrder: ['a', 'b', 'c'],
+          maxPoints: 2,
+        },
+      ],
+    };
+
+    const parsed = parseQuizFile(legacy);
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.data.questions[0].imageOnlyOptions).toBe(true);
+    }
+  });
+
+  it('accepts reveal image exports with placeholder MC choices', () => {
+    const game = createDefaultRevealImageConfig();
+    game.correctAnswer = 'Oslo';
+    game.acceptedAnswers = ['Oslo'];
+
+    const exported = buildQuizFileExport([
+      {
+        id: 'q-reveal',
+        order: 0,
+        type: 'game',
+        gameType: 'revealImage',
+        lines: [{ text: 'Avslør bildet', style: 'title' }],
+        game,
+        maxPoints: 10,
+      },
+    ]);
+
+    const parsed = parseQuizFile(exported);
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.data.questions[0].game?.gameId).toBe('revealImage');
+      expect(parsed.data.questions[0].game?.choices).toBeUndefined();
+    }
   });
 
   it('validates ordering questions', () => {

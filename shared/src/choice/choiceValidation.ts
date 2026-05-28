@@ -62,7 +62,10 @@ export function validateMcChoices(
   const list = options ?? [];
   if (list.length === 0) return errors;
 
-  if (list.some((option) => !choiceItemHasRequiredText(option))) {
+  if (
+    !imageOnlyOptions &&
+    list.some((option) => !choiceItemHasRequiredText(option))
+  ) {
     errors.push(MC_ALL_OPTIONS_NEED_TEXT);
   }
   if (
@@ -82,7 +85,10 @@ export function validateOrderingChoiceItems(
   const list = items ?? [];
   if (list.length === 0) return errors;
 
-  if (list.some((item) => !choiceItemHasRequiredText(item))) {
+  if (
+    !imageOnlyOptions &&
+    list.some((item) => !choiceItemHasRequiredText(item))
+  ) {
     errors.push(ORDERING_ALL_ITEMS_NEED_TEXT);
   }
   if (

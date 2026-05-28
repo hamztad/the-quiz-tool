@@ -22,6 +22,23 @@ describe('choiceValidation', () => {
     expect(validateMcChoices(options, false)).toEqual([MC_ALL_OPTIONS_NEED_TEXT]);
   });
 
+  it('allows empty text on MC options when image-only mode is enabled', () => {
+    const options: McOption[] = [
+      { id: '1', text: '', isCorrect: true, media: image },
+      { id: '2', text: '', isCorrect: false, media: { ...image, url: 'https://example.com/b.jpg' } },
+    ];
+    expect(validateMcChoices(options, true)).toEqual([]);
+  });
+
+  it('allows empty text on ordering items when image-only mode is enabled', () => {
+    const items: OrderingItem[] = [
+      { id: 'a', text: '', media: image },
+      { id: 'b', text: '', media: { ...image, url: 'https://example.com/b.jpg' } },
+      { id: 'c', text: '', media: { ...image, url: 'https://example.com/c.jpg' } },
+    ];
+    expect(validateOrderingChoiceItems(items, true)).toEqual([]);
+  });
+
   it('requires images when image-only mode is enabled', () => {
     const options: McOption[] = [
       { id: '1', text: 'Norge', isCorrect: true, media: image },
