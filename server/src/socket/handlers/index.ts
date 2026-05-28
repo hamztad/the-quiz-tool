@@ -17,7 +17,8 @@ import { checkRoomAccess } from '../../domain/roomAccess.js';
 import { submitOrUpdateAnswer } from '../../domain/answerService.js';
 import { createProtest, mergePeerGradesToScores, upsertScore } from '../../domain/gradingService.js';
 import { setOpenAnswerGradingMode } from '../../domain/aiGradingService.js';
-import { runAiGradingBatch } from '../../domain/runAiGradingBatch.js';
+import { runAiGradingBatch, runIncrementalAiGrade } from '../../domain/runAiGradingBatch.js';
+import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import { canStartAiGrading, collectOpenAnswerGradeJobs } from '@quiz-tool/shared';
 import { startTeamGame, submitGameResult } from '../../domain/gameService.js';
 import { forceReopenQuestion, lockQuestion, lockRound, openQuestion } from '../../domain/questionService.js';
@@ -65,6 +66,21 @@ function startAiGradingForRoom(io: Server, socket: Socket, roomId: string): void
   }
 
   void runAiGradingBatch(io, roomId, apiKey);
+}
+
+function maybeGradeOpenAnswerAfterSubmit(
+  io: Server,
+  roomId: string,
+  teamId: string,
+  questionId: string,
+): void {
+  const room = roomStore.get(roomId);
+  if (!room || !isSelfPacedQuiz(room.schedule)) return;
+  const question = room.questions.find((q) => q.id === questionId);
+  if (question?.type !== 'open') return;
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return;
+  void runIncrementalAiGrade(io, roomId, apiKey, teamId, questionId);
 }
 
 function emitRoomAccessError(socket: Socket, code: string) {
@@ -431,6 +447,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       startsAt?: number;
       endsAt?: number;
       runMode?: 'manual' | 'assisted' | 'automatic';
+      deliveryMode?: 'qm_led' | 'self_paced' | 'interval' | 'hosted';
       autoOpenFirstQuestion?: boolean;
     }) => {
       const roomId = socket.data.roomId as string;
@@ -504,7 +521,10 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     const teamId = socket.data.teamId as string;
     if (!requireSecretary(socket, roomId)) return;
     try {
-      roomStore.update(roomId, (r) => submitOrUpdateAnswer(r, teamId, payload.questionId, payload.value, false));
+      roomStore.update(roomId, (r) =>
+        submitOrUpdateAnswer(r, teamId, payload.questionId, payload.value, false),
+      );
+      maybeGradeOpenAnswerAfterSubmit(io, roomId, teamId, payload.questionId);
       publishRoomState(io, roomId);
     } catch (e) {
       emitError(socket, e instanceof Error ? e.message : 'Kunne ikke sende svar');

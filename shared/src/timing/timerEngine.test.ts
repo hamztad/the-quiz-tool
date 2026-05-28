@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildArmedSchedule,
+  getDueDeadlines,
   getNextRoomDeadline,
   remainingMs,
 } from './timerEngine.js';
+import { attachIntervalWindowsToSchedule } from '../quiz/intervalSchedule.js';
 
 describe('timerEngine', () => {
   it('picks earliest future deadline', () => {
@@ -52,5 +54,24 @@ describe('timerEngine', () => {
   it('remainingMs never negative', () => {
     expect(remainingMs(100, 200)).toBe(0);
     expect(remainingMs(500, 100)).toBe(400);
+  });
+
+  it('emits interval open and close deadlines in live phase', () => {
+    const now = 1_000_000;
+    const schedule = attachIntervalWindowsToSchedule(
+      buildArmedSchedule(
+        { startDelayMs: 0, durationMs: 60_000, runMode: 'manual', deliveryMode: 'interval' },
+        now - 5_000,
+        1,
+        now - 5_000,
+        now + 55_000,
+      ),
+      [{ id: 'q1', order: 0 }],
+    );
+    const due = getDueDeadlines(
+      { phase: 'live', schedule, questionStatus: { q1: 'locked' } },
+      now,
+    );
+    expect(due.some((d) => d.kind === 'question_open' && d.questionId === 'q1')).toBe(true);
   });
 });

@@ -1,9 +1,20 @@
 import type { Question, RoomState } from './types/room.js';
+import { isIntervalQuestionRevealed } from './quiz/intervalSchedule.js';
+import { isSelfPacedQuiz } from './quiz/quizModes.js';
 
 export function isQuestionRevealedToTeam(
-  room: Pick<RoomState, 'questionStatus' | 'questionsActivated'>,
+  room: Pick<RoomState, 'questionStatus' | 'questionsActivated' | 'schedule' | 'phase' | 'serverNow'>,
   questionId: string,
+  now = room.serverNow ?? Date.now(),
 ): boolean {
+  if (
+    isIntervalQuestionRevealed(room.schedule, room.questionStatus, questionId, now)
+  ) {
+    return true;
+  }
+  if (isSelfPacedQuiz(room.schedule) && room.phase === 'live') {
+    return true;
+  }
   if (room.questionStatus[questionId] === 'open') {
     return true;
   }

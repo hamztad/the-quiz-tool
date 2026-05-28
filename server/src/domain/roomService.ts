@@ -1,5 +1,9 @@
 import type { PublicRoomState, Question, RoomState } from '@quiz-tool/shared';
-import { isQuestionRevealedToTeam, redactQuestionForTeam } from '@quiz-tool/shared';
+import {
+  isProvisionalLeaderboardVisible,
+  isQuestionRevealedToTeam,
+  redactQuestionForTeam,
+} from '@quiz-tool/shared';
 import {
   assertLiveQuizQuestionUpdates,
   MAX_TEAMS,
@@ -455,11 +459,11 @@ export function toPublicState(
   });
   const visibleProtests = room.protests.filter((p) => p.teamId === teamId);
   const visibleGradingAssignments = assignment ? [assignment] : [];
-  const leaderboardVisible =
-    room.phase === 'leaderboard' ||
-    room.settings.showLeaderboard ||
-    room.settings.finalResultLocked ||
-    room.phase === 'post_quiz';
+  const leaderboardVisible = isProvisionalLeaderboardVisible(room.schedule, room.phase, {
+    showLeaderboard: room.settings.showLeaderboard,
+    finalResultLocked: room.settings.finalResultLocked,
+    teamsLockedOut: room.settings.teamsLockedOut,
+  });
 
   const hideTeamOnlySecrets = (question: (typeof room.questions)[number]) => {
     if (question.type === 'ordering') {
@@ -506,6 +510,7 @@ export function toPublicState(
         : computeLeaderboard(room)
       : undefined,
     answeredByTeam: visibleAnsweredByTeam,
+    teamQuestionLocks: teamId ? { [teamId]: room.teamQuestionLocks?.[teamId] ?? [] } : {},
     answers: visibleAnswers,
     gameRounds: visibleGameRounds,
     gameStarts: visibleGameStarts,

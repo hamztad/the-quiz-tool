@@ -1,5 +1,7 @@
+import { isSelfPacedQuiz, isTeamQuestionLocked } from '@quiz-tool/shared';
 import type { Answer, Question } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
+import { lockQuestionForTeam } from './selfPacedService.js';
 import { scoreAutoAnswer, upsertScore } from './gradingService.js';
 
 function markAnswered(room: RoomRecord, teamId: string, questionId: string): Record<string, string[]> {
@@ -28,8 +30,16 @@ export function submitOrUpdateAnswer(
     throw new Error('Quizen er avsluttet for deltakere.');
   }
 
+  const selfPaced = isSelfPacedQuiz(room.schedule);
+  if (
+    selfPaced &&
+    isTeamQuestionLocked(room.teamQuestionLocks, teamId, questionId)
+  ) {
+    throw new Error('Oppgaven er låst etter innsending.');
+  }
+
   const status = room.questionStatus[questionId];
-  if (status !== 'open') {
+  if (!selfPaced && status !== 'open') {
     throw new Error('Spørsmålet er ikke åpent for svar.');
   }
 
@@ -40,7 +50,11 @@ export function submitOrUpdateAnswer(
 
   const existing = room.answers.find((a) => a.teamId === teamId && a.questionId === questionId);
   if (existing && isUpdate) {
-    return applyAnswer(room, teamId, questionId, value, question);
+    let next = applyAnswer(room, teamId, questionId, value, question);
+    if (selfPaced && question.type !== 'game') {
+      next = lockQuestionForTeam(next, teamId, questionId);
+    }
+    return next;
   }
   if (existing && !isUpdate) {
     throw new Error('Svar finnes allerede. Bruk oppdatering.');
@@ -49,7 +63,11 @@ export function submitOrUpdateAnswer(
     throw new Error('Ingen svar å oppdatere.');
   }
 
-  return applyAnswer(room, teamId, questionId, value, question);
+  let next = applyAnswer(room, teamId, questionId, value, question);
+  if (selfPaced && question.type !== 'game') {
+    next = lockQuestionForTeam(next, teamId, questionId);
+  }
+  return next;
 }
 
 function applyAnswer(

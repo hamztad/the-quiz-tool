@@ -8,6 +8,8 @@ import {
 import type { RoomRecord } from '../../store/RoomStore.js';
 import { endQuizForTeams, startQuiz } from '../roomService.js';
 import { lockRound, openQuestion } from '../questionService.js';
+import { applySelfPacedQuizStart } from '../selfPacedService.js';
+import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import { clearAllQuestionTimers } from './questionTimerService.js';
 
 export type { SetScheduleInput };
@@ -26,7 +28,7 @@ export function setQuizSchedule(
   }
 
   const generation = (room.schedule?.generation ?? 0) + 1;
-  const schedule = armQuizSchedule(input, now, generation);
+  const schedule = armQuizSchedule(input, now, generation, room.questions);
 
   return { ...room, schedule };
 }
@@ -50,7 +52,9 @@ export function applyScheduledQuizStart(room: RoomRecord, now = Date.now()): Roo
     liveStartedAt: now,
   };
 
-  if (schedule.autoOpenFirstQuestion) {
+  if (isSelfPacedQuiz(schedule)) {
+    next = applySelfPacedQuizStart(next);
+  } else if (schedule.autoOpenFirstQuestion) {
     const firstId = getFirstQuestionId(next.questions);
     if (firstId) {
       next = openQuestion(next, firstId, { allowWhenTeamsLockedOut: true });

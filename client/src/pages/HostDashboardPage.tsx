@@ -38,7 +38,7 @@ import {
 } from '../lib/hostDraftSession';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
 import { HostOpenAnswerGradingPanel } from '../components/host/HostOpenAnswerGradingPanel';
-import { QuizScheduleBanner } from '../components/timing/QuizScheduleBanner';
+import { LiveQuizClock } from '../components/timing/LiveQuizClock';
 import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
 import { clearTeamSession } from '../lib/tokens';
 
@@ -257,7 +257,7 @@ export function HostDashboardPage() {
         }}
       />
 
-      <QuizScheduleBanner room={room} />
+      <LiveQuizClock room={room} />
 
       {room.settings.teamsLockedOut && (
         <p className="mb-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">

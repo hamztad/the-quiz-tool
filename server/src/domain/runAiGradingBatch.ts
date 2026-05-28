@@ -1,5 +1,10 @@
 import type { Server } from 'socket.io';
 import {
+  collectOpenAnswerGradeJobs,
+  mergeAiGradesToScores,
+  upsertAiGrade,
+} from '@quiz-tool/shared';
+import {
   applyAiGradeResult,
   fallbackAiGrade,
   finishAiGradingRun,
@@ -52,4 +57,36 @@ export async function runAiGradingBatch(
     roomStore.update(roomId, (r) => finishAiGradingRun(r, message));
     publishRoomState(io, roomId);
   }
+}
+
+/** Selvgående: grade one open answer right after submit (does not reset other aiGrades). */
+export async function runIncrementalAiGrade(
+  io: Server,
+  roomId: string,
+  apiKey: string,
+  teamId: string,
+  questionId: string,
+): Promise<void> {
+  const initial = roomStore.get(roomId);
+  if (!initial || initial.settings.openAnswerGradingMode !== 'ai') return;
+
+  const jobs = collectOpenAnswerGradeJobs(initial.questions, initial.answers).filter(
+    (job) => job.teamId === teamId && job.questionId === questionId,
+  );
+  if (jobs.length === 0) return;
+
+  const job = jobs[0]!;
+  let grade;
+  try {
+    grade = await gradeJobWithOpenAI(apiKey, job);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'ukjent feil';
+    grade = fallbackAiGrade(job, message);
+  }
+
+  roomStore.update(roomId, (room) => {
+    const withGrade = upsertAiGrade(room, grade);
+    return { ...withGrade, scores: mergeAiGradesToScores(withGrade) };
+  });
+  publishRoomState(io, roomId);
 }

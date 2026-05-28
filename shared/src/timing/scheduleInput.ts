@@ -3,7 +3,10 @@ import {
   MAX_SCHEDULE_DURATION_MS,
   MIN_SCHEDULE_DELAY_MS,
 } from './timerConfig.js';
-import type { QuizRunMode, QuizSchedule } from '../types/schedule.js';
+import type { Question } from '../types/room.js';
+import { attachIntervalWindowsToSchedule } from '../quiz/intervalSchedule.js';
+import { normalizeDeliveryMode } from '../quiz/quizModes.js';
+import type { QuizDeliveryMode, QuizRunMode, QuizSchedule } from '../types/schedule.js';
 import { buildArmedSchedule } from './timerEngine.js';
 
 export interface SetScheduleInput {
@@ -16,6 +19,7 @@ export interface SetScheduleInput {
   /** Absolute: Unix ms when quiz should end (alternative to durationMs) */
   endsAt?: number;
   runMode?: QuizRunMode;
+  deliveryMode?: QuizDeliveryMode;
   autoOpenFirstQuestion?: boolean;
 }
 
@@ -62,6 +66,14 @@ export function validateScheduleInput(input: SetScheduleInput, now = Date.now())
         return 'Varighet kan maks være 24 timer.';
       }
     }
+    const mode = normalizeDeliveryMode(input.deliveryMode);
+    if (
+      (mode === 'self_paced' || mode === 'interval') &&
+      !input.endsAt &&
+      !(input.durationMs && input.durationMs > 0)
+    ) {
+      return `${mode === 'interval' ? 'Intervall' : 'Selvgående'} quiz må ha en sluttid (varighet).`;
+    }
     return null;
   }
 
@@ -74,6 +86,10 @@ export function validateScheduleInput(input: SetScheduleInput, now = Date.now())
     (input.durationMs < 0 || input.durationMs > MAX_SCHEDULE_DURATION_MS)
   ) {
     return 'Varighet kan maks være 24 timer.';
+  }
+  const mode = normalizeDeliveryMode(input.deliveryMode);
+  if ((mode === 'self_paced' || mode === 'interval') && !(input.durationMs && input.durationMs > 0)) {
+    return `${mode === 'interval' ? 'Intervall' : 'Selvgående'} quiz må ha en sluttid (varighet).`;
   }
   return null;
 }
@@ -123,20 +139,25 @@ export function armQuizSchedule(
   input: SetScheduleInput,
   now: number,
   generation: number,
+  questions: Pick<Question, 'id' | 'order'>[] = [],
 ): QuizSchedule {
   const times = resolveScheduleTimes(input, now);
-  return buildArmedSchedule(
+  const mode = normalizeDeliveryMode(input.deliveryMode);
+  const schedule = buildArmedSchedule(
     {
       startDelayMs: times.startDelayMs,
       durationMs: times.durationMs,
-      runMode: input.runMode ?? 'assisted',
-      autoOpenFirstQuestion: input.autoOpenFirstQuestion,
+      runMode: input.runMode ?? (mode === 'self_paced' || mode === 'interval' ? 'manual' : 'assisted'),
+      deliveryMode: mode,
+      autoOpenFirstQuestion:
+        mode === 'self_paced' || mode === 'interval' ? false : input.autoOpenFirstQuestion,
     },
     now,
     generation,
     times.startsAt,
     times.endsAt,
   );
+  return attachIntervalWindowsToSchedule(schedule, questions);
 }
 
 /** `datetime-local` value in local timezone (YYYY-MM-DDTHH:mm). */

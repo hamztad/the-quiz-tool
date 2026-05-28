@@ -7,7 +7,13 @@ import {
   fromDatetimeLocalValue,
   toDatetimeLocalValue,
 } from '@quiz-tool/shared';
-import type { PublicRoomState, QuizRunMode } from '@quiz-tool/shared';
+import {
+  deliveryModeLabel,
+  normalizeDeliveryMode,
+  type PublicRoomState,
+  type QuizDeliveryMode,
+  type QuizRunMode,
+} from '@quiz-tool/shared';
 import { Button } from '../ui/Button';
 import { useSocket } from '../../hooks/useSocket';
 
@@ -56,6 +62,9 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
   const [startLocal, setStartLocal] = useState(defaultStartLocal);
   const [endMode, setEndMode] = useState<EndMode>('duration');
   const [endLocal, setEndLocal] = useState(() => defaultEndLocal(defaultStartLocal()));
+  const [deliveryMode, setDeliveryMode] = useState<QuizDeliveryMode>(() =>
+    normalizeDeliveryMode(room.schedule?.deliveryMode),
+  );
   const [runMode, setRunMode] = useState<QuizRunMode>(room.schedule?.runMode ?? 'assisted');
   const [autoOpenFirst, setAutoOpenFirst] = useState(
     room.schedule?.autoOpenFirstQuestion ?? true,
@@ -75,9 +84,24 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
 
   const emitSchedule = () => {
     setFormError(null);
+    if (
+      (deliveryMode === 'self_paced' || deliveryMode === 'interval') &&
+      durationMs <= 0 &&
+      endMode !== 'clock'
+    ) {
+      setFormError(
+        deliveryMode === 'interval'
+          ? 'Intervall-quiz må ha en sluttid (velg varighet eller slutt klokkeslett).'
+          : 'Selvgående quiz må ha en sluttid (velg varighet eller slutt klokkeslett).',
+      );
+      return;
+    }
     const base = {
-      runMode,
-      autoOpenFirstQuestion: autoOpenFirst,
+      deliveryMode,
+      runMode:
+        deliveryMode === 'self_paced' || deliveryMode === 'interval' ? 'manual' : runMode,
+      autoOpenFirstQuestion:
+        deliveryMode === 'self_paced' || deliveryMode === 'interval' ? false : autoOpenFirst,
     };
 
     if (timingMode === 'relative') {
@@ -139,6 +163,8 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
           {room.schedule.endsAt
             ? ` · slutt ${formatScheduleClock(room.schedule.endsAt)}`
             : ' · ingen automatisk slutt'}
+          {' · '}
+          {deliveryModeLabel(room.schedule.deliveryMode)}
         </p>
       )}
 
@@ -295,28 +321,84 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
 
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-quiz-muted mb-2">
-              Modus
+              Gjennomføring
             </p>
             <div className="flex flex-wrap gap-2">
-              {(['manual', 'assisted'] as const).map((mode) => (
+              {(
+                [
+                  {
+                    id: 'qm_led' as const,
+                    label: 'QM-styrt',
+                    hint: 'Quizmaster åpner og lukker oppgaver manuelt',
+                  },
+                  {
+                    id: 'self_paced' as const,
+                    label: 'Selvgående',
+                    hint: 'Alle oppgaver med én gang — låses ved innsending',
+                  },
+                  {
+                    id: 'interval' as const,
+                    label: 'Intervall',
+                    hint: 'Oppgaver åpnes etter tidsplan — følg med',
+                  },
+                ] as const
+              ).map((mode) => (
                 <button
-                  key={mode}
+                  key={mode.id}
                   type="button"
                   disabled={disabled}
-                  onClick={() => setRunMode(mode)}
-                  className={`rounded-xl border-2 px-3 py-2 text-sm font-semibold ${
-                    runMode === mode
+                  onClick={() => setDeliveryMode(mode.id)}
+                  className={`rounded-xl border-2 px-3 py-2 text-sm font-semibold text-left max-w-full ${
+                    deliveryMode === mode.id
                       ? 'border-cyan-500 bg-cyan-50 text-cyan-900'
                       : 'border-indigo-200/70 bg-white text-quiz-muted'
                   }`}
                 >
-                  {mode === 'manual' ? 'Manuell' : 'Assistert'}
+                  <span className="block">{mode.label}</span>
+                  <span className="block text-xs font-normal mt-0.5 opacity-90">{mode.hint}</span>
                 </button>
               ))}
             </div>
+            {deliveryMode === 'self_paced' && (
+              <p className="mt-2 text-xs text-cyan-900/90 rounded-lg bg-cyan-50 border border-cyan-200/60 px-3 py-2">
+                Krever sluttid. Spill er åpne til frist; andre oppgaver låses for hver deltaker ved
+                innsending. Deltakere ser midlertidig leaderboard underveis.
+              </p>
+            )}
+            {deliveryMode === 'interval' && (
+              <p className="mt-2 text-xs text-indigo-900/90 rounded-lg bg-indigo-50 border border-indigo-200/60 px-3 py-2">
+                Krever sluttid. Hver oppgave får et tidsvindu; deltakere ser ÅPEN / STENGT og
+                nedtelling. Varsler kan slås på ved oppgaveåpning.
+              </p>
+            )}
           </div>
 
-          {runMode === 'assisted' && (
+          {deliveryMode === 'qm_led' && (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-quiz-muted mb-2">
+                Quizmaster-flyt
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(['manual', 'assisted'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => setRunMode(mode)}
+                    className={`rounded-xl border-2 px-3 py-2 text-sm font-semibold ${
+                      runMode === mode
+                        ? 'border-violet-500 bg-violet-50 text-violet-900'
+                        : 'border-indigo-200/70 bg-white text-quiz-muted'
+                    }`}
+                  >
+                    {mode === 'manual' ? 'Manuell åpning' : 'Assistert (auto første)'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {deliveryMode === 'qm_led' && runMode === 'assisted' && (
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"

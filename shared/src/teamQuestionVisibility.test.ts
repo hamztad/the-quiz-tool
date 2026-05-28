@@ -29,6 +29,20 @@ describe('isQuestionRevealedToTeam', () => {
       ),
     ).toBe(true);
   });
+
+  it('reveals all questions during live self-paced quiz', () => {
+    expect(
+      isQuestionRevealedToTeam(
+        {
+          phase: 'live',
+          schedule: { enabled: true, deliveryMode: 'self_paced', runMode: 'manual' },
+          questionStatus: { q1: 'locked' },
+          questionsActivated: { q1: false },
+        },
+        'q1',
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('redactQuestionForTeam', () => {

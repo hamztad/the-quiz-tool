@@ -4,11 +4,16 @@ import {
   CLIENT_EVENTS,
   getTeamFinalPlacement,
   isQuestionRevealedToTeam,
+  isIntervalQuiz,
+  isSelfPacedQuiz,
   parseOrderingAnswer,
   serializeOrderingAnswer,
   shuffleOrderingItems,
   type Question,
 } from '@quiz-tool/shared';
+import { TeamSelfPacedQuiz } from '../components/team/TeamSelfPacedQuiz';
+import { TeamQuestionNotifyLayer } from '../components/team/TeamQuestionNotifyLayer';
+import { useQuestionOpenNotifications } from '../hooks/useQuestionOpenNotifications';
 import { GruizMark } from '../components/brand/GruizMark';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
 import { PeerGradingView } from '../components/grading/PeerGradingView';
@@ -29,7 +34,8 @@ import { OrderingChoiceContent } from '../components/ordering/OrderingChoiceCont
 import { SortableOrderingList } from '../components/ordering/SortableOrderingList';
 import { McOptionButtonContent } from '../components/question/McOptionButtonContent';
 import { TestModeBanner } from '../components/test/TestModeBanner';
-import { QuizScheduleBanner } from '../components/timing/QuizScheduleBanner';
+import { LiveQuizClock } from '../components/timing/LiveQuizClock';
+import { TeamIntervalQuiz } from '../components/team/TeamIntervalQuiz';
 import { QuestionTimerBar } from '../components/timing/QuestionTimerBar';
 
 const HIGHLIGHT_MS = 5000;
@@ -167,6 +173,27 @@ export function TeamPage() {
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
   const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hostedQuestionNavRef = useRef<((questionId: string) => void) | null>(null);
+  const selfPacedQuestionNavRef = useRef<((questionId: string) => void) | null>(null);
+  const bindSelfPacedQuestionNav = useCallback((navigate: (questionId: string) => void) => {
+    selfPacedQuestionNavRef.current = navigate;
+  }, []);
+
+  const questionNotifications = useQuestionOpenNotifications(room, {
+    onNavigateToQuestion: (questionId) => {
+      if (selfPacedQuestionNavRef.current) {
+        selfPacedQuestionNavRef.current(questionId);
+        return;
+      }
+      if (hostedQuestionNavRef.current) {
+        hostedQuestionNavRef.current(questionId);
+        return;
+      }
+      document
+        .getElementById(`team-question-${questionId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    },
+  });
 
   const teamId = teamSession?.teamId;
   const showOwnReview = searchParams.get('review') === '1';
@@ -340,6 +367,25 @@ export function TeamPage() {
     setAnswerText(storedValue);
   };
 
+  const selfPacedLive =
+    Boolean(room) &&
+    isSelfPacedQuiz(room?.schedule) &&
+    room?.phase === 'live';
+
+  useEffect(() => {
+    if (!room || selfPacedLive) {
+      hostedQuestionNavRef.current = null;
+      return;
+    }
+    hostedQuestionNavRef.current = (questionId) => {
+      const q = room.questions.find((item) => item.id === questionId);
+      if (q) openQuestion(q);
+    };
+    return () => {
+      hostedQuestionNavRef.current = null;
+    };
+  }, [room, selfPacedLive, openQuestion]);
+
   const updateActiveAnswer = (value: string) => {
     if (activeQuestionId) {
       setAnswerDrafts((current) => ({ ...current, [activeQuestionId]: value }));
@@ -405,6 +451,49 @@ export function TeamPage() {
           });
         }}
       />
+    );
+  }
+
+  const intervalActive =
+    isIntervalQuiz(room.schedule) && teamId && room.phase === 'live';
+
+  const selfPacedActive =
+    isSelfPacedQuiz(room.schedule) &&
+    teamId &&
+    (room.phase === 'live' ||
+      (room.phase === 'post_quiz' && !room.settings.finalResultLocked));
+
+  if (intervalActive) {
+    return (
+      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Intervall-quiz">
+        <TeamIntervalQuiz
+          room={room}
+          teamId={teamId}
+          operationalError={operationalError}
+          onRetryReconnect={retryReconnect}
+          onBindQuestionNavigator={bindSelfPacedQuestionNav}
+        />
+        <TeamQuestionNotifyLayer room={room} notifications={questionNotifications} />
+      </PageShell>
+    );
+  }
+
+  if (selfPacedActive) {
+    return (
+      <PageShell
+        showBrand="compact"
+        title={myTeam?.name ?? 'Deltaker'}
+        subtitle={room.settings.teamsLockedOut ? 'Selvgående quiz · avsluttet' : 'Selvgående quiz'}
+      >
+        <TeamSelfPacedQuiz
+          room={room}
+          teamId={teamId}
+          operationalError={operationalError}
+          onRetryReconnect={retryReconnect}
+          onBindQuestionNavigator={bindSelfPacedQuestionNav}
+        />
+        <TeamQuestionNotifyLayer room={room} notifications={questionNotifications} />
+      </PageShell>
     );
   }
 
@@ -514,7 +603,9 @@ export function TeamPage() {
       {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
       {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
 
-      <QuizScheduleBanner room={room} />
+      <LiveQuizClock room={room} />
+
+      <TeamQuestionNotifyLayer room={room} notifications={questionNotifications} />
 
       <div className="quiz-page-content space-y-4">
           {activeQuestionOpen ? (

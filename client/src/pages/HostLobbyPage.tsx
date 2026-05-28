@@ -15,7 +15,7 @@ import { useSocket } from '../hooks/useSocket';
 import { useUnsavedQuizGuard } from '../hooks/useUnsavedQuizGuard';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
 import { HostScheduleCard } from '../components/timing/HostScheduleCard';
-import { QuizScheduleBanner } from '../components/timing/QuizScheduleBanner';
+import { LiveQuizClock } from '../components/timing/LiveQuizClock';
 import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
 import { clearTeamSession } from '../lib/tokens';
 import { isQuestionIncomplete } from '../lib/questionFactory';
@@ -174,7 +174,7 @@ export function HostLobbyPage() {
       )}
 
       <div className="w-full min-w-0 max-w-full space-y-6">
-        <QuizScheduleBanner room={room} />
+        <LiveQuizClock room={room} />
         {!inviteOnly && <HostScheduleCard room={room} disabled={!connected} />}
         <JoinCodeDisplay joinCode={room.joinCode} joinUrl={joinUrl} />
 

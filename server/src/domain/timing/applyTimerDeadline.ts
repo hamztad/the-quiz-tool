@@ -1,6 +1,6 @@
 import { getDueDeadlines, type TimerDeadline } from '@quiz-tool/shared';
 import type { RoomRecord } from '../../store/RoomStore.js';
-import { lockQuestion } from '../questionService.js';
+import { lockQuestion, openQuestion } from '../questionService.js';
 import { applyScheduledQuizEnd, applyScheduledQuizStart } from './scheduleService.js';
 
 export function applyTimerDeadline(
@@ -13,6 +13,16 @@ export function applyTimerDeadline(
       return applyScheduledQuizStart(room, now);
     case 'schedule_end':
       return applyScheduledQuizEnd(room, now);
+    case 'question_open': {
+      if (!deadline.questionId) return room;
+      if (room.questionStatus[deadline.questionId] === 'open') return room;
+      return openQuestion(room, deadline.questionId, { allowWhenTeamsLockedOut: true });
+    }
+    case 'question_interval_close': {
+      if (!deadline.questionId) return room;
+      if (room.questionStatus[deadline.questionId] !== 'open') return room;
+      return lockQuestion(room, deadline.questionId);
+    }
     case 'question_lock': {
       if (!deadline.questionId) return room;
       if (room.questionStatus[deadline.questionId] !== 'open') return room;

@@ -1,7 +1,13 @@
+import { isIntervalQuiz } from '../quiz/quizModes.js';
 import type { ActiveQuestionTimer, QuizSchedule } from '../types/schedule.js';
 import type { Question, RoomPhase } from '../types/room.js';
 
-export type TimerDeadlineKind = 'schedule_start' | 'schedule_end' | 'question_lock';
+export type TimerDeadlineKind =
+  | 'schedule_start'
+  | 'schedule_end'
+  | 'question_open'
+  | 'question_interval_close'
+  | 'question_lock';
 
 export interface TimerDeadline {
   kind: TimerDeadlineKind;
@@ -26,6 +32,31 @@ export function getScheduleEndDeadline(schedule: QuizSchedule | undefined): numb
   if (!schedule?.enabled || !schedule.endsAt) return null;
   if (schedule.completedAt) return null;
   return schedule.endsAt;
+}
+
+export function getIntervalQuestionDeadlines(
+  schedule: QuizSchedule | undefined,
+  questionStatus: Record<string, 'locked' | 'open'> | undefined,
+): TimerDeadline[] {
+  if (!isIntervalQuiz(schedule) || !schedule?.intervalWindows) return [];
+  const deadlines: TimerDeadline[] = [];
+  for (const window of schedule.intervalWindows) {
+    const status = questionStatus?.[window.questionId];
+    if (status !== 'open') {
+      deadlines.push({
+        kind: 'question_open',
+        at: window.opensAt,
+        questionId: window.questionId,
+      });
+    } else {
+      deadlines.push({
+        kind: 'question_interval_close',
+        at: window.closesAt,
+        questionId: window.questionId,
+      });
+    }
+  }
+  return deadlines;
 }
 
 export function getQuestionLockDeadlines(
@@ -60,9 +91,15 @@ function collectRoomDeadlines(room: RoomTimerSlice): TimerDeadline[] {
     if (end) {
       candidates.push({ kind: 'schedule_end', at: end });
     }
-    candidates.push(
-      ...getQuestionLockDeadlines(room.activeQuestionTimers, room.questionStatus),
-    );
+    if (isIntervalQuiz(room.schedule)) {
+      candidates.push(
+        ...getIntervalQuestionDeadlines(room.schedule, room.questionStatus),
+      );
+    } else {
+      candidates.push(
+        ...getQuestionLockDeadlines(room.activeQuestionTimers, room.questionStatus),
+      );
+    }
   }
 
   return candidates;
@@ -110,6 +147,7 @@ export function buildArmedSchedule(
     startDelayMs: number;
     durationMs?: number;
     runMode: QuizSchedule['runMode'];
+    deliveryMode?: QuizSchedule['deliveryMode'];
     autoOpenFirstQuestion?: boolean;
   },
   now: number,
@@ -134,5 +172,6 @@ export function buildArmedSchedule(
     durationMs: input.durationMs,
     autoOpenFirstQuestion: input.autoOpenFirstQuestion ?? false,
     runMode: input.runMode,
+    deliveryMode: input.deliveryMode ?? 'qm_led',
   };
 }

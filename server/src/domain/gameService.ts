@@ -16,6 +16,7 @@ import {
   isRainbowPuzzleSubmissionPayload,
   type GameSubmissionPayload,
 } from '@quiz-tool/shared';
+import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import type { GameResult, GameRound, GameSubmission } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/RoomStore.js';
 import { generateId } from '../utils/id.js';
@@ -77,7 +78,7 @@ export function startTeamGame(
     throw new Error('Quizen er avsluttet for deltakere.');
   }
 
-  if (room.questionStatus[questionId] !== 'open') {
+  if (!isSelfPacedQuiz(room.schedule) && room.questionStatus[questionId] !== 'open') {
     throw new Error('Spillet er ikke åpent.');
   }
 
@@ -121,7 +122,7 @@ export function submitGameResult(
     throw new Error('Quizen er avsluttet for deltakere.');
   }
 
-  if (room.questionStatus[questionId] !== 'open') {
+  if (!isSelfPacedQuiz(room.schedule) && room.questionStatus[questionId] !== 'open') {
     throw new Error('Spillet er ikke åpent.');
   }
 

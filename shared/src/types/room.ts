@@ -176,6 +176,8 @@ export interface RoomState {
   /** True once quizmaster has opened the question at least once (teams may see text after). */
   questionsActivated: Record<string, boolean>;
   answeredByTeam: Record<string, string[]>;
+  /** Selvgående: oppgaver (unntatt spill) låst for deltaker etter innsending. */
+  teamQuestionLocks?: Record<string, string[]>;
   answers: Answer[];
   gameRounds: GameRound[];
   gameStarts: GameTeamStart[];

@@ -4,6 +4,8 @@ import { Card } from '../ui/Card';
 
 interface LeaderboardBaseProps {
   room: PublicRoomState;
+  /** Selvgående / underveis — ikke endelig resultat. */
+  provisional?: boolean;
 }
 
 interface LeaderboardReadonlyProps extends LeaderboardBaseProps {
@@ -29,7 +31,7 @@ const rankCircleClass = [
 ] as const;
 
 export function Leaderboard(props: LeaderboardProps) {
-  const { room } = props;
+  const { room, provisional = false } = props;
   const entries = computeLeaderboard(room);
   const hostInteractive = props.hostInteractive === true;
   const maxPoints = Math.max(1, ...entries.map((e) => e.totalPoints));
@@ -42,10 +44,17 @@ export function Leaderboard(props: LeaderboardProps) {
         </span>
         <div>
           <h2 className="quiz-display text-2xl font-bold text-quiz-text">
-            {room.settings.finalResultLocked ? 'Endelig leaderboard' : 'Leaderboard'}
+            {room.settings.finalResultLocked
+              ? 'Endelig leaderboard'
+              : provisional
+                ? 'Midlertidig leaderboard'
+                : 'Leaderboard'}
           </h2>
           {room.settings.finalResultLocked && (
             <p className="text-sm font-semibold text-emerald-700">Sluttresultatet er låst ✨</p>
+          )}
+          {provisional && !room.settings.finalResultLocked && (
+            <p className="text-sm font-semibold text-amber-800">Underveis — kan endres</p>
           )}
         </div>
       </div>
