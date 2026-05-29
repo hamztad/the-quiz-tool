@@ -9,112 +9,121 @@ function normalize(vector: Matter.Vector): Matter.Vector {
   return { x: vector.x / length, y: vector.y / length };
 }
 
-function scaleToSpeed(velocity: Matter.Vector, targetSpeed: number): Matter.Vector {
-  const speed = Math.hypot(velocity.x, velocity.y) || 1;
-  const scale = targetSpeed / speed;
-  return { x: velocity.x * scale, y: velocity.y * scale };
+function reflectVelocity(
+  velocity: Matter.Vector,
+  outwardNormal: Matter.Vector,
+  restitution: number,
+): Matter.Vector {
+  const normal = normalize(outwardNormal);
+  const normalSpeed = dot(velocity, normal);
+  if (normalSpeed >= 0) {
+    return { x: velocity.x, y: velocity.y };
+  }
+  const tangentX = velocity.x - normal.x * normalSpeed;
+  const tangentY = velocity.y - normal.y * normalSpeed;
+  const reflectedNormal = -normalSpeed * restitution;
+  return {
+    x: tangentX + normal.x * reflectedNormal,
+    y: tangentY + normal.y * reflectedNormal,
+  };
 }
 
-/** Outward normals for the four faces of a rotated rectangle. */
-function getObstacleFaceNormals(ball: Matter.Body, obstacle: Matter.Body): Matter.Vector[] {
+/** Matter normal points from bodyA → bodyB; return normal pointing away from obstacle onto ball. */
+export function obstacleNormalFromCollision(
+  pair: Matter.Pair,
+  ball: Matter.Body,
+  obstacle: Matter.Body,
+): Matter.Vector | null {
+  const collision = pair.collision;
+  if (!collision.normal || collision.depth < 0.15) return null;
+
+  const { normal } = collision;
+  if (pair.bodyA === ball && pair.bodyB === obstacle) {
+    return { x: -normal.x, y: -normal.y };
+  }
+  if (pair.bodyB === ball && pair.bodyA === obstacle) {
+    return { x: normal.x, y: normal.y };
+  }
+  return null;
+}
+
+/** Face normal from ball position in obstacle local space — matches drawn rectangle angle. */
+export function geometryObstacleNormal(ball: Matter.Body, obstacle: Matter.Body): Matter.Vector {
   const angle = obstacle.angle;
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
-  const toBall = {
-    x: ball.position.x - obstacle.position.x,
-    y: ball.position.y - obstacle.position.y,
+  const dx = ball.position.x - obstacle.position.x;
+  const dy = ball.position.y - obstacle.position.y;
+  const localBall = {
+    x: dx * cos + dy * sin,
+    y: -dx * sin + dy * cos,
   };
-  const axes = [
-    { x: cos, y: sin },
-    { x: -sin, y: cos },
-  ];
-  const normals: Matter.Vector[] = [];
-  for (const axis of axes) {
-    const towardBall = dot(toBall, axis) >= 0 ? axis : { x: -axis.x, y: -axis.y };
-    normals.push(towardBall);
-    normals.push({ x: -towardBall.x, y: -towardBall.y });
-  }
-  return normals;
+
+  const halfWidth = Math.max(obstacle.bounds.max.x - obstacle.bounds.min.x, 1) * 0.5;
+  const halfHeight = Math.max(obstacle.bounds.max.y - obstacle.bounds.min.y, 1) * 0.5;
+  const edgeBias =
+    Math.abs(localBall.x) / halfWidth > (Math.abs(localBall.y) / halfHeight) * 1.08;
+  const localNormal = edgeBias
+    ? { x: Math.sign(localBall.x) || 1, y: 0 }
+    : { x: 0, y: Math.sign(localBall.y) || -1 };
+
+  return normalize({
+    x: localNormal.x * cos - localNormal.y * sin,
+    y: localNormal.x * sin + localNormal.y * cos,
+  });
 }
 
-function pickObstacleNormal(ball: Matter.Body, obstacle: Matter.Body): Matter.Vector {
-  const velocity = ball.velocity;
-  const candidates = getObstacleFaceNormals(ball, obstacle);
-  let best = candidates[0] ?? { x: 0, y: -1 };
-  let bestApproach = dot(velocity, best);
-  for (const normal of candidates) {
-    const approach = dot(velocity, normal);
-    if (approach < bestApproach) {
-      bestApproach = approach;
-      best = normal;
-    }
+export function resolveObstacleNormal(
+  pair: Matter.Pair,
+  ball: Matter.Body,
+  obstacle: Matter.Body,
+): Matter.Vector {
+  const fromCollision = obstacleNormalFromCollision(pair, ball, obstacle);
+  const fromGeometry = geometryObstacleNormal(ball, obstacle);
+  if (!fromCollision) return fromGeometry;
+
+  const blended = normalize({
+    x: fromCollision.x * 0.55 + fromGeometry.x * 0.45,
+    y: fromCollision.y * 0.55 + fromGeometry.y * 0.45,
+  });
+  if (dot(ball.velocity, blended) > 0.05) {
+    return { x: -blended.x, y: -blended.y };
   }
-  return normalize(best);
+  return blended;
 }
 
 export function calculateObstacleBounceVelocity(
   ball: Matter.Body,
-  obstacle: Matter.Body,
+  normal: Matter.Vector,
 ): Matter.Vector {
-  const normal = pickObstacleNormal(ball, obstacle);
-  const tangent = { x: -normal.y, y: normal.x };
-  const velocity = ball.velocity;
-  const speed = Math.max(1, Math.hypot(velocity.x, velocity.y));
-  const normalVelocity = dot(velocity, normal);
-  const tangentVelocity = dot(velocity, tangent);
-  const incidence = Math.min(1, Math.abs(normalVelocity) / speed);
+  const speed = Math.max(0.5, Math.hypot(ball.velocity.x, ball.velocity.y));
+  const incidence = Math.min(1, Math.abs(dot(ball.velocity, normal)) / speed);
   const grazing = 1 - incidence;
-
-  const minAwaySpeed = 4.2 + grazing * 2.4;
-  const restitution = 1.06 + grazing * 0.1;
-  const awayNormalVelocity =
-    normalVelocity < 0
-      ? Math.max(-normalVelocity * restitution, minAwaySpeed)
-      : Math.max(normalVelocity, minAwaySpeed * 0.75);
-
-  const tangentKeep = 0.94 + grazing * 0.055;
-  const preservedTangentVelocity = tangentVelocity * tangentKeep;
-  const raw = {
-    x: tangent.x * preservedTangentVelocity + normal.x * awayNormalVelocity,
-    y: tangent.y * preservedTangentVelocity + normal.y * awayNormalVelocity,
-  };
-  const targetSpeed = Math.max(7.2, speed * (1.04 + grazing * 0.04));
-  return scaleToSpeed(raw, targetSpeed);
+  const restitution = 1.03 + grazing * 0.05;
+  return reflectVelocity(ball.velocity, normal, restitution);
 }
 
 export function calculateWallBounceVelocity(
   ball: Matter.Body,
   outwardNormal: Matter.Vector,
 ): Matter.Vector {
-  const normal = normalize(outwardNormal);
-  const tangent = { x: -normal.y, y: normal.x };
-  const velocity = ball.velocity;
-  const speed = Math.max(1, Math.hypot(velocity.x, velocity.y));
-  const normalVelocity = dot(velocity, normal);
-  const tangentVelocity = dot(velocity, tangent);
-  const incidence = Math.min(1, Math.abs(normalVelocity) / speed);
+  const speed = Math.max(0.5, Math.hypot(ball.velocity.x, ball.velocity.y));
+  const incidence = Math.min(1, Math.abs(dot(ball.velocity, outwardNormal)) / speed);
   const grazing = 1 - incidence;
-
-  const wallRestitution = 1.04 + grazing * 0.12;
-  const minAwaySpeed = 5 + grazing * 3.5;
-  const awayNormalVelocity =
-    normalVelocity < 0
-      ? Math.max(-normalVelocity * wallRestitution, minAwaySpeed)
-      : Math.max(normalVelocity, minAwaySpeed * 0.8);
-
-  const tangentKeep = 0.985 + grazing * 0.012;
-  const raw = {
-    x: tangent.x * tangentVelocity * tangentKeep + normal.x * awayNormalVelocity,
-    y: tangent.y * tangentVelocity * tangentKeep + normal.y * awayNormalVelocity,
-  };
-  const targetSpeed = Math.max(6.8, speed * (1.02 + grazing * 0.05));
-  return scaleToSpeed(raw, targetSpeed);
+  if (grazing < 0.55) {
+    return reflectVelocity(ball.velocity, outwardNormal, 0.9);
+  }
+  return reflectVelocity(ball.velocity, outwardNormal, 0.93 + grazing * 0.05);
 }
 
 export function calculateFloorBounceVelocity(ball: Matter.Body): Matter.Vector {
-  const velocity = ball.velocity;
-  const speed = Math.max(1, Math.hypot(velocity.x, velocity.y));
-  const upward = Math.max(-velocity.y * 1.1, 5.2);
-  const horizontal = velocity.x * 0.98;
-  return scaleToSpeed({ x: horizontal, y: -upward }, Math.max(6.5, speed * 1.03));
+  const { x, y } = ball.velocity;
+  const speed = Math.hypot(x, y);
+  if (speed < 2.2) {
+    return { x: x * 0.82, y: Math.min(y, 0.6) };
+  }
+  if (speed < 5) {
+    return reflectVelocity(ball.velocity, { x: 0, y: -1 }, 0.55);
+  }
+  return reflectVelocity(ball.velocity, { x: 0, y: -1 }, 1.04);
 }

@@ -31,6 +31,7 @@ const PLAY_LEFT = 34;
 const PLAY_RIGHT = CANVAS_WIDTH - 34;
 const PLAY_TOP = 108;
 const PLAY_BOTTOM = FLOOR_Y - 48;
+const PLAY_HEIGHT = PLAY_BOTTOM - PLAY_TOP;
 
 const LAUNCH_ZONE = {
   minX: 18,
@@ -38,6 +39,9 @@ const LAUNCH_ZONE = {
   minY: 24,
   maxY: LAUNCH_HEIGHT + 28,
 };
+
+const BAND_COUNT = 5;
+const MAX_BOTTOM_BAND_SHARE = 0.34;
 
 const BUMPER_COLORS = [
   '#f59e0b',
@@ -73,28 +77,31 @@ function bumperFootprint(
   y: number,
   width: number,
   height: number,
-): { minX: number; maxX: number; minY: number; maxY: number } {
-  const halfDiag =
-    0.5 * Math.hypot(width, height) + 6;
+): { minX: number; maxX: number; minY: number; maxY: number; centerY: number } {
+  const halfDiag = 0.5 * Math.hypot(width, height) + 6;
   return {
     minX: x - halfDiag,
     maxX: x + halfDiag,
     minY: y - halfDiag,
     maxY: y + halfDiag,
+    centerY: y,
   };
 }
 
-function footprintsOverlap(
-  a: ReturnType<typeof bumperFootprint>,
-  b: ReturnType<typeof bumperFootprint>,
-  gap: number,
-): boolean {
+type FootprintBox = { minX: number; maxX: number; minY: number; maxY: number };
+
+function footprintsOverlap(a: FootprintBox, b: FootprintBox, gap: number): boolean {
   return !(
     a.maxX + gap < b.minX ||
     b.maxX + gap < a.minX ||
     a.maxY + gap < b.minY ||
     b.maxY + gap < a.minY
   );
+}
+
+function countInBottomBand(footprints: ReturnType<typeof bumperFootprint>[]): number {
+  const bottomStart = PLAY_TOP + PLAY_HEIGHT * (1 - 1 / BAND_COUNT);
+  return footprints.filter((print) => print.centerY >= bottomStart).length;
 }
 
 function generateBumpers(rand: () => number, count: number): BumperDefinition[] {
@@ -110,49 +117,78 @@ function generateBumpers(rand: () => number, count: number): BumperDefinition[] 
     movingIndices.add(second);
   }
 
-  for (let index = 0; index < count; index += 1) {
-    let placed = false;
-    for (let attempt = 0; attempt < 55; attempt += 1) {
-      const width = 44 + rand() * 76;
-      const height = 13 + rand() * 9;
-      const angle = (rand() - 0.5) * 2.35;
-      const x = PLAY_LEFT + rand() * (PLAY_RIGHT - PLAY_LEFT);
-      const y = PLAY_TOP + rand() * (PLAY_BOTTOM - PLAY_TOP);
-      const footprint = bumperFootprint(x, y, width, height);
-      if (
-        footprintsOverlap(footprint, LAUNCH_ZONE, 0) ||
-        footprints.some((existing) => footprintsOverlap(footprint, existing, 14))
-      ) {
-        continue;
+  const perBand = Math.ceil(count / BAND_COUNT);
+  let bumperIndex = 0;
+
+  for (let band = 0; band < BAND_COUNT && bumperIndex < count; band += 1) {
+    const bandTop = PLAY_TOP + (band / BAND_COUNT) * PLAY_HEIGHT;
+    const bandBottom = PLAY_TOP + ((band + 1) / BAND_COUNT) * PLAY_HEIGHT;
+    const slots = Math.min(perBand, count - bumperIndex);
+
+    for (let slot = 0; slot < slots && bumperIndex < count; slot += 1) {
+      let placed = false;
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        const width = 48 + rand() * 64;
+        const height = 13 + rand() * 8;
+        const angle = (rand() - 0.5) * 2.1;
+        const column =
+          slots === 1 ? 0.5 : slot / Math.max(1, slots - 1);
+        const xJitter = (rand() - 0.5) * 42;
+        const x =
+          PLAY_LEFT +
+          24 +
+          column * (PLAY_RIGHT - PLAY_LEFT - 48) +
+          xJitter;
+        const y =
+          bandTop +
+          16 +
+          rand() * Math.max(20, bandBottom - bandTop - 32);
+        const footprint = bumperFootprint(x, y, width, height);
+
+        const isBottomBand = band === BAND_COUNT - 1;
+        if (
+          footprintsOverlap(footprint, LAUNCH_ZONE, 0) ||
+          footprints.some((existing) => footprintsOverlap(footprint, existing, 16)) ||
+          (isBottomBand &&
+            countInBottomBand(footprints) >= Math.ceil(count * MAX_BOTTOM_BAND_SHARE))
+        ) {
+          continue;
+        }
+
+        footprints.push(footprint);
+        bumpers.push({
+          id: `b${bumperIndex + 1}`,
+          x,
+          y,
+          width,
+          height,
+          angle,
+          color: BUMPER_COLORS[bumperIndex % BUMPER_COLORS.length] ?? '#38bdf8',
+          moving: movingIndices.has(bumperIndex),
+          phase: rand() * Math.PI * 2,
+        });
+        bumperIndex += 1;
+        placed = true;
+        break;
       }
-      footprints.push(footprint);
-      bumpers.push({
-        id: `b${index + 1}`,
-        x,
-        y,
-        width,
-        height,
-        angle,
-        color: BUMPER_COLORS[index % BUMPER_COLORS.length] ?? '#38bdf8',
-        moving: movingIndices.has(index),
-        phase: rand() * Math.PI * 2,
-      });
-      placed = true;
-      break;
-    }
-    if (!placed) {
-      const fallbackY = PLAY_TOP + ((index + 1) / (count + 1)) * (PLAY_BOTTOM - PLAY_TOP);
-      bumpers.push({
-        id: `b${index + 1}`,
-        x: PLAY_LEFT + 40 + (index % 3) * 88,
-        y: fallbackY,
-        width: 62 + (index % 4) * 8,
-        height: 15,
-        angle: (index % 2 === 0 ? 0.55 : -0.42) + (rand() - 0.5) * 0.35,
-        color: BUMPER_COLORS[index % BUMPER_COLORS.length] ?? '#38bdf8',
-        moving: movingIndices.has(index),
-        phase: rand() * Math.PI * 2,
-      });
+
+      if (!placed) {
+        const y = bandTop + (bandBottom - bandTop) * (0.35 + slot * 0.22);
+        const x = PLAY_LEFT + 36 + ((bumperIndex + band) % 4) * 62;
+        bumpers.push({
+          id: `b${bumperIndex + 1}`,
+          x,
+          y,
+          width: 58 + (bumperIndex % 3) * 10,
+          height: 15,
+          angle: (rand() - 0.5) * 1.4,
+          color: BUMPER_COLORS[bumperIndex % BUMPER_COLORS.length] ?? '#38bdf8',
+          moving: movingIndices.has(bumperIndex),
+          phase: rand() * Math.PI * 2,
+        });
+        footprints.push(bumperFootprint(x, y, 58, 15));
+        bumperIndex += 1;
+      }
     }
   }
 
@@ -169,10 +205,14 @@ function generateCoins(
 
   for (let index = 0; index < values.length; index += 1) {
     const value = values[index] ?? 1000;
+    const targetBand = index % BAND_COUNT;
+    const bandTop = PLAY_TOP + (targetBand / BAND_COUNT) * PLAY_HEIGHT;
+    const bandBottom = PLAY_TOP + ((targetBand + 1) / BAND_COUNT) * PLAY_HEIGHT;
+
     let placed = false;
     for (let attempt = 0; attempt < 60; attempt += 1) {
-      const x = PLAY_LEFT + 18 + rand() * (PLAY_RIGHT - PLAY_LEFT - 36);
-      const y = PLAY_TOP + 40 + rand() * (PLAY_BOTTOM - PLAY_TOP - 50);
+      const x = PLAY_LEFT + 22 + rand() * (PLAY_RIGHT - PLAY_LEFT - 44);
+      const y = bandTop + 20 + rand() * Math.max(24, bandBottom - bandTop - 40);
       const coinPrint = { minX: x - 22, maxX: x + 22, minY: y - 22, maxY: y + 22 };
       if (bumperPrints.some((bumper) => footprintsOverlap(coinPrint, bumper, 10))) {
         continue;
@@ -193,8 +233,8 @@ function generateCoins(
     if (!placed) {
       coins.push({
         id: `c${index + 1}`,
-        x: PLAY_LEFT + 70 + index * 78,
-        y: PLAY_BOTTOM - 36 - index * 28,
+        x: PLAY_LEFT + 80 + index * 72,
+        y: bandTop + (bandBottom - bandTop) * 0.5,
         value,
         color: COIN_COLORS[index % COIN_COLORS.length] ?? '#facc15',
       });

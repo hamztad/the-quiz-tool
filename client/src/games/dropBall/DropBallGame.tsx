@@ -17,6 +17,7 @@ import {
   calculateFloorBounceVelocity,
   calculateObstacleBounceVelocity,
   calculateWallBounceVelocity,
+  resolveObstacleNormal,
 } from './dropBallPhysics';
 
 const CANVAS_WIDTH = 340;
@@ -262,7 +263,7 @@ function createSimulation(
     y: 6.2,
   });
 
-  const wallOptions = { isStatic: true, restitution: 0.96, friction: 0.008, frictionStatic: 0.01 };
+  const wallOptions = { isStatic: true, restitution: 0.9, friction: 0.02, frictionStatic: 0.02 };
   const walls = [
     Matter.Bodies.rectangle(-20, CANVAS_HEIGHT / 2, 40, CANVAS_HEIGHT + 80, {
       ...wallOptions,
@@ -278,7 +279,7 @@ function createSimulation(
     }),
     Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y + 20, CANVAS_WIDTH + 80, 40, {
       ...wallOptions,
-      restitution: 1.14,
+      restitution: 0.35,
       label: 'floor',
     }),
     Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y - 8, CANVAS_WIDTH, 8, {
@@ -294,8 +295,8 @@ function createSimulation(
     const body = Matter.Bodies.rectangle(bumper.x, bumper.y, bumper.width, bumper.height, {
       isStatic: true,
       angle: bumper.angle,
-      restitution: 1.22,
-      friction: 0.005,
+      restitution: 0.15,
+      friction: 0.02,
       label: `obstacle:${bumper.id}`,
       chamfer: { radius: 7 },
     });
@@ -370,10 +371,8 @@ function createSimulation(
       if (other.label.startsWith('obstacle:')) {
         const id = other.label.split(':')[1];
         if (!id || sim.obstacleHits.has(id)) continue;
-        Matter.Body.setVelocity(
-          sim.ball,
-          calculateObstacleBounceVelocity(sim.ball, other),
-        );
+        const normal = resolveObstacleNormal(pair, sim.ball, other);
+        Matter.Body.setVelocity(sim.ball, calculateObstacleBounceVelocity(sim.ball, normal));
         sim.obstacleHits.add(id);
         sim.obstacleBodies.delete(id);
         Matter.Composite.remove(engine.world, other);
