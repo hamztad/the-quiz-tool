@@ -441,6 +441,54 @@ pre {
   animation: drop-ball-music-note 0.9s ease-in-out infinite;
 }
 
+.drop-ball-dancer {
+  transform-origin: center bottom;
+}
+
+.drop-ball-dancer--dance {
+  animation: drop-ball-dancer-bounce 0.55s ease-in-out infinite;
+}
+
+.drop-ball-dancer--dance-dancerA {
+  animation-delay: 0s;
+}
+
+.drop-ball-dancer--dance-dancerB {
+  animation-delay: 0.18s;
+}
+
+.drop-ball-dancer--launch {
+  animation: drop-ball-dancer-launch 1.05s cubic-bezier(0.22, 0.72, 0.28, 1) forwards;
+}
+
+@keyframes drop-ball-dancer-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-10deg) scale(1);
+  }
+  25% {
+    transform: translateY(-7px) rotate(8deg) scale(1.08);
+  }
+  50% {
+    transform: translateY(-2px) rotate(-6deg) scale(1.02);
+  }
+  75% {
+    transform: translateY(-9px) rotate(12deg) scale(1.1);
+  }
+}
+
+@keyframes drop-ball-dancer-launch {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--launch-x, 120px), var(--launch-y, -140px))
+      rotate(var(--launch-rot, 540deg)) scale(0.35);
+    opacity: 0;
+  }
+}
+
 @keyframes drop-ball-music-pop {
   0% {
     transform: scale(1);
@@ -488,7 +536,9 @@ pre {
   .gruiz-mark-sparkle,
   .drop-ball-music-btn--pop,
   .drop-ball-music-btn--on,
-  .drop-ball-music-btn__icon--playing {
+  .drop-ball-music-btn__icon--playing,
+  .drop-ball-dancer--dance,
+  .drop-ball-dancer--launch {
     animation: none;
     transition: none;
   }

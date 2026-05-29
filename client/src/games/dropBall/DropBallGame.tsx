@@ -19,6 +19,12 @@ import {
   calculateObstacleBounceVelocity,
   calculateWallBounceVelocity,
 } from './dropBallPhysics';
+import { DropBallDancersOverlay } from './DropBallDancersOverlay';
+import {
+  applyDropBallDancerHits,
+  createDropBallDancers,
+  type DropBallDancerId,
+} from './dropBallDancers';
 
 const CANVAS_WIDTH = 340;
 const CANVAS_HEIGHT = 560;
@@ -517,6 +523,7 @@ export function DropBallGame({
   const [activeMusicTrack, setActiveMusicTrack] = useState<DropBallMusicTrackId | null>(null);
   const [musicError, setMusicError] = useState<string | null>(null);
   const [musicPopTrack, setMusicPopTrack] = useState<DropBallMusicTrackId | null>(null);
+  const [dancers, setDancers] = useState(createDropBallDancers);
   const activeMusicTrackRef = useRef<DropBallMusicTrackId | null>(null);
   const musicWasPlayingRef = useRef(false);
   const completedScore = completedRounds.reduce((sum, round) => sum + round.score, 0);
@@ -536,6 +543,21 @@ export function DropBallGame({
       ),
     [layoutSeed, normalBoardsPlayed, config.obstacleCount, config.coinValues],
   );
+
+  const resetDancers = useCallback(() => {
+    setDancers(createDropBallDancers());
+  }, []);
+
+  const markDancerLaunchComplete = useCallback((id: DropBallDancerId) => {
+    setDancers((current) =>
+      current.map((dancer) => (dancer.id === id ? { ...dancer, gone: true } : dancer)),
+    );
+  }, []);
+
+  const checkDancerCollisions = useCallback((ballX: number, ballY: number, ballRadius: number) => {
+    if (!activeMusicTrackRef.current) return;
+    setDancers((current) => applyDropBallDancerHits(current, ballX, ballY, ballRadius) ?? current);
+  }, []);
 
   const stopSimulation = () => {
     const sim = simRef.current;
@@ -673,6 +695,11 @@ export function DropBallGame({
     }
 
     Matter.Engine.update(sim.engine, 1000 / 60);
+    checkDancerCollisions(
+      sim.ball.position.x,
+      sim.ball.position.y,
+      sim.ball.circleRadius ?? NORMAL_BALL_RADIUS,
+    );
     const nextSnapshot = buildSnapshot(config, sim, null);
     setSnapshot((current) => ({
       ...nextSnapshot,
@@ -775,6 +802,7 @@ export function DropBallGame({
     const nextNormalBoardsPlayed = normalBoardsPlayed + 1;
     const hasFurtherBoard = nextNormalBoardsPlayed < config.totalRounds;
     stopSimulation();
+    resetDancers();
     setCompletedRounds(nextRounds);
     setNormalBoardsPlayed(nextNormalBoardsPlayed);
     setSnapshot(emptySnapshot());
@@ -791,6 +819,7 @@ export function DropBallGame({
 
   const resetAttempt = () => {
     stopSimulation();
+    resetDancers();
     setLayoutSeed(newDropBallLayoutSeed());
     setPhase('ready');
     setDropX(CANVAS_WIDTH / 2);
@@ -918,6 +947,11 @@ export function DropBallGame({
           onPointerUp={stopLaunchDrag}
           onPointerCancel={stopLaunchDrag}
           aria-label="Drop the Ball-spillebrett"
+        />
+        <DropBallDancersOverlay
+          dancers={dancers}
+          musicPlaying={activeMusicTrack !== null}
+          onLaunchComplete={markDancerLaunchComplete}
         />
         {phase === 'betweenBoards' && (
           <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/20 bg-slate-950/55 px-3 py-2 shadow-[0_0_24px_rgba(15,23,42,0.35)] backdrop-blur">
