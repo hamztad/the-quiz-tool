@@ -728,6 +728,12 @@ export function HostEditPage() {
         </p>
       )}
 
+      {room.phase === 'lobby' && (
+        <div className="mb-6">
+          <HostScoringModePanel room={room} />
+        </div>
+      )}
+
       {focusEntry ? (
         <>
           {buildEntry === 'import' && (
@@ -746,11 +752,6 @@ export function HostEditPage() {
       ) : (
         <>
           <div className="mb-6">{syncStatusBanner}</div>
-          {room.phase === 'lobby' && (
-            <div className="mb-6">
-              <HostScoringModePanel room={room} />
-            </div>
-          )}
           {room && !isLiveEdit && (
             <div className="mb-6">
               <HostTestModeControls
