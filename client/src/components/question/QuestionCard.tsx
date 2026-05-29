@@ -234,7 +234,7 @@ export function QuestionCard({
                     : question.game.gameId === 'mathExpression'
                       ? question.game.mode === 'single'
                         ? `Regnestykke: ${question.game.expression}`
-                        : `Regnerace: ${question.game.expressions.length} regnestykker`
+                        : `Regnerace: auto (${(question.game.enabledOperations ?? []).length} regnearter)`
                       : question.game.gameId === 'revealImage'
                         ? `Avslør bildet: ${question.game.gridSize}x${question.game.gridSize} ruter · svar ${question.game.correctAnswer || '—'}`
               : 'Innebygd spill'}

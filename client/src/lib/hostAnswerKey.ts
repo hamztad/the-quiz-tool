@@ -34,7 +34,8 @@ export function getQuestionFasitText(question: Question): string | null {
       if (question.game.mode === 'single') {
         return `Regnestykke: ${question.game.expression}`;
       }
-      return `Regnerace: ${question.game.expressions.join(' · ')}`;
+      const ops = question.game.enabledOperations ?? [];
+      return `Regnerace: auto-generering (${ops.length} regnearter aktive)`;
     }
     if (question.game?.gameId === 'revealImage') {
       return `Avslør bildet: ${question.game.correctAnswer || '—'} · ${question.game.gridSize}x${question.game.gridSize} ruter`;

@@ -421,12 +421,19 @@ function MathExpressionTeamView({ room, question, teamId }: TeamGameViewProps) {
 
   if (!config) return null;
 
+  const raceRound = room.gameRounds.find((round) => round.questionId === question.id);
+  const problemSeed =
+    config.mode === 'race'
+      ? `${raceRound?.roundNonce ?? question.id}-${teamId}`
+      : undefined;
+
   return (
     <MathExpressionGame
       title={question.lines[0]?.text ?? (config.mode === 'race' ? 'Regnerace' : 'Løs regnestykket')}
       config={config}
       latestSingleAnswer={latestSingleAnswer}
       raceResult={raceResult}
+      problemSeed={problemSeed}
       onSubmitSingle={(answer) =>
         socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
           questionId: question.id,

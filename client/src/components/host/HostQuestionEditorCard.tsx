@@ -6,6 +6,7 @@ import type {
   MathExpressionConfig,
   MathExpressionRaceConfig,
   MathExpressionSingleConfig,
+  RegneraceOperation,
   McOption,
   OrderingItem,
   Question,
@@ -962,7 +963,7 @@ function GameQuestionEditor({
             <li>Gange: * eller x</li>
             <li>Dele: / eller :</li>
             <li>Bruk 2-4 tall per regnestykke</li>
-            <li>I regnerace kan du legge inn 2-10 regnestykker</li>
+            <li>Regnerace genererer tilfeldige regnestykker underveis</li>
           </ul>
         </details>
         {!validation.ok && (
@@ -1118,6 +1119,13 @@ function MathSingleEditor({
   );
 }
 
+const REGNERACE_OPERATION_LABELS: { id: RegneraceOperation; label: string }[] = [
+  { id: 'add', label: 'Addisjon' },
+  { id: 'subtract', label: 'Subtraksjon' },
+  { id: 'multiply', label: 'Multiplikasjon' },
+  { id: 'divide', label: 'Divisjon' },
+];
+
 function MathRaceEditor({
   config,
   onChange,
@@ -1132,54 +1140,43 @@ function MathRaceEditor({
     { rank: 2, points: 3 },
     { rank: 3, points: 1 },
   ];
-  const setExpression = (index: number, value: string) => {
-    onChange({
-      ...config,
-      expressions: config.expressions.map((expression, i) => (i === index ? value : expression)),
-    });
-  };
-  const addExpression = () => {
-    if (config.expressions.length >= 10) return;
-    onChange({ ...config, expressions: [...config.expressions, '2 + 2'] });
-  };
-  const removeExpression = (index: number) => {
-    if (config.expressions.length <= 2) return;
-    onChange({ ...config, expressions: config.expressions.filter((_, i) => i !== index) });
+  const enabled = config.enabledOperations ?? [];
+
+  const toggleOperation = (op: RegneraceOperation) => {
+    const next = enabled.includes(op)
+      ? enabled.filter((item) => item !== op)
+      : [...enabled, op];
+    if (next.length === 0) return;
+    onChange({ ...config, enabledOperations: next });
   };
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2">
-        {config.expressions.map((expression, index) => {
-          const validation = validateMathExpression(expression);
-          return (
-            <div key={index} className="rounded-xl border border-quiz-border/70 bg-quiz-bg/40 p-2">
-              <div className="flex gap-2">
-                <Input
-                  value={expression}
-                  onChange={(event) => setExpression(index, event.target.value)}
-                  className="bg-quiz-bg py-2 min-h-[44px]"
-                  aria-label={`Regnestykke ${index + 1}`}
-                />
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  onClick={() => removeExpression(index)}
-                  disabled={config.expressions.length <= 2}
-                >
-                  ×
-                </Button>
-              </div>
-              {!validation.ok && (
-                <p className="mt-1 text-xs text-red-800">{validation.errors.join(' ')}</p>
-              )}
-            </div>
-          );
-        })}
-        <Button type="button" variant="secondary" size="sm" onClick={addExpression} disabled={config.expressions.length >= 10}>
-          + Regnestykke
-        </Button>
+      <div className="rounded-xl border border-quiz-border/70 bg-quiz-bg/40 p-3 space-y-2">
+        <p className="text-xs font-semibold text-quiz-muted">Regnearter (minst én)</p>
+        <div className="flex flex-wrap gap-2">
+          {REGNERACE_OPERATION_LABELS.map(({ id, label }) => {
+            const on = enabled.includes(id);
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => toggleOperation(id)}
+                className={`rounded-xl border-2 px-3 py-2 text-sm font-semibold transition-colors ${
+                  on
+                    ? 'border-indigo-400 bg-indigo-100 text-indigo-950'
+                    : 'border-quiz-border bg-quiz-bg text-quiz-muted'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-quiz-muted leading-relaxed">
+          Oppgaver genereres tilfeldig underveis (heltall). Gang 3–12, pluss/minus med 2–3-sifrede
+          tall, divisjon med kvotient 12–150 / 3–50.
+        </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label>
@@ -1242,8 +1239,8 @@ function MathRaceEditor({
         </label>
       )}
       <p className="text-xs text-quiz-muted leading-relaxed">
-        Rangering: flest løste oppgaver vinner. Ved likt antall vinner raskest tid. Prestasjonspoeng
-        bruker andel løst (10 000 ved alle), med liten hastighetsbonus kun ved full completion.
+        Rangering: flest løste oppgaver vinner. Ved likt antall vinner raskest tid. Nye runder gir
+        nye tilfeldige stykker.
       </p>
       <div className="grid gap-2 sm:grid-cols-3">
         {[1, 2, 3].map((rank) => (

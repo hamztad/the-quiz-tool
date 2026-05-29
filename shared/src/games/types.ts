@@ -73,9 +73,14 @@ export interface MathExpressionSingleConfig extends MathExpressionBaseConfig {
 
 export type MathRaceTimeLimitPreset = '30s' | '60s' | '90s' | '120s' | 'custom';
 
+export type RegneraceOperation = 'add' | 'subtract' | 'multiply' | 'divide';
+
 export interface MathExpressionRaceConfig extends MathExpressionBaseConfig {
   mode: 'race';
-  expressions: string[];
+  /** Auto-genererte oppgaver; legacy `expressions` ignoreres. */
+  enabledOperations: RegneraceOperation[];
+  /** @deprecated Bruk enabledOperations. Beholdes for import-migrering. */
+  expressions?: string[];
   answerMode: MathExpressionAnswerMode;
   timeLimitMs: number;
   timeLimitPreset?: MathRaceTimeLimitPreset;

@@ -42,12 +42,12 @@ JSON-eksempel (bruk disse feltene):
       { "text": "...", "correct": false }
     ] },
     { "type": "ordering", "text": "...", "body": null, "directionLabel": "Størst øverst → Minst nederst", "directionLabelTop": "Størst", "directionLabelBottom": "Minst", "items": ["..."], "correctOrder": ["..."] },
-    { "type": "puzzle", "puzzleType": "mathRace", "text": "Regnerace", "body": null, "answerText": "", "anagramKind": "commonWord", "anagramEvidence": "", "expressions": ["2 + 2", "3 * 4"] },
+    { "type": "puzzle", "puzzleType": "mathRace", "text": "Regnerace", "body": null, "answerText": "", "anagramKind": "commonWord", "anagramEvidence": "" },
     { "type": "game", "gameId": "emojiHunt", "text": "Emoji-jakt", "body": null }
   ]
 }
 
-Slot 4 skal alltid ha "expressions" med 2-6 enkle regnestykker.`;
+Slot 4 skal alltid være puzzleType "mathRace" (Regnerace med auto-genererte regnestykker underveis).`;
   }
 
   if (style === 'open') {

@@ -37,7 +37,7 @@ describe('buildAiGeneratePrompt', () => {
     expect(prompt).toContain('puzzleType "mathRace"');
     expect(prompt).not.toContain('puzzleType enten "anagram"');
     expect(prompt).toContain('gameId enten "rainbowPuzzle", "emojiHunt" eller "dropBall"');
-    expect(prompt).toContain('expressions');
+    expect(prompt).toContain('auto-genererte regnestykker');
     expect(prompt).toContain('Spillnavn må være nøyaktige');
   });
 });

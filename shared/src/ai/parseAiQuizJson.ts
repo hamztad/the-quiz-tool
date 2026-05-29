@@ -137,12 +137,7 @@ function parsePuzzleQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQu
   }
 
   if (puzzleType === 'mathRace') {
-    const expressions = parseStringArray(raw.expressions, 6, MAX_EXPRESSION_TEXT);
-    if (!expressions || expressions.length < 2) return null;
-    const game: MathExpressionRaceConfig = {
-      ...createDefaultMathRaceConfig(),
-      expressions,
-    };
+    const game: MathExpressionRaceConfig = createDefaultMathRaceConfig();
     if (!validateMathExpressionConfig(game).ok) return null;
     return {
       type: 'game',

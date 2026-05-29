@@ -8,7 +8,13 @@ import type {
   MathExpressionSingleSubmissionPayload,
   MathExpressionSubmissionPayload,
   MathRaceTimeLimitPreset,
+  RegneraceOperation,
 } from '../types.js';
+import {
+  DEFAULT_REGNERACE_OPERATIONS,
+  maxRegneraceSolvedForTimeLimit,
+  normalizeRegneraceOperations,
+} from './regneraceGenerator.js';
 import { PERFORMANCE_TARGET_POINTS } from '../../scoring/quizScoringMode.js';
 import { clampQuizPointsPerQuestion } from '../../scoring/quizScoring.js';
 import { rankGameEntries } from '../ranking.js';
@@ -16,8 +22,6 @@ import { quizPointsForRank } from '../scoring.js';
 
 export const MATH_EXPRESSION_MIN_TERMS = 2;
 export const MATH_EXPRESSION_MAX_TERMS = 4;
-export const MATH_RACE_MIN_EXPRESSIONS = 2;
-export const MATH_RACE_MAX_EXPRESSIONS = 10;
 export const DEFAULT_MATH_RACE_WRONG_PENALTY_MS = 3_000;
 export const DEFAULT_MATH_RACE_TIME_LIMIT_MS = 60_000;
 export const REGNERACE_RANK_TIME_SCALE = 1_000_000_000;
@@ -43,9 +47,15 @@ export function normalizeMathRaceConfig(config: MathExpressionRaceConfig): MathE
   const timeLimitMs =
     config.timeLimitMs ??
     (preset === 'custom' ? DEFAULT_MATH_RACE_TIME_LIMIT_MS : mathRaceTimeLimitMsForPreset(preset));
+  const enabledOperations = normalizeRegneraceOperations(
+    config.enabledOperations ??
+      (config.expressions && config.expressions.length > 0
+        ? DEFAULT_REGNERACE_OPERATIONS
+        : undefined),
+  );
   return {
     ...config,
-    expressions: config.expressions ?? [],
+    enabledOperations,
     timeLimitMs: Math.max(5_000, Math.min(600_000, Math.round(timeLimitMs))),
     timeLimitPreset: preset,
     rankingMode: 'highest',
@@ -55,13 +65,42 @@ export function normalizeMathRaceConfig(config: MathExpressionRaceConfig): MathE
 
 export function formatRegneraceResultLabel(
   solvedCount: number,
-  problemCount: number,
+  _problemCount: number,
   timeUsedMs: number,
 ): string {
   const solved = Math.max(0, Math.round(solvedCount));
-  const total = Math.max(1, Math.round(problemCount));
   const seconds = (Math.max(0, timeUsedMs) / 1000).toFixed(1).replace('.', ',');
-  return `${solved} / ${total} løst · ${seconds} sek`;
+  return `${solved} løst · ${seconds} sek`;
+}
+
+export function clampRegneraceRaceSubmission(
+  payload: Pick<
+    MathExpressionRaceSubmissionPayload,
+    'solvedCount' | 'problemCount' | 'timeUsedMs' | 'timeLimitMs' | 'wrongAttempts'
+  >,
+  configTimeLimitMs: number,
+): MathExpressionRaceSubmissionPayload {
+  const timeLimitMs = Math.max(
+    5_000,
+    Math.min(600_000, Math.round(payload.timeLimitMs || configTimeLimitMs)),
+  );
+  const maxSolved = maxRegneraceSolvedForTimeLimit(timeLimitMs);
+  const timeUsedMs = Math.min(timeLimitMs, Math.max(0, Math.round(payload.timeUsedMs)));
+  const solvedCount = Math.min(maxSolved, Math.max(0, Math.round(payload.solvedCount)));
+  let problemCount = Math.min(maxSolved, Math.max(solvedCount, Math.round(payload.problemCount)));
+  if (problemCount < solvedCount) problemCount = solvedCount;
+  return {
+    gameId: 'mathExpression',
+    mode: 'race',
+    solvedCount,
+    problemCount,
+    timeUsedMs,
+    timeLimitMs,
+    wrongAttempts:
+      payload.wrongAttempts != null
+        ? Math.max(0, Math.round(payload.wrongAttempts))
+        : undefined,
+  };
 }
 
 export function regneraceRankValue(solvedCount: number, timeUsedMs: number): number {
@@ -275,7 +314,7 @@ export function createDefaultMathRaceConfig(): MathExpressionRaceConfig {
     mode: 'race',
     title: 'Regnerace',
     instructions: 'Løs så mange regnestykker som mulig før tiden er ute.',
-    expressions: ['2 + 2', '3 * 4'],
+    enabledOperations: [...DEFAULT_REGNERACE_OPERATIONS],
     answerMode: 'input',
     timeLimitMs: DEFAULT_MATH_RACE_TIME_LIMIT_MS,
     timeLimitPreset: '60s',
@@ -296,24 +335,16 @@ export function validateMathExpressionConfig(config: MathExpressionConfig): Math
   if (config.mode !== 'race') return { ok: false, errors: ['Ukjent regnemodus.'] };
   const normalized = normalizeMathRaceConfig(config);
   const errors: string[] = [];
-  if (!Array.isArray(normalized.expressions)) {
-    return { ok: false, errors: ['Regnerace mangler regnestykker.'] };
-  }
-  if (
-    normalized.expressions.length < MATH_RACE_MIN_EXPRESSIONS ||
-    normalized.expressions.length > MATH_RACE_MAX_EXPRESSIONS
-  ) {
-    errors.push(`Regnerace må ha ${MATH_RACE_MIN_EXPRESSIONS}-${MATH_RACE_MAX_EXPRESSIONS} regnestykker.`);
+  if (!normalized.enabledOperations?.length) {
+    errors.push('Velg minst én regneart for Regnerace.');
   }
   if (!Number.isFinite(normalized.timeLimitMs) || normalized.timeLimitMs < 5_000) {
     errors.push('Tidsbegrensning må være minst 5 sekunder.');
   }
-  normalized.expressions.forEach((expression, index) => {
-    const validation = validateMathExpression(expression);
-    if (!validation.ok) errors.push(`${index + 1}: ${validation.errors.join(' ')}`);
-  });
   return { ok: errors.length === 0, errors };
 }
+
+export type { RegneraceOperation };
 
 export function isMathExpressionSubmissionPayload(
   payload: unknown,

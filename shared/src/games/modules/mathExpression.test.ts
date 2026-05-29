@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildMathExpressionResults,
+  clampRegneraceRaceSubmission,
   compareRegneraceResults,
   createDefaultMathRaceConfig,
   evaluateMathExpression,
@@ -10,6 +11,7 @@ import {
   regneracePerformancePoints,
   regneraceRankValue,
   validateMathExpression,
+  validateMathExpressionConfig,
 } from './mathExpression.js';
 import type { GameSubmission, MathExpressionSingleConfig } from '../types.js';
 
@@ -107,6 +109,26 @@ describe('mathExpression', () => {
     expect(generateMathOptions('2 + 2', { decimals: 0 })).toHaveLength(3);
   });
 
+  it('validates default math race config with enabled operations', () => {
+    const validation = validateMathExpressionConfig(createDefaultMathRaceConfig());
+    expect(validation.ok).toBe(true);
+    expect(createDefaultMathRaceConfig().enabledOperations).toHaveLength(4);
+  });
+
+  it('clampRegneraceRaceSubmission caps solved count by time limit', () => {
+    const clamped = clampRegneraceRaceSubmission(
+      {
+        solvedCount: 999,
+        problemCount: 999,
+        timeUsedMs: 999_999,
+        timeLimitMs: 60_000,
+      },
+      60_000,
+    );
+    expect(clamped.solvedCount).toBeLessThanOrEqual(75);
+    expect(clamped.timeUsedMs).toBe(60_000);
+  });
+
   it('validates regnerace race submission payload', () => {
     expect(
       isMathExpressionSubmissionPayload({
@@ -123,7 +145,6 @@ describe('mathExpression', () => {
 
 describe('regnerace completion scoring', () => {
   const config = createDefaultMathRaceConfig();
-  config.expressions = Array.from({ length: 10 }, (_, i) => `${i + 1} + 1`);
 
   it('5/5 beats 4/5 even if 4/5 is faster', () => {
     const results = buildMathExpressionResults('q1', 5, config, [
