@@ -410,7 +410,13 @@ function MathExpressionTeamView({ room, question, teamId }: TeamGameViewProps) {
   const racePayload = submissions.find((submission) => submission.payload.mode === 'race')?.payload;
   const raceResult =
     racePayload?.mode === 'race'
-      ? { totalMs: racePayload.totalMs, penalties: racePayload.penalties }
+      ? {
+          solvedCount: racePayload.solvedCount,
+          problemCount: racePayload.problemCount,
+          timeUsedMs: racePayload.timeUsedMs,
+          timeLimitMs: racePayload.timeLimitMs,
+          wrongAttempts: racePayload.wrongAttempts,
+        }
       : null;
 
   if (!config) return null;
@@ -427,10 +433,10 @@ function MathExpressionTeamView({ room, question, teamId }: TeamGameViewProps) {
           payload: { gameId: 'mathExpression', mode: 'single', answer },
         })
       }
-      onSubmitRace={(totalMs, penalties) =>
+      onSubmitRace={(racePayload) =>
         socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
           questionId: question.id,
-          payload: { gameId: 'mathExpression', mode: 'race', totalMs, penalties },
+          payload: { gameId: 'mathExpression', mode: 'race', ...racePayload },
         })
       }
     />

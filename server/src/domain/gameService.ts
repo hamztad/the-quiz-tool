@@ -217,11 +217,30 @@ export function submitGameResult(
           submission.payload.mode === 'race',
       );
       if (alreadyCompleted) return activeRoom;
+      const raceConfig =
+        question.game.mode === 'race' ? question.game : null;
+      if (!raceConfig) throw new Error('Ugyldig regnerace-konfigurasjon.');
+      const problemCount = raceConfig.expressions.length;
+      const timeLimitMs = raceConfig.timeLimitMs;
+      const solvedCount = Math.min(
+        problemCount,
+        Math.max(0, Math.round(payload.solvedCount)),
+      );
+      const timeUsedMs = Math.min(
+        timeLimitMs,
+        Math.max(0, Math.round(payload.timeUsedMs)),
+      );
       submissionPayload = {
         gameId: 'mathExpression',
         mode: 'race',
-        totalMs: Math.max(0, Math.round(payload.totalMs)),
-        penalties: Math.max(0, Math.round(payload.penalties)),
+        solvedCount,
+        problemCount,
+        timeUsedMs,
+        timeLimitMs,
+        wrongAttempts:
+          payload.wrongAttempts != null
+            ? Math.max(0, Math.round(payload.wrongAttempts))
+            : undefined,
       };
     }
   } else if (question.game.gameId === 'revealImage') {

@@ -7,7 +7,9 @@ import type {
   MathExpressionSingleConfig,
   MathExpressionSingleSubmissionPayload,
   MathExpressionSubmissionPayload,
+  MathRaceTimeLimitPreset,
 } from '../types.js';
+import { PERFORMANCE_TARGET_POINTS } from '../../scoring/quizScoringMode.js';
 import { clampQuizPointsPerQuestion } from '../../scoring/quizScoring.js';
 import { rankGameEntries } from '../ranking.js';
 import { quizPointsForRank } from '../scoring.js';
@@ -17,6 +19,82 @@ export const MATH_EXPRESSION_MAX_TERMS = 4;
 export const MATH_RACE_MIN_EXPRESSIONS = 2;
 export const MATH_RACE_MAX_EXPRESSIONS = 10;
 export const DEFAULT_MATH_RACE_WRONG_PENALTY_MS = 3_000;
+export const DEFAULT_MATH_RACE_TIME_LIMIT_MS = 60_000;
+export const REGNERACE_RANK_TIME_SCALE = 1_000_000_000;
+export const REGNERACE_MAX_SPEED_BONUS = 2_000;
+
+export function mathRaceTimeLimitMsForPreset(preset: MathRaceTimeLimitPreset): number {
+  switch (preset) {
+    case '30s':
+      return 30_000;
+    case '60s':
+      return 60_000;
+    case '90s':
+      return 90_000;
+    case '120s':
+      return 120_000;
+    default:
+      return DEFAULT_MATH_RACE_TIME_LIMIT_MS;
+  }
+}
+
+export function normalizeMathRaceConfig(config: MathExpressionRaceConfig): MathExpressionRaceConfig {
+  const preset = config.timeLimitPreset ?? '60s';
+  const timeLimitMs =
+    config.timeLimitMs ??
+    (preset === 'custom' ? DEFAULT_MATH_RACE_TIME_LIMIT_MS : mathRaceTimeLimitMsForPreset(preset));
+  return {
+    ...config,
+    expressions: config.expressions ?? [],
+    timeLimitMs: Math.max(5_000, Math.min(600_000, Math.round(timeLimitMs))),
+    timeLimitPreset: preset,
+    rankingMode: 'highest',
+    wrongPenaltyMs: config.wrongPenaltyMs ?? DEFAULT_MATH_RACE_WRONG_PENALTY_MS,
+  };
+}
+
+export function formatRegneraceResultLabel(
+  solvedCount: number,
+  problemCount: number,
+  timeUsedMs: number,
+): string {
+  const solved = Math.max(0, Math.round(solvedCount));
+  const total = Math.max(1, Math.round(problemCount));
+  const seconds = (Math.max(0, timeUsedMs) / 1000).toFixed(1).replace('.', ',');
+  return `${solved} / ${total} løst · ${seconds} sek`;
+}
+
+export function regneraceRankValue(solvedCount: number, timeUsedMs: number): number {
+  const solved = Math.max(0, Math.round(solvedCount));
+  const time = Math.max(0, Math.round(timeUsedMs));
+  return solved * REGNERACE_RANK_TIME_SCALE - time;
+}
+
+export function regneracePerformancePoints(
+  solvedCount: number,
+  problemCount: number,
+  timeUsedMs: number,
+  timeLimitMs: number,
+): number {
+  const total = Math.max(1, Math.round(problemCount));
+  const solved = Math.max(0, Math.min(total, Math.round(solvedCount)));
+  const base = Math.round(PERFORMANCE_TARGET_POINTS * (solved / total));
+  if (solved < total) return base;
+
+  const limit = Math.max(1, Math.round(timeLimitMs));
+  const used = Math.max(0, Math.min(limit, Math.round(timeUsedMs)));
+  const remainingRatio = Math.max(0, (limit - used) / limit);
+  const bonus = Math.round(REGNERACE_MAX_SPEED_BONUS * remainingRatio);
+  return base + bonus;
+}
+
+export function compareRegneraceResults(
+  a: Pick<MathExpressionRaceSubmissionPayload, 'solvedCount' | 'timeUsedMs'>,
+  b: Pick<MathExpressionRaceSubmissionPayload, 'solvedCount' | 'timeUsedMs'>,
+): number {
+  if (a.solvedCount !== b.solvedCount) return b.solvedCount - a.solvedCount;
+  return a.timeUsedMs - b.timeUsedMs;
+}
 
 type Operator = '+' | '-' | '*' | '/';
 
@@ -192,15 +270,17 @@ export function createDefaultMathExpressionConfig(): MathExpressionConfig {
 }
 
 export function createDefaultMathRaceConfig(): MathExpressionRaceConfig {
-  return {
+  return normalizeMathRaceConfig({
     gameId: 'mathExpression',
     mode: 'race',
     title: 'Regnerace',
-    instructions: 'Løs regnestykkene raskest mulig.',
+    instructions: 'Løs så mange regnestykker som mulig før tiden er ute.',
     expressions: ['2 + 2', '3 * 4'],
     answerMode: 'input',
+    timeLimitMs: DEFAULT_MATH_RACE_TIME_LIMIT_MS,
+    timeLimitPreset: '60s',
     wrongPenaltyMs: DEFAULT_MATH_RACE_WRONG_PENALTY_MS,
-    rankingMode: 'lowest',
+    rankingMode: 'highest',
     resultKind: 'ranked',
     pointMode: 'rankedBands',
     pointBands: [
@@ -208,20 +288,27 @@ export function createDefaultMathRaceConfig(): MathExpressionRaceConfig {
       { rank: 2, points: 3 },
       { rank: 3, points: 1 },
     ],
-  };
+  });
 }
 
 export function validateMathExpressionConfig(config: MathExpressionConfig): MathExpressionValidation {
   if (config.mode === 'single') return validateMathExpression(config.expression);
   if (config.mode !== 'race') return { ok: false, errors: ['Ukjent regnemodus.'] };
+  const normalized = normalizeMathRaceConfig(config);
   const errors: string[] = [];
-  if (!Array.isArray(config.expressions)) {
+  if (!Array.isArray(normalized.expressions)) {
     return { ok: false, errors: ['Regnerace mangler regnestykker.'] };
   }
-  if (config.expressions.length < MATH_RACE_MIN_EXPRESSIONS || config.expressions.length > MATH_RACE_MAX_EXPRESSIONS) {
+  if (
+    normalized.expressions.length < MATH_RACE_MIN_EXPRESSIONS ||
+    normalized.expressions.length > MATH_RACE_MAX_EXPRESSIONS
+  ) {
     errors.push(`Regnerace må ha ${MATH_RACE_MIN_EXPRESSIONS}-${MATH_RACE_MAX_EXPRESSIONS} regnestykker.`);
   }
-  config.expressions.forEach((expression, index) => {
+  if (!Number.isFinite(normalized.timeLimitMs) || normalized.timeLimitMs < 5_000) {
+    errors.push('Tidsbegrensning må være minst 5 sekunder.');
+  }
+  normalized.expressions.forEach((expression, index) => {
     const validation = validateMathExpression(expression);
     if (!validation.ok) errors.push(`${index + 1}: ${validation.errors.join(' ')}`);
   });
@@ -236,7 +323,12 @@ export function isMathExpressionSubmissionPayload(
   if (record.gameId !== 'mathExpression') return false;
   if (record.mode === 'single') return typeof record.answer === 'string';
   if (record.mode === 'race') {
-    return typeof record.totalMs === 'number' && typeof record.penalties === 'number';
+    return (
+      typeof record.solvedCount === 'number' &&
+      typeof record.problemCount === 'number' &&
+      typeof record.timeUsedMs === 'number' &&
+      typeof record.timeLimitMs === 'number'
+    );
   }
   return false;
 }
@@ -279,30 +371,45 @@ export function buildMathExpressionResults(
     });
   }
 
+  const raceConfig = normalizeMathRaceConfig(config);
   const completedByTeam = new Map<string, MathExpressionRaceSubmissionPayload>();
   for (const submission of mathSubmissions) {
     if (submission.payload.mode !== 'race') continue;
-    if (!completedByTeam.has(submission.teamId)) completedByTeam.set(submission.teamId, submission.payload);
+    const existing = completedByTeam.get(submission.teamId);
+    if (
+      !existing ||
+      compareRegneraceResults(submission.payload, existing) < 0
+    ) {
+      completedByTeam.set(submission.teamId, submission.payload);
+    }
   }
 
   const ranked = rankGameEntries(
     Array.from(completedByTeam.entries()).map(([teamId, payload]) => ({
       teamId,
-      rankValue: Math.max(0, Math.round(payload.totalMs)),
+      rankValue: regneraceRankValue(payload.solvedCount, payload.timeUsedMs),
     })),
-    config.rankingMode,
+    raceConfig.rankingMode,
   );
 
   return ranked.map((entry) => {
-    const payload = completedByTeam.get(entry.teamId);
+    const payload = completedByTeam.get(entry.teamId)!;
+    const wrongSuffix =
+      payload.wrongAttempts && payload.wrongAttempts > 0
+        ? ` · ${payload.wrongAttempts} feil`
+        : '';
     return {
       questionId,
       teamId: entry.teamId,
       gameId: 'mathExpression',
       rankValue: entry.rankValue,
-      displayValue: `${(entry.rankValue / 1000).toFixed(2)} sekunder${payload?.penalties ? ` · ${payload.penalties} feil` : ''}`,
+      displayValue: `${formatRegneraceResultLabel(
+        payload.solvedCount,
+        payload.problemCount,
+        payload.timeUsedMs,
+      )}${wrongSuffix}`,
       rank: entry.rank,
-      quizPoints: quizPointsForRank(entry.rank, maxPoints, config.pointMode, config.pointBands),
+      quizPoints: quizPointsForRank(entry.rank, maxPoints, raceConfig.pointMode, raceConfig.pointBands),
       status: 'ranked' as const,
     };
   });

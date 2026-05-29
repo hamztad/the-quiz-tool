@@ -22,7 +22,13 @@ import type {
   RevealImageConfig,
   TimerChallengeConfig,
 } from '../games/types.js';
-import { isMathAnswerCorrect } from '../games/modules/mathExpression.js';
+import {
+  formatRegneraceResultLabel,
+  isMathAnswerCorrect,
+  normalizeMathRaceConfig,
+  regneracePerformancePoints,
+  regneraceRankValue,
+} from '../games/modules/mathExpression.js';
 import { convertCurveToPerformancePoints } from './performanceScoring.js';
 import { PERFORMANCE_TARGET_POINTS } from './quizScoringMode.js';
 
@@ -32,8 +38,6 @@ const EMOJI_PERFORMANCE_ZERO_MS = 25_000;
 const RAINBOW_BENCHMARK = 3_000;
 const DROP_BALL_BENCHMARK_BASE = 70_000;
 const DROP_BALL_POWER_EXP = 0.88;
-const MATH_RACE_BENCHMARK_MS = 12_000;
-
 function basePerformanceResult(
   questionId: string,
   teamId: string,
@@ -75,15 +79,6 @@ function emojiHuntPerformancePoints(totalMs: number): number {
   return Math.round(
     PERFORMANCE_TARGET_POINTS * Math.exp(-decayK * excess),
   );
-}
-
-function mathRacePerformancePoints(totalMs: number): number {
-  return convertCurveToPerformancePoints(totalMs, {
-    kind: 'inverse_exp',
-    perfectRaw: 0,
-    decayK: -Math.log(0.6) / MATH_RACE_BENCHMARK_MS,
-    zeroAbove: MATH_RACE_BENCHMARK_MS * 3,
-  });
 }
 
 export function buildTimerChallengePerformanceResults(
@@ -300,24 +295,35 @@ export function buildMathExpressionPerformanceResults(
     });
   }
 
+  const raceConfig = normalizeMathRaceConfig(config);
   const results: GameResult[] = [];
   for (const submission of mathSubmissions) {
     if (submission.payload.mode !== 'race') continue;
-    const totalMs = Math.max(0, Math.round(submission.payload.totalMs));
-    const performancePoints = mathRacePerformancePoints(totalMs);
+    const payload = submission.payload;
+    const performancePoints = regneracePerformancePoints(
+      payload.solvedCount,
+      payload.problemCount,
+      payload.timeUsedMs,
+      payload.timeLimitMs,
+    );
+    const label = formatRegneraceResultLabel(
+      payload.solvedCount,
+      payload.problemCount,
+      payload.timeUsedMs,
+    );
     results.push(
       basePerformanceResult(
         questionId,
         submission.teamId,
         'mathExpression',
         performancePoints,
-        `${(totalMs / 1000).toFixed(2)} sekunder`,
-        `${(totalMs / 1000).toFixed(2)} sekunder`,
-        totalMs,
+        label,
+        label,
+        regneraceRankValue(payload.solvedCount, payload.timeUsedMs),
       ),
     );
   }
-  return bestPerformancePerTeam(results, 'lowest');
+  return bestPerformancePerTeam(results, 'highest');
 }
 
 export function buildAnagramPerformanceResults(

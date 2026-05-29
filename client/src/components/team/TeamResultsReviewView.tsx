@@ -91,9 +91,12 @@ function formatOwnGameSubmission(question: Question, submission: GameSubmission 
     return submission.payload.answer.trim() || null;
   }
   if (question.game?.gameId === 'mathExpression' && submission.payload.gameId === 'mathExpression') {
-    return submission.payload.mode === 'single'
-      ? submission.payload.answer.trim() || null
-      : `${(submission.payload.totalMs / 1000).toFixed(2)} sekunder`;
+    if (submission.payload.mode === 'single') {
+      return submission.payload.answer.trim() || null;
+    }
+    const { solvedCount, problemCount, timeUsedMs } = submission.payload;
+    const seconds = (timeUsedMs / 1000).toFixed(1).replace('.', ',');
+    return `${solvedCount} / ${problemCount} løst · ${seconds} sek`;
   }
   if (question.game?.gameId === 'dropBall' && submission.payload.gameId === 'dropBall') {
     return `${submission.payload.score} poeng`;

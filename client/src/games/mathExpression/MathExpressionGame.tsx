@@ -1,22 +1,33 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  formatRegneraceResultLabel,
   generateMathOptions,
   isMathAnswerCorrect,
   type MathExpressionConfig,
+  type MathExpressionRaceSubmissionPayload,
 } from '@quiz-tool/shared';
+
+export interface RegneraceRaceResult {
+  solvedCount: number;
+  problemCount: number;
+  timeUsedMs: number;
+  timeLimitMs: number;
+  wrongAttempts?: number;
+}
 
 interface MathExpressionGameProps {
   title: string;
   config: MathExpressionConfig;
   latestSingleAnswer: string | null;
-  raceResult: { totalMs: number; penalties: number } | null;
+  raceResult: RegneraceRaceResult | null;
   disabled?: boolean;
   onSubmitSingle: (answer: string) => void;
-  onSubmitRace: (totalMs: number, penalties: number) => void;
+  onSubmitRace: (result: Omit<MathExpressionRaceSubmissionPayload, 'gameId' | 'mode'>) => void;
 }
 
-function formatMs(ms: number): string {
-  return `${(ms / 1000).toFixed(2)} sekunder`;
+function formatCountdownMs(ms: number): string {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  return `${seconds} sek`;
 }
 
 export function MathExpressionGame({
@@ -118,78 +129,136 @@ function MathRaceView({
 }: {
   title: string;
   config: Extract<MathExpressionConfig, { mode: 'race' }>;
-  result: { totalMs: number; penalties: number } | null;
+  result: RegneraceRaceResult | null;
   disabled: boolean;
-  onComplete: (totalMs: number, penalties: number) => void;
+  onComplete: (payload: Omit<MathExpressionRaceSubmissionPayload, 'gameId' | 'mode'>) => void;
 }) {
+  const problemCount = config.expressions.length;
+  const timeLimitMs = config.timeLimitMs;
   const [started, setStarted] = useState(false);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [message, setMessage] = useState('');
-  const [penalties, setPenalties] = useState(0);
-  const [elapsedMs, setElapsedMs] = useState(0);
+  const [solvedCount, setSolvedCount] = useState(0);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
+  const [remainingMs, setRemainingMs] = useState(timeLimitMs);
   const startedAtRef = useRef(0);
+  const solvedCountRef = useRef(0);
   const intervalRef = useRef<number | null>(null);
+  const submittedRef = useRef(false);
   const completed = Boolean(result);
+
   const expression = config.expressions[index] ?? config.expressions[0] ?? '';
   const options = useMemo(
     () => generateMathOptions(expression, { rounding: 'rounded', decimals: 2 }),
     [expression],
   );
 
-  useEffect(() => () => {
-    if (intervalRef.current !== null) window.clearInterval(intervalRef.current);
+  const clearTimer = useCallback(() => {
+    if (intervalRef.current !== null) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   }, []);
 
+  const finishChallenge = useCallback(
+    (finalSolvedCount: number) => {
+      if (submittedRef.current || completed || disabled) return;
+      submittedRef.current = true;
+      clearTimer();
+      const elapsed = Math.round(performance.now() - startedAtRef.current);
+      const timeUsedMs = Math.min(timeLimitMs, Math.max(0, elapsed));
+      onComplete({
+        solvedCount: finalSolvedCount,
+        problemCount,
+        timeUsedMs,
+        timeLimitMs,
+        wrongAttempts: wrongAttempts > 0 ? wrongAttempts : undefined,
+      });
+    },
+    [clearTimer, completed, disabled, onComplete, problemCount, timeLimitMs, wrongAttempts],
+  );
+
+  useEffect(() => () => clearTimer(), [clearTimer]);
+
   const start = () => {
+    submittedRef.current = false;
     startedAtRef.current = performance.now();
     setStarted(true);
     setIndex(0);
     setAnswer('');
     setMessage('');
-    setPenalties(0);
-    setElapsedMs(0);
+    setSolvedCount(0);
+    solvedCountRef.current = 0;
+    setWrongAttempts(0);
+    setRemainingMs(timeLimitMs);
+    clearTimer();
     intervalRef.current = window.setInterval(() => {
-      setElapsedMs(Math.round(performance.now() - startedAtRef.current));
+      const elapsed = Math.round(performance.now() - startedAtRef.current);
+      const nextRemaining = Math.max(0, timeLimitMs - elapsed);
+      setRemainingMs(nextRemaining);
+      if (nextRemaining <= 0) {
+        finishChallenge(solvedCountRef.current);
+      }
     }, 100);
   };
 
   const submitAnswer = (value: string) => {
-    if (!started || completed || disabled) return;
+    if (!started || completed || disabled || submittedRef.current) return;
     const correct = isMathAnswerCorrect(value, expression, { rounding: 'exact' });
     if (!correct) {
-      setPenalties((current) => current + 1);
-      setMessage('Prøv igjen. 3 sekunder er lagt til.');
+      setWrongAttempts((current) => current + 1);
+      setMessage('Prøv igjen på samme oppgave.');
       setAnswer('');
       return;
     }
 
-    const nextIndex = index + 1;
+    const nextSolved = solvedCount + 1;
     setMessage('');
     setAnswer('');
-    if (nextIndex < config.expressions.length) {
+    setSolvedCount(nextSolved);
+    solvedCountRef.current = nextSolved;
+
+    const nextIndex = index + 1;
+    if (nextIndex < problemCount) {
       setIndex(nextIndex);
       return;
     }
 
-    if (intervalRef.current !== null) window.clearInterval(intervalRef.current);
-    const finalElapsed = Math.round(performance.now() - startedAtRef.current);
-    onComplete(finalElapsed + penalties * config.wrongPenaltyMs, penalties);
+    finishChallenge(nextSolved);
   };
 
-  const displayedMs = result?.totalMs ?? elapsedMs + penalties * config.wrongPenaltyMs;
+  const displayResult = result
+    ? formatRegneraceResultLabel(result.solvedCount, result.problemCount, result.timeUsedMs)
+    : started
+      ? formatRegneraceResultLabel(solvedCount, problemCount, timeLimitMs - remainingMs)
+      : null;
 
   return (
     <div className="mt-4 rounded-3xl border-2 border-indigo-300/40 bg-gradient-to-br from-indigo-500/20 via-sky-400/15 to-fuchsia-500/15 p-4 text-center shadow-[0_0_28px_rgba(129,140,248,0.14)]">
       <p className="text-2xl font-black text-quiz-text">{title || 'Regnerace'}</p>
+      <p className="mt-2 text-sm text-quiz-muted">
+        Løs så mange oppgaver som mulig innen {formatCountdownMs(timeLimitMs)}.
+      </p>
+
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-2xl border border-sky-300/35 bg-sky-300/10 px-3 py-2">
-          <p className="text-xs font-bold uppercase text-sky-900">Tid</p>
-          <p className="text-lg font-black text-sky-950">{formatMs(displayedMs)}</p>
+          <p className="text-xs font-bold uppercase text-sky-900">Tid igjen</p>
+          <p className="text-lg font-black text-sky-950">
+            {completed && result
+              ? formatCountdownMs(Math.max(0, result.timeLimitMs - result.timeUsedMs))
+              : started
+                ? formatCountdownMs(remainingMs)
+                : formatCountdownMs(timeLimitMs)}
+          </p>
         </div>
-        <div className="rounded-2xl border border-amber-300/35 bg-amber-300/10 px-3 py-2">
-          <p className="text-xs font-bold uppercase text-amber-900">Feil</p>
-          <p className="text-lg font-black text-amber-950">{result?.penalties ?? penalties}</p>
+        <div className="rounded-2xl border border-emerald-300/35 bg-emerald-300/10 px-3 py-2">
+          <p className="text-xs font-bold uppercase text-emerald-900">Fremdrift</p>
+          <p className="text-lg font-black text-emerald-950">
+            {completed && result
+              ? `${result.solvedCount} / ${result.problemCount} løst`
+              : `${solvedCount} / ${problemCount} løst`}
+          </p>
         </div>
       </div>
 
@@ -204,10 +273,10 @@ function MathRaceView({
         </button>
       )}
 
-      {started && !completed && (
+      {started && !completed && !submittedRef.current && (
         <>
           <p className="mt-4 text-sm font-black uppercase tracking-wide text-quiz-muted">
-            {index + 1} av {config.expressions.length}
+            Oppgave {Math.min(index + 1, problemCount)} av {problemCount}
           </p>
           <div className="my-4 rounded-3xl border-2 border-indigo-300/45 bg-indigo-300/15 px-4 py-5">
             <p className="break-words text-4xl font-black text-indigo-900 sm:text-5xl">
@@ -255,9 +324,10 @@ function MathRaceView({
         </>
       )}
 
-      {completed && result && (
+      {completed && result && displayResult && (
         <p className="mt-5 rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-semibold text-green-900">
-          Fullført på {formatMs(result.totalMs)}.
+          Resultat sendt: {displayResult}
+          {result.wrongAttempts ? ` · ${result.wrongAttempts} feil` : ''}
         </p>
       )}
     </div>

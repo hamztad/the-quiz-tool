@@ -34,9 +34,12 @@ function formatGameSubmissionForHost(question: Question, submission: GameSubmiss
   if (submission.payload.gameId === 'dropBall') return `${submission.payload.score} poeng`;
   if (submission.payload.gameId === 'timerChallenge') return `${(submission.payload.elapsedMs / 1000).toFixed(2)} sekunder`;
   if (submission.payload.gameId === 'mathExpression') {
-    return submission.payload.mode === 'single'
-      ? submission.payload.answer.trim() || null
-      : `${(submission.payload.totalMs / 1000).toFixed(2)} sekunder`;
+    if (submission.payload.mode === 'single') {
+      return submission.payload.answer.trim() || null;
+    }
+    if (submission.payload.mode === 'race') {
+      return `${submission.payload.solvedCount} / ${submission.payload.problemCount} løst · ${(submission.payload.timeUsedMs / 1000).toFixed(1)} sek`;
+    }
   }
   if (submission.payload.gameId === 'revealImage') {
     return `${submission.payload.answer} · ${submission.payload.openedTiles}/${submission.payload.totalTiles} ruter · ${submission.payload.usedChoices ? 'alternativer' : 'fritekst'}`;

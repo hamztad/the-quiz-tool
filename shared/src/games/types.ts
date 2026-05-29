@@ -71,12 +71,17 @@ export interface MathExpressionSingleConfig extends MathExpressionBaseConfig {
   pointMode: 'directScoreToPoints';
 }
 
+export type MathRaceTimeLimitPreset = '30s' | '60s' | '90s' | '120s' | 'custom';
+
 export interface MathExpressionRaceConfig extends MathExpressionBaseConfig {
   mode: 'race';
   expressions: string[];
   answerMode: MathExpressionAnswerMode;
-  wrongPenaltyMs: number;
-  rankingMode: 'lowest';
+  timeLimitMs: number;
+  timeLimitPreset?: MathRaceTimeLimitPreset;
+  /** Display metadata only — does not affect ranking or prestasjonspoeng. */
+  wrongPenaltyMs?: number;
+  rankingMode: 'highest';
   resultKind: 'ranked';
   pointMode: 'rankedBands';
 }
@@ -190,8 +195,11 @@ export interface MathExpressionSingleSubmissionPayload {
 export interface MathExpressionRaceSubmissionPayload {
   gameId: 'mathExpression';
   mode: 'race';
-  totalMs: number;
-  penalties: number;
+  solvedCount: number;
+  problemCount: number;
+  timeUsedMs: number;
+  timeLimitMs: number;
+  wrongAttempts?: number;
 }
 
 export type MathExpressionSubmissionPayload =

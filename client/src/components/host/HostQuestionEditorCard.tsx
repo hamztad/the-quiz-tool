@@ -16,6 +16,8 @@ import {
   clampQuestionMaxPoints,
   clampQuizPointsPerQuestion,
   createDefaultMathRaceConfig,
+  mathRaceTimeLimitMsForPreset,
+  type MathRaceTimeLimitPreset,
   DEFAULT_RANKED_POINT_BANDS,
   isPerformanceScoringMode,
   QUIZ_MAX_POINTS_PER_QUESTION,
@@ -1197,21 +1199,52 @@ function MathRaceEditor({
           </select>
         </label>
         <label>
-          <span className="mb-1 block text-xs font-medium text-quiz-muted">Feilstraff sekunder</span>
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Tidsbegrensning</span>
+          <select
+            value={config.timeLimitPreset ?? '60s'}
+            onChange={(event) => {
+              const preset = event.target.value as MathRaceTimeLimitPreset;
+              onChange({
+                ...config,
+                timeLimitPreset: preset,
+                timeLimitMs:
+                  preset === 'custom'
+                    ? config.timeLimitMs
+                    : mathRaceTimeLimitMsForPreset(preset),
+              });
+            }}
+            className="box-border w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text min-h-[44px]"
+          >
+            <option value="30s">30 sekunder</option>
+            <option value="60s">60 sekunder</option>
+            <option value="90s">90 sekunder</option>
+            <option value="120s">120 sekunder</option>
+            <option value="custom">Egendefinert</option>
+          </select>
+        </label>
+      </div>
+      {(config.timeLimitPreset ?? '60s') === 'custom' && (
+        <label>
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Egendefinert tid (sekunder)</span>
           <Input
             type="number"
-            min={0}
-            value={Math.round(config.wrongPenaltyMs / 1000)}
+            min={5}
+            max={600}
+            value={Math.round(config.timeLimitMs / 1000)}
             onChange={(event) =>
               onChange({
                 ...config,
-                wrongPenaltyMs: Math.max(0, Number(event.target.value)) * 1000,
+                timeLimitMs: Math.max(5, Math.min(600, Number(event.target.value))) * 1000,
               })
             }
             className="bg-quiz-bg py-2 min-h-[44px]"
           />
         </label>
-      </div>
+      )}
+      <p className="text-xs text-quiz-muted leading-relaxed">
+        Rangering: flest løste oppgaver vinner. Ved likt antall vinner raskest tid. Prestasjonspoeng
+        bruker andel løst (10 000 ved alle), med liten hastighetsbonus kun ved full completion.
+      </p>
       <div className="grid gap-2 sm:grid-cols-3">
         {[1, 2, 3].map((rank) => (
           <label key={rank} className="block min-w-0">
