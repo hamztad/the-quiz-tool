@@ -402,12 +402,93 @@ pre {
   }
 }
 
+.drop-ball-music-btn {
+  box-shadow: 0 0 18px rgba(125, 211, 252, 0.18);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.drop-ball-music-btn:active {
+  transform: scale(0.94);
+}
+
+.drop-ball-music-btn--emoji {
+  min-height: 3.25rem;
+  min-width: 3.25rem;
+  padding: 0.55rem;
+  border-radius: 1rem;
+}
+
+.drop-ball-music-btn--pop {
+  animation: drop-ball-music-pop 0.45s ease-out;
+}
+
+.drop-ball-music-btn--on {
+  border-color: rgba(52, 211, 153, 0.7);
+  background: linear-gradient(135deg, rgba(167, 243, 208, 0.95), rgba(125, 211, 252, 0.55));
+  animation: drop-ball-music-glow 1.8s ease-in-out infinite;
+}
+
+.drop-ball-music-btn__icon {
+  display: inline-block;
+  transform-origin: center;
+}
+
+.drop-ball-music-btn__icon--playing {
+  animation: drop-ball-music-note 0.9s ease-in-out infinite;
+}
+
+@keyframes drop-ball-music-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.1);
+  }
+  65% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes drop-ball-music-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 16px rgba(52, 211, 153, 0.35),
+      0 0 24px rgba(125, 211, 252, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 26px rgba(52, 211, 153, 0.55),
+      0 0 36px rgba(125, 211, 252, 0.35);
+  }
+}
+
+@keyframes drop-ball-music-note {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(6deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .quiz-animate-in,
   .quiz-hover-lift,
   .gruiz-mark-iz,
   .gruiz-mark-dot,
-  .gruiz-mark-sparkle {
+  .gruiz-mark-sparkle,
+  .drop-ball-music-btn--pop,
+  .drop-ball-music-btn--on,
+  .drop-ball-music-btn__icon--playing {
     animation: none;
     transition: none;
   }

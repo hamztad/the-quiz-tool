@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import Matter from 'matter-js';
 import {
   calculateDropBallBoardScore,
@@ -6,6 +6,7 @@ import {
   type DropBallConfig,
   type DropBallRoundResult,
 } from '@quiz-tool/shared';
+import dropTheBallDanceMusicUrl from '../../../../music/Drop the Ball-Dance Edition.mp3';
 import dropTheBallMusicUrl from '../../../../music/Drop The Ball.mp3';
 import {
   createDropBallBoardLayout,
@@ -17,7 +18,6 @@ import {
   calculateFloorBounceVelocity,
   calculateObstacleBounceVelocity,
   calculateWallBounceVelocity,
-  resolveObstacleNormal,
 } from './dropBallPhysics';
 
 const CANVAS_WIDTH = 340;
@@ -32,6 +32,18 @@ const LAUNCH_INTERACTION_MAX_Y = RELEASE_ARROW_TOP + 28;
 const FLOOR_Y = CANVAS_HEIGHT - 24;
 
 type DropBallPhase = 'ready' | 'falling' | 'betweenBoards' | 'finished';
+
+type DropBallMusicTrackId = 'classic' | 'dance';
+
+const DROP_BALL_MUSIC_TRACKS: ReadonlyArray<{
+  id: DropBallMusicTrackId;
+  emoji: string;
+  label: string;
+  url: string;
+}> = [
+  { id: 'classic', emoji: '🎵', label: 'Original', url: dropTheBallMusicUrl },
+  { id: 'dance', emoji: '💃', label: 'Dance Edition', url: dropTheBallDanceMusicUrl },
+];
 
 interface DropBallGameProps {
   config: DropBallConfig;
@@ -433,8 +445,10 @@ function createSimulation(
       if (other.label.startsWith('obstacle:')) {
         const id = other.label.split(':')[1];
         if (!id || sim.obstacleHits.has(id)) continue;
-        const normal = resolveObstacleNormal(pair, sim.ball, other);
-        Matter.Body.setVelocity(sim.ball, calculateObstacleBounceVelocity(sim.ball, normal));
+        Matter.Body.setVelocity(
+          sim.ball,
+          calculateObstacleBounceVelocity(sim.ball, other),
+        );
         sim.obstacleHits.add(id);
         sim.obstacleBodies.delete(id);
         Matter.Composite.remove(engine.world, other);
@@ -489,7 +503,7 @@ export function DropBallGame({
 }: DropBallGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const simRef = useRef<SimState | null>(null);
-  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const musicAudiosRef = useRef<Partial<Record<DropBallMusicTrackId, HTMLAudioElement>>>({});
   const draggingLaunchRef = useRef(false);
   const finalSubmittedScoreRef = useRef<number | null>(null);
   const [layoutSeed, setLayoutSeed] = useState(() => newDropBallLayoutSeed());
@@ -500,8 +514,11 @@ export function DropBallGame({
   const [completedRounds, setCompletedRounds] = useState<DropBallRoundResult[]>([]);
   const [snapshot, setSnapshot] = useState<DropBallSnapshot>(() => emptySnapshot());
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [activeMusicTrack, setActiveMusicTrack] = useState<DropBallMusicTrackId | null>(null);
   const [musicError, setMusicError] = useState<string | null>(null);
+  const [musicPopTrack, setMusicPopTrack] = useState<DropBallMusicTrackId | null>(null);
+  const activeMusicTrackRef = useRef<DropBallMusicTrackId | null>(null);
+  const musicWasPlayingRef = useRef(false);
   const completedScore = completedRounds.reduce((sum, round) => sum + round.score, 0);
   const displayedTotal = completedScore + (phase === 'falling' || phase === 'betweenBoards' ? snapshot.currentScore : 0);
   const isNewBest = bestScore === null || displayedTotal > bestScore;
@@ -534,10 +551,76 @@ export function DropBallGame({
   useEffect(() => () => stopSimulation(), []);
 
   useEffect(() => {
+    activeMusicTrackRef.current = activeMusicTrack;
+  }, [activeMusicTrack]);
+
+  useEffect(() => {
+    if (!musicPopTrack) return;
+    const timer = window.setTimeout(() => setMusicPopTrack(null), 480);
+    return () => window.clearTimeout(timer);
+  }, [musicPopTrack]);
+
+  const getMusicAudio = useCallback((trackId: DropBallMusicTrackId) => {
+    const existing = musicAudiosRef.current[trackId];
+    if (existing) return existing;
+    const track = DROP_BALL_MUSIC_TRACKS.find((entry) => entry.id === trackId);
+    if (!track) throw new Error(`Unknown track: ${trackId}`);
+    const audio = new Audio(track.url);
+    audio.loop = true;
+    audio.volume = 0.38;
+    musicAudiosRef.current[trackId] = audio;
+    return audio;
+  }, []);
+
+  const pauseAllMusic = useCallback(() => {
+    for (const audio of Object.values(musicAudiosRef.current)) {
+      audio?.pause();
+    }
+  }, []);
+
+  const pauseMusicForBackground = useCallback(() => {
+    const trackId = activeMusicTrackRef.current;
+    if (!trackId) return;
+    const audio = musicAudiosRef.current[trackId];
+    if (!audio) return;
+    musicWasPlayingRef.current = !audio.paused;
+    audio.pause();
+  }, []);
+
+  const resumeMusicIfNeeded = useCallback(() => {
+    const trackId = activeMusicTrackRef.current;
+    if (!trackId || !musicWasPlayingRef.current) return;
+    const audio = musicAudiosRef.current[trackId];
+    if (!audio) return;
+    void audio.play().catch(() => {
+      setActiveMusicTrack(null);
+      setMusicError('Kunne ikke gjenoppta musikk.');
+    });
+  }, []);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        pauseMusicForBackground();
+      } else {
+        resumeMusicIfNeeded();
+      }
+    };
+    const onPageHide = () => pauseMusicForBackground();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', onPageHide);
     return () => {
-      if (musicRef.current) {
-        musicRef.current.pause();
-        musicRef.current.currentTime = 0;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, [pauseMusicForBackground, resumeMusicIfNeeded]);
+
+  useEffect(() => {
+    return () => {
+      for (const audio of Object.values(musicAudiosRef.current)) {
+        if (!audio) continue;
+        audio.pause();
+        audio.currentTime = 0;
       }
     };
   }, []);
@@ -653,28 +736,26 @@ export function DropBallGame({
     sim.animationFrame = window.requestAnimationFrame(() => animate(sim));
   };
 
-  const getMusic = () => {
-    if (!musicRef.current) {
-      const audio = new Audio(dropTheBallMusicUrl);
-      audio.loop = true;
-      audio.volume = 0.38;
-      musicRef.current = audio;
-    }
-    return musicRef.current;
-  };
-
-  const toggleMusic = async () => {
-    const audio = getMusic();
+  const toggleMusicTrack = async (trackId: DropBallMusicTrackId) => {
+    setMusicPopTrack(trackId);
     setMusicError(null);
-    if (musicEnabled) {
-      audio.pause();
-      setMusicEnabled(false);
+
+    if (activeMusicTrack === trackId) {
+      pauseAllMusic();
+      musicWasPlayingRef.current = false;
+      setActiveMusicTrack(null);
       return;
     }
+
+    pauseAllMusic();
+    const audio = getMusicAudio(trackId);
     try {
       await audio.play();
-      setMusicEnabled(true);
+      musicWasPlayingRef.current = true;
+      setActiveMusicTrack(trackId);
     } catch {
+      musicWasPlayingRef.current = false;
+      setActiveMusicTrack(null);
       setMusicError('Kunne ikke starte musikk i denne nettleseren.');
     }
   };
@@ -764,14 +845,41 @@ export function DropBallGame({
       <p className="mt-2 text-sm font-semibold text-quiz-text">
         Fjern hindre og samle mynter. Alle tre mynter gir hattrick-bonus.
       </p>
-      <button
-        type="button"
-        onClick={toggleMusic}
-        className="mt-4 rounded-full border border-cyan-300/50 bg-cyan-200/35 px-4 py-2 text-sm font-black text-cyan-900 shadow-[0_0_18px_rgba(125,211,252,0.18)] hover:border-cyan-400/70"
-        aria-pressed={musicEnabled}
-      >
-        {musicEnabled ? 'Musikk på - slå av' : 'Musikk av - slå på'}
-      </button>
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-cyan-900/85">Musikk</p>
+        <div className="flex items-center justify-center gap-3">
+          {DROP_BALL_MUSIC_TRACKS.map((track) => {
+            const isActive = activeMusicTrack === track.id;
+            return (
+              <button
+                key={track.id}
+                type="button"
+                onClick={() => toggleMusicTrack(track.id)}
+                className={[
+                  'drop-ball-music-btn drop-ball-music-btn--emoji',
+                  musicPopTrack === track.id ? 'drop-ball-music-btn--pop' : '',
+                  isActive ? 'drop-ball-music-btn--on' : 'border-cyan-300/50 bg-cyan-200/35',
+                ].join(' ')}
+                aria-pressed={isActive}
+                aria-label={
+                  isActive ? `Slå av ${track.label}` : `Spill ${track.label}`
+                }
+                title={track.label}
+              >
+                <span
+                  className={[
+                    'drop-ball-music-btn__icon text-2xl leading-none',
+                    isActive ? 'drop-ball-music-btn__icon--playing' : '',
+                  ].join(' ')}
+                  aria-hidden
+                >
+                  {track.emoji}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
       {musicError && (
         <p className="mt-2 text-xs font-semibold text-red-200" role="alert">
           {musicError}
@@ -804,7 +912,7 @@ export function DropBallGame({
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className={`block h-auto w-full touch-none ${phase === 'ready' ? 'cursor-grab active:cursor-grabbing' : ''}`}
+          className={`block h-auto w-full touch-pan-y ${phase === 'ready' ? 'cursor-grab active:cursor-grabbing' : ''}`}
           onPointerDown={handleCanvasPointer}
           onPointerMove={handleCanvasPointerMove}
           onPointerUp={stopLaunchDrag}
