@@ -66,6 +66,8 @@ export interface Question {
   gameType?: GameId;
   game?: GameQuestionConfig;
   media?: MediaAttachment[];
+  /** Valgfri dekor-emoji (forstørres i UI). Ignoreres når spørsmålet har bilde. */
+  decorEmoji?: string;
   maxPoints: number;
   timer?: QuestionTimerConfig;
 }

@@ -2,6 +2,7 @@ import type { MediaCreditsDisplayMode, Question } from '@quiz-tool/shared';
 import { getGameplayImageAlt } from '@quiz-tool/shared';
 import { getQuestionTypeTheme } from '../../lib/questionTypeTheme';
 import { MediaAttribution } from '../media/MediaAttribution';
+import { QuestionDecorDisplay } from './QuestionDecorDisplay';
 
 interface QuestionBodyProps {
   question: Question;
@@ -29,6 +30,7 @@ export function QuestionBody({
           <span aria-hidden>{typeTheme.emoji}</span> {typeTheme.label}
         </p>
       )}
+      <QuestionDecorDisplay question={question} />
       {question.lines.map((line, i) => (
         <p
           key={i}

@@ -1,4 +1,4 @@
-import type { Question } from '@quiz-tool/shared';
+import { getAutoQuestionDecorEmoji, type Question } from '@quiz-tool/shared';
 
 export interface QuestionTypeTheme {
   emoji: string;
@@ -39,24 +39,16 @@ const themes: Record<Question['type'], QuestionTypeTheme> = {
   },
 };
 
-const gameEmoji: Partial<Record<string, string>> = {
-  anagram: '🔤',
-  mathExpression: '➗',
-  dropBall: '🎮',
-  emojiHunt: '🔍',
-  rainbowPuzzle: '🌈',
-  timerChallenge: '⏱️',
-  revealImage: '🖼️',
-};
-
 export function getQuestionTypeTheme(
-  question: Pick<Question, 'type'> & { game?: { gameId?: string } | null },
+  question: Pick<Question, 'type'> & { game?: Question['game'] | null },
 ): QuestionTypeTheme {
   const base = themes[question.type];
-  const gameId = question.type === 'game' ? question.game?.gameId : undefined;
-  if (!gameId) {
+  if (question.type !== 'game') {
     return base;
   }
-  const emoji = gameEmoji[gameId] ?? base.emoji;
+  const emoji = getAutoQuestionDecorEmoji({
+    type: question.type,
+    game: question.game ?? undefined,
+  });
   return { ...base, emoji };
 }

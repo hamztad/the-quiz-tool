@@ -42,3 +42,4 @@ export * from './ai/aiQuizVariety.js';
 export * from './quiz/liveQuizEdit.js';
 export * from './quiz/quizModes.js';
 export * from './quiz/intervalSchedule.js';
+export * from './question/questionDecor.js';

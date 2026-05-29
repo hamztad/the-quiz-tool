@@ -28,7 +28,7 @@ export function LiveQuizClock({ room }: LiveQuizClockProps) {
           {formatCountdown(startCountdown.remaining)}
         </p>
         <p className="mt-2 text-sm text-quiz-muted">
-          Starter {formatScheduleClock(quizStartsAt)} · klokken teller ned live
+          Starter {formatScheduleClock(quizStartsAt)}
         </p>
       </div>
     );
@@ -48,7 +48,7 @@ export function LiveQuizClock({ room }: LiveQuizClockProps) {
               {room.settings.teamsLockedOut ? 'Quizen er avsluttet' : 'Quiz slutter om'}
             </span>
             <span className="text-xs text-amber-900">
-              {formatScheduleClock(quizEndsAt)} · live nedtelling
+              {formatScheduleClock(quizEndsAt)}
             </span>
           </div>
           <span className="quiz-display text-3xl font-bold tabular-nums text-amber-900 min-w-[5rem] text-right">

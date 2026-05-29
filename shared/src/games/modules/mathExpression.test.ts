@@ -158,6 +158,19 @@ describe('regnerace completion scoring', () => {
     expect(results[1]?.rank).toBe(2);
   });
 
+  it('picks best race submission when a team retries', () => {
+    const results = buildMathExpressionResults('q1', 5, config, [
+      raceSubmission('team-a', 4, 10, 25_000),
+      raceSubmission('team-a', 7, 10, 40_000),
+    ]);
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      teamId: 'team-a',
+      displayValue: expect.stringContaining('7 løst'),
+    });
+  });
+
   it('uses lower timeUsedMs as tie-break when solvedCount is equal', () => {
     const results = buildMathExpressionResults('q1', 5, config, [
       raceSubmission('slow', 8, 10, 50_000),

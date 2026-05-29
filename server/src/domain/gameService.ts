@@ -210,14 +210,6 @@ export function submitGameResult(
       };
     } else {
       if (payload.mode !== 'race') throw new Error('Ugyldig spillinnsending.');
-      const alreadyCompleted = activeRoom.gameSubmissions.some(
-        (submission) =>
-          submission.questionId === questionId &&
-          submission.teamId === teamId &&
-          submission.payload.gameId === 'mathExpression' &&
-          submission.payload.mode === 'race',
-      );
-      if (alreadyCompleted) return activeRoom;
       const raceConfig =
         question.game.mode === 'race' ? question.game : null;
       if (!raceConfig) throw new Error('Ugyldig regnerace-konfigurasjon.');

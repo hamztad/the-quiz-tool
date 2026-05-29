@@ -24,6 +24,8 @@ interface MathExpressionGameProps {
   config: MathExpressionConfig;
   latestSingleAnswer: string | null;
   raceResult: RegneraceRaceResult | null;
+  /** Beste regnerace-forsøk så langt (for visning ved nytt forsøk). */
+  bestRaceResult?: RegneraceRaceResult | null;
   /** Valgfri seed for reproducerbar oppgavestrøm (f.eks. roundNonce). */
   problemSeed?: string;
   disabled?: boolean;
@@ -41,6 +43,7 @@ export function MathExpressionGame({
   config,
   latestSingleAnswer,
   raceResult,
+  bestRaceResult,
   problemSeed,
   disabled = false,
   onSubmitSingle,
@@ -52,6 +55,7 @@ export function MathExpressionGame({
         title={title}
         config={config}
         result={raceResult}
+        bestResult={bestRaceResult}
         problemSeed={problemSeed}
         disabled={disabled}
         onComplete={onSubmitRace}
@@ -128,10 +132,19 @@ function MathSingleView({
   );
 }
 
+function raceResultsEqual(a: RegneraceRaceResult, b: RegneraceRaceResult): boolean {
+  return (
+    a.solvedCount === b.solvedCount &&
+    a.timeUsedMs === b.timeUsedMs &&
+    a.problemCount === b.problemCount
+  );
+}
+
 function MathRaceView({
   title,
   config,
   result,
+  bestResult,
   problemSeed,
   disabled,
   onComplete,
@@ -139,6 +152,7 @@ function MathRaceView({
   title: string;
   config: Extract<MathExpressionConfig, { mode: 'race' }>;
   result: RegneraceRaceResult | null;
+  bestResult?: RegneraceRaceResult | null;
   problemSeed?: string;
   disabled: boolean;
   onComplete: (payload: Omit<MathExpressionRaceSubmissionPayload, 'gameId' | 'mode'>) => void;
@@ -163,7 +177,12 @@ function MathRaceView({
   const rngRef = useRef(createRegneraceRandom(Date.now()));
   const intervalRef = useRef<number | null>(null);
   const submittedRef = useRef(false);
-  const completed = Boolean(result);
+  const [retrying, setRetrying] = useState(false);
+  const [attemptIndex, setAttemptIndex] = useState(0);
+  const completed = Boolean(result) && !retrying;
+  const effectiveProblemSeed = problemSeed ? `${problemSeed}-try-${attemptIndex}` : undefined;
+  const showBestResult =
+    result != null && bestResult != null && !raceResultsEqual(result, bestResult);
 
   const options = useMemo(
     () =>
@@ -211,15 +230,39 @@ function MathRaceView({
         timeLimitMs,
         wrongAttempts: wrongAttempts > 0 ? wrongAttempts : undefined,
       });
+      setRetrying(false);
     },
     [clearTimer, completed, disabled, onComplete, timeLimitMs, wrongAttempts],
   );
 
   useEffect(() => () => clearTimer(), [clearTimer]);
 
+  const resetForNewAttempt = () => {
+    clearTimer();
+    submittedRef.current = false;
+    setStarted(false);
+    setExpression('');
+    setAnswer('');
+    setMessage('');
+    setSolvedCount(0);
+    solvedCountRef.current = 0;
+    setPresentedCount(0);
+    presentedCountRef.current = 0;
+    onUnsolvedProblemRef.current = false;
+    setWrongAttempts(0);
+    setRemainingMs(timeLimitMs);
+  };
+
+  const retry = () => {
+    if (disabled || !result) return;
+    setRetrying(true);
+    setAttemptIndex((current) => current + 1);
+    resetForNewAttempt();
+  };
+
   const start = () => {
     const seedSource =
-      problemSeed ??
+      effectiveProblemSeed ??
       (typeof crypto !== 'undefined' && crypto.randomUUID
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random()}`);
@@ -307,14 +350,21 @@ function MathRaceView({
       </div>
 
       {!started && !completed && (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={start}
-          className="mt-5 inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-6 py-3 font-black text-white disabled:opacity-50 sm:w-auto"
-        >
-          Start
-        </button>
+        <div className="mt-5 space-y-3">
+          {result && retrying && (
+            <p className="rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-semibold text-green-900">
+              Forsøket er lagret. Prøv igjen for å slå resultatet før quizmaster låser.
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={start}
+            className="inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-6 py-3 font-black text-white disabled:opacity-50 sm:w-auto"
+          >
+            {result ? 'Prøv igjen' : 'Start'}
+          </button>
+        </div>
       )}
 
       {started && !completed && !submittedRef.current && expression && (
@@ -366,10 +416,32 @@ function MathRaceView({
       )}
 
       {completed && result && displayResult && (
-        <p className="mt-5 rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-semibold text-green-900">
-          Resultat sendt: {displayResult}
-          {result.wrongAttempts ? ` · ${result.wrongAttempts} feil` : ''}
-        </p>
+        <div className="mt-5 space-y-3">
+          {showBestResult && bestResult && (
+            <div className="rounded-2xl border border-emerald-400/55 bg-emerald-200/35 px-4 py-3 text-sm font-semibold text-emerald-950">
+              Beste så langt:{' '}
+              {formatRegneraceResultLabel(
+                bestResult.solvedCount,
+                bestResult.problemCount,
+                bestResult.timeUsedMs,
+              )}
+              {bestResult.wrongAttempts ? ` · ${bestResult.wrongAttempts} feil` : ''}
+            </div>
+          )}
+          <p className="rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-semibold text-green-900">
+            Siste forsøk: {displayResult}
+            {result.wrongAttempts ? ` · ${result.wrongAttempts} feil` : ''}
+          </p>
+          {!disabled && (
+            <button
+              type="button"
+              onClick={retry}
+              className="inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl border-2 border-indigo-200/30 bg-quiz-bg px-6 py-3 font-black text-indigo-950 shadow-sm transition-transform hover:scale-[1.01] sm:w-auto"
+            >
+              Prøv igjen
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

@@ -9,13 +9,15 @@ import {
   type PublicRoomState,
   type Question,
 } from '@quiz-tool/shared';
-import type {
-  DropBallSubmissionPayload,
-  GameSubmission,
-  EmojiHuntSubmissionPayload,
-  MathExpressionSubmissionPayload,
-  RainbowPuzzleSubmissionPayload,
-  TimerChallengeSubmissionPayload,
+import {
+  compareRegneraceResults,
+  type DropBallSubmissionPayload,
+  type GameSubmission,
+  type EmojiHuntSubmissionPayload,
+  type MathExpressionRaceSubmissionPayload,
+  type MathExpressionSubmissionPayload,
+  type RainbowPuzzleSubmissionPayload,
+  type TimerChallengeSubmissionPayload,
 } from '@quiz-tool/shared';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useSocket } from '../hooks/useSocket';
@@ -407,17 +409,27 @@ function MathExpressionTeamView({ room, question, teamId }: TeamGameViewProps) {
       .map((submission) => submission.payload)
       .filter((payload): payload is Extract<MathExpressionSubmissionPayload, { mode: 'single' }> => payload.mode === 'single')
       .at(-1)?.answer ?? null;
-  const racePayload = submissions.find((submission) => submission.payload.mode === 'race')?.payload;
-  const raceResult =
-    racePayload?.mode === 'race'
+  const racePayloads = submissions
+    .map((submission) => submission.payload)
+    .filter((payload): payload is MathExpressionRaceSubmissionPayload => payload.mode === 'race');
+  const latestRacePayload = racePayloads.at(-1);
+  const bestRacePayload = racePayloads.reduce<MathExpressionRaceSubmissionPayload | undefined>(
+    (best, payload) =>
+      !best || compareRegneraceResults(payload, best) < 0 ? payload : best,
+    undefined,
+  );
+  const toRaceResult = (payload: MathExpressionRaceSubmissionPayload | undefined) =>
+    payload
       ? {
-          solvedCount: racePayload.solvedCount,
-          problemCount: racePayload.problemCount,
-          timeUsedMs: racePayload.timeUsedMs,
-          timeLimitMs: racePayload.timeLimitMs,
-          wrongAttempts: racePayload.wrongAttempts,
+          solvedCount: payload.solvedCount,
+          problemCount: payload.problemCount,
+          timeUsedMs: payload.timeUsedMs,
+          timeLimitMs: payload.timeLimitMs,
+          wrongAttempts: payload.wrongAttempts,
         }
       : null;
+  const raceResult = toRaceResult(latestRacePayload);
+  const bestRaceResult = toRaceResult(bestRacePayload);
 
   if (!config) return null;
 
@@ -433,6 +445,7 @@ function MathExpressionTeamView({ room, question, teamId }: TeamGameViewProps) {
       config={config}
       latestSingleAnswer={latestSingleAnswer}
       raceResult={raceResult}
+      bestRaceResult={bestRaceResult}
       problemSeed={problemSeed}
       onSubmitSingle={(answer) =>
         socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {

@@ -27,6 +27,7 @@ import {
   validateMathExpressionConfig,
   validateMcChoices,
   validateOrderingChoiceItems,
+  resolveQuestionDecorEmoji,
 } from '@quiz-tool/shared';
 import { ImageOnlyOptionsSetting } from './ImageOnlyOptionsSetting';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
@@ -43,6 +44,7 @@ import { generateId } from '../../lib/id';
 import { SortableOrderingList } from '../ordering/SortableOrderingList';
 import { OrderingChoiceEditorFields } from '../ordering/OrderingChoiceEditorFields';
 import { PixabayImagePicker } from '../media/PixabayImagePicker';
+import { QuestionDecorEmojiEditor } from '../question/QuestionDecorEmojiEditor';
 import { QuestionTimerEditor } from './QuestionTimerEditor';
 
 interface HostQuestionEditorCardProps {
@@ -83,6 +85,7 @@ export function HostQuestionEditorCard({
   const hasHint = Boolean(question.hint?.trim());
   const hasBody = bodyLines.trim().length > 0;
   const titlePreview = getQuestionTitleTrimmed(question) || '(Uten tittel — klikk for å redigere)';
+  const previewDecorEmoji = resolveQuestionDecorEmoji(question);
 
   const [moreOpen, setMoreOpen] = useState(hasHint || hasBody);
 
@@ -167,7 +170,7 @@ export function HostQuestionEditorCard({
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-quiz-accent/20 text-xs font-bold text-quiz-accent"
             aria-hidden
           >
-            {index + 1}
+            {previewDecorEmoji ?? index + 1}
           </span>
           <div className="min-w-0 flex-1 overflow-hidden">
             <p className="text-sm font-semibold text-quiz-text break-words [overflow-wrap:anywhere] line-clamp-2">
@@ -231,6 +234,7 @@ export function HostQuestionEditorCard({
             />
           </div>
           <ImageAttachmentEditor question={question} onChange={onChange} roomId={roomId} />
+          <QuestionDecorEmojiEditor question={question} onChange={onChange} />
 
           {question.type === 'open' ? (
             <OpenAnswersEditor question={question} onChange={onChange} />
@@ -325,6 +329,13 @@ function PointsChip({ points }: { points: number }) {
   );
 }
 
+function applyQuestionMediaChange(question: Question, media: Question['media']): Question {
+  if (media?.length) {
+    return { ...question, media, decorEmoji: undefined };
+  }
+  return { ...question, media: undefined };
+}
+
 function ImageAttachmentEditor({
   question,
   onChange,
@@ -341,7 +352,9 @@ function ImageAttachmentEditor({
       <PixabayImagePicker
         roomId={roomId}
         media={image}
-        onMediaChange={(media) => onChange({ ...question, media: media ? [media] : undefined })}
+        onMediaChange={(media) =>
+          onChange(applyQuestionMediaChange(question, media ? [media] : undefined))
+        }
         label="Søk bilde fra Pixabay"
         hint="Valgfritt bilde til spørsmålsteksten. Kilde og fotograf lagres automatisk."
       />
@@ -512,7 +525,9 @@ function GameQuestionEditor({
         <PixabayImagePicker
           roomId={roomId}
           media={image}
-          onMediaChange={(media) => onChange({ ...question, media: media ? [media] : undefined })}
+          onMediaChange={(media) =>
+            onChange(applyQuestionMediaChange(question, media ? [media] : undefined))
+          }
           label="Spillbilde"
           hint="Støtter Pixabay, Wikimedia og privat opplasting."
         />

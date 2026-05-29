@@ -157,6 +157,7 @@ function isQuestion(value: unknown): value is Question {
     return false;
   }
   if (value.timer !== undefined && !isValidQuestionTimerConfig(value.timer)) return false;
+  if (value.decorEmoji !== undefined && typeof value.decorEmoji !== 'string') return false;
   if (value.type !== 'game' && value.game !== undefined) return false;
   if (value.type !== 'game' && value.gameType !== undefined) return false;
 
