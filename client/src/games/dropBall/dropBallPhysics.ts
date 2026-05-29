@@ -119,11 +119,11 @@ export function calculateWallBounceVelocity(
 export function calculateFloorBounceVelocity(ball: Matter.Body): Matter.Vector {
   const { x, y } = ball.velocity;
   const speed = Math.hypot(x, y);
-  if (speed < 2.2) {
-    return { x: x * 0.82, y: Math.min(y, 0.6) };
+  if (speed < 2.5) {
+    return { x: x * 0.78, y: Math.min(y, 0.4) };
   }
-  if (speed < 5) {
-    return reflectVelocity(ball.velocity, { x: 0, y: -1 }, 0.55);
+  if (speed < 5.5) {
+    return reflectVelocity(ball.velocity, { x: 0, y: -1 }, 0.42);
   }
-  return reflectVelocity(ball.velocity, { x: 0, y: -1 }, 1.04);
+  return reflectVelocity(ball.velocity, { x: 0, y: -1 }, 0.92);
 }
