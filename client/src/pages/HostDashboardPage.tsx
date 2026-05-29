@@ -6,8 +6,10 @@ import {
   CLIENT_EVENTS,
   collectOpenAnswerGradeJobs,
   getOpenQuestionIds,
+  isPerformanceScoringMode,
   type PublicRoomState,
 } from '@quiz-tool/shared';
+import { formatLeaderboardTotal } from '../lib/teamScoreDisplay';
 import { QuizBackupPanel } from '../components/host/QuizBackupPanel';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
@@ -416,7 +418,9 @@ export function HostDashboardPage() {
               <p className="text-sm font-black text-green-900">Endelig resultat er låst</p>
               <p className="mt-1 text-sm text-quiz-text">
                 {finalWinner
-                  ? `Vinner: ${finalWinner.teamName} med ${finalWinner.totalPoints} poeng.`
+                  ? `Vinner: ${finalWinner.teamName} med ${formatLeaderboardTotal(room, finalWinner.totalPoints)}${
+                      isPerformanceScoringMode(room.settings) ? ' prestasjonspoeng' : ' poeng'
+                    }.`
                   : 'Sluttresultatet er lagret som offisiell snapshot.'}
               </p>
               <Button
@@ -508,6 +512,16 @@ export function HostDashboardPage() {
             selectedTeamId={selectedTeamId}
             showAnswerStats={!isPostQuiz}
           />
+
+          {isPerformanceScoringMode(room.settings) ? (
+            <p className="rounded-xl border border-amber-300/60 bg-amber-50/90 px-4 py-2.5 text-sm font-semibold text-amber-950">
+              Poengmodus: Prestasjonspoeng — leaderboard viser prestasjonssum per lag.
+            </p>
+          ) : (
+            <p className="rounded-xl border border-violet-200/60 bg-violet-50/80 px-4 py-2.5 text-sm font-semibold text-violet-950">
+              Poengmodus: Rangering (5/3/1 quizpoeng).
+            </p>
+          )}
 
           <Leaderboard
             room={room}

@@ -9,9 +9,11 @@ import { getQuestionFasitText } from '../../lib/hostAnswerKey';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
 import {
   computeTeamTotalPoints,
+  formatLeaderboardTotal,
   getTeamQuestionScore,
   scoreSourceLabel,
 } from '../../lib/teamScoreDisplay';
+import { formatPerformancePoints, isPerformanceScoringMode } from '@quiz-tool/shared';
 
 interface HostTeamAnswersPanelProps {
   room: PublicRoomState;
@@ -78,7 +80,9 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
               {team.name}
             </h2>
             <p className="text-sm text-quiz-muted mt-1">
-              {totalPoints} poeng totalt · trykk poeng for å overstyre
+              {formatLeaderboardTotal(room, totalPoints)}
+              {isPerformanceScoringMode(room.settings) ? ' prestasjonspoeng totalt' : ' poeng totalt'} ·
+              trykk poeng for å overstyre
             </p>
           </div>
           <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={onClose}>
@@ -135,6 +139,13 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                             ? 'Spill'
                             : 'Åpent'}
                     </Badge>
+                    {score.performancePoints != null && (
+                      <span className="text-xs text-quiz-muted">
+                        {formatPerformancePoints(score.performancePoints)} prestasjonspoeng ·{' '}
+                        {scoreSourceLabel(score.source)}
+                        {graderTeam ? ` · rettet av ${graderTeam.name}` : ''}
+                      </span>
+                    )}
                     {score.points !== null && (
                       <span className="text-xs text-quiz-muted">
                         {score.points}/{question.maxPoints}p · {scoreSourceLabel(score.source)}

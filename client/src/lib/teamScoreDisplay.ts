@@ -1,5 +1,10 @@
 import type { PublicRoomState, ScoreEntry } from '@quiz-tool/shared';
-import { resolveScoringMode, scoreEntryTotal } from '@quiz-tool/shared';
+import {
+  formatPerformancePoints,
+  mapGraderPointsToPerformance,
+  resolveScoringMode,
+  scoreEntryTotal,
+} from '@quiz-tool/shared';
 
 export interface TeamQuestionScore {
   points: number | null;
@@ -67,9 +72,14 @@ export function getTeamQuestionScore(
     (pg) => pg.targetTeamId === teamId && pg.questionId === questionId,
   );
   if (peerGrade) {
+    const question = room.questions.find((q) => q.id === questionId);
+    const maxPoints = question?.maxPoints ?? 10;
     return {
       points: scoringMode === 'ranking' ? peerGrade.points : null,
-      performancePoints: null,
+      performancePoints:
+        scoringMode === 'performance'
+          ? mapGraderPointsToPerformance(peerGrade.points, maxPoints)
+          : null,
       rawResultSummary: null,
       source: 'peer',
       graderTeamId: peerGrade.graderTeamId,
@@ -136,4 +146,11 @@ export function leaderboardPointsLabel(room: PublicRoomState): string {
   return resolveScoringMode(room.settings) === 'performance'
     ? 'Prestasjonspoeng totalt'
     : 'Quizpoeng';
+}
+
+export function formatLeaderboardTotal(room: PublicRoomState, totalPoints: number): string {
+  if (resolveScoringMode(room.settings) === 'performance') {
+    return formatPerformancePoints(totalPoints);
+  }
+  return String(totalPoints);
 }

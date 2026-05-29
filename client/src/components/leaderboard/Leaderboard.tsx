@@ -1,5 +1,6 @@
 import { computeLeaderboard } from '../../lib/leaderboard';
-import { leaderboardPointsLabel } from '../../lib/teamScoreDisplay';
+import { formatLeaderboardTotal, leaderboardPointsLabel } from '../../lib/teamScoreDisplay';
+import { isPerformanceScoringMode } from '@quiz-tool/shared';
 import type { PublicRoomState } from '@quiz-tool/shared';
 import { Card } from '../ui/Card';
 
@@ -35,6 +36,7 @@ export function Leaderboard(props: LeaderboardProps) {
   const { room, provisional = false } = props;
   const entries = computeLeaderboard(room);
   const hostInteractive = props.hostInteractive === true;
+  const performanceMode = isPerformanceScoringMode(room.settings);
   const maxPoints = Math.max(1, ...entries.map((e) => e.totalPoints));
 
   return (
@@ -118,8 +120,10 @@ export function Leaderboard(props: LeaderboardProps) {
                   </span>
                 )}
                 <span className="text-lg font-extrabold text-violet-700 shrink-0 tabular-nums">
-                  {entry.totalPoints}
-                  <span className="text-xs font-semibold text-quiz-muted ml-0.5">p</span>
+                  {formatLeaderboardTotal(room, entry.totalPoints)}
+                  {!performanceMode && (
+                    <span className="text-xs font-semibold text-quiz-muted ml-0.5">p</span>
+                  )}
                 </span>
                 {hostInteractive && (
                   <button

@@ -502,10 +502,12 @@ export function toPublicState(
   viewerTeamId?: string,
 ): PublicRoomState {
   const withClock = { ...room, serverNow: Date.now() };
+  const officialLeaderboard = computeLeaderboard(room);
   if (role === 'host') {
     return {
       ...withClock,
       viewerRole: 'host',
+      leaderboard: officialLeaderboard,
     };
   }
 
@@ -611,7 +613,7 @@ export function toPublicState(
     leaderboard: leaderboardVisible
       ? room.settings.finalResultLocked && room.finalLeaderboardSnapshot
         ? room.finalLeaderboardSnapshot.entries
-        : computeLeaderboard(room)
+        : officialLeaderboard
       : undefined,
     answeredByTeam: visibleAnsweredByTeam,
     teamQuestionLocks: teamId ? { [teamId]: room.teamQuestionLocks?.[teamId] ?? [] } : {},
