@@ -1,4 +1,9 @@
-import { isSelfPacedQuiz, isTeamQuestionLocked } from '@quiz-tool/shared';
+import {
+  buildPerformanceAutoScoreEntry,
+  isPerformanceScoringMode,
+  isSelfPacedQuiz,
+  isTeamQuestionLocked,
+} from '@quiz-tool/shared';
 import type { Answer, Question } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/roomStoreTypes.js';
 import { lockQuestionForTeam } from './selfPacedService.js';
@@ -11,6 +16,21 @@ function markAnswered(room: RoomRecord, teamId: string, questionId: string): Rec
     ...room.answeredByTeam,
     [teamId]: [...current, questionId],
   };
+}
+
+function nextAttemptNumber(
+  room: RoomRecord,
+  teamId: string,
+  questionId: string,
+  existing: Answer | undefined,
+): number {
+  if (existing?.attemptNumber != null) {
+    return existing.attemptNumber + 1;
+  }
+  const priorCount = room.answers.filter(
+    (a) => a.teamId === teamId && a.questionId === questionId,
+  ).length;
+  return priorCount + 1;
 }
 
 export function submitOrUpdateAnswer(
@@ -50,7 +70,7 @@ export function submitOrUpdateAnswer(
 
   const existing = room.answers.find((a) => a.teamId === teamId && a.questionId === questionId);
   if (existing && isUpdate) {
-    let next = applyAnswer(room, teamId, questionId, value, question);
+    let next = applyAnswer(room, teamId, questionId, value, question, existing);
     if (selfPaced && question.type !== 'game') {
       next = lockQuestionForTeam(next, teamId, questionId);
     }
@@ -63,7 +83,7 @@ export function submitOrUpdateAnswer(
     throw new Error('Ingen svar å oppdatere.');
   }
 
-  let next = applyAnswer(room, teamId, questionId, value, question);
+  let next = applyAnswer(room, teamId, questionId, value, question, undefined);
   if (selfPaced && question.type !== 'game') {
     next = lockQuestionForTeam(next, teamId, questionId);
   }
@@ -76,13 +96,16 @@ function applyAnswer(
   questionId: string,
   value: string,
   question: Question,
+  existing: Answer | undefined,
 ): RoomRecord {
   const now = Date.now();
+  const attemptNumber = nextAttemptNumber(room, teamId, questionId, existing);
   const answer: Answer = {
     teamId,
     questionId,
     value: value.trim(),
     updatedAt: now,
+    attemptNumber,
   };
 
   const otherAnswers = room.answers.filter(
@@ -91,9 +114,22 @@ function applyAnswer(
 
   let scores = room.scores;
   if (question.type === 'mc' || question.type === 'ordering') {
-    const autoScore = scoreAutoAnswer(teamId, questionId, value.trim(), question);
-    if (autoScore) {
-      scores = upsertScore(scores, autoScore);
+    if (isPerformanceScoringMode(room.settings)) {
+      const autoScore = buildPerformanceAutoScoreEntry({
+        teamId,
+        questionId,
+        question,
+        value: value.trim(),
+        attemptNumber,
+      });
+      if (autoScore) {
+        scores = upsertScore(scores, autoScore);
+      }
+    } else {
+      const autoScore = scoreAutoAnswer(teamId, questionId, value.trim(), question);
+      if (autoScore) {
+        scores = upsertScore(scores, autoScore);
+      }
     }
   }
 

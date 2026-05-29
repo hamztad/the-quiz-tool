@@ -1,7 +1,10 @@
 import type { PublicRoomState, ScoreEntry } from '@quiz-tool/shared';
+import { resolveScoringMode, scoreEntryTotal } from '@quiz-tool/shared';
 
 export interface TeamQuestionScore {
   points: number | null;
+  performancePoints: number | null;
+  rawResultSummary: string | null;
   source: ScoreEntry['source'] | null;
   graderTeamId?: string;
 }
@@ -11,27 +14,53 @@ export function getTeamQuestionScore(
   teamId: string,
   questionId: string,
 ): TeamQuestionScore {
+  const scoringMode = resolveScoringMode(room.settings);
+  const empty: TeamQuestionScore = {
+    points: null,
+    performancePoints: null,
+    rawResultSummary: null,
+    source: null,
+  };
+
   const scoreEntry = room.scores.find(
     (s) => s.teamId === teamId && s.questionId === questionId,
   );
 
   if (scoreEntry?.source === 'override') {
-    return { points: scoreEntry.points, source: 'override' };
+    return {
+      points: scoringMode === 'ranking' ? scoreEntry.points : null,
+      performancePoints:
+        scoringMode === 'performance' ? (scoreEntry.performancePoints ?? 0) : null,
+      rawResultSummary: scoreEntry.rawResultSummary ?? null,
+      source: 'override',
+    };
   }
 
   if (scoreEntry?.source === 'ai') {
-    return { points: scoreEntry.points, source: 'ai' };
+    return {
+      points: scoringMode === 'ranking' ? scoreEntry.points : null,
+      performancePoints:
+        scoringMode === 'performance' ? (scoreEntry.performancePoints ?? 0) : null,
+      rawResultSummary: scoreEntry.rawResultSummary ?? null,
+      source: 'ai',
+    };
   }
 
   const aiGrade = room.aiGrades.find(
     (g) => g.teamId === teamId && g.questionId === questionId,
   );
-  if (aiGrade) {
-    return { points: aiGrade.points, source: 'ai' };
+  if (aiGrade && scoringMode === 'ranking') {
+    return { points: aiGrade.points, performancePoints: null, rawResultSummary: null, source: 'ai' };
   }
 
   if (scoreEntry?.source === 'auto') {
-    return { points: scoreEntry.points, source: 'auto' };
+    return {
+      points: scoringMode === 'ranking' ? scoreEntry.points : null,
+      performancePoints:
+        scoringMode === 'performance' ? (scoreEntry.performancePoints ?? 0) : null,
+      rawResultSummary: scoreEntry.rawResultSummary ?? null,
+      source: 'auto',
+    };
   }
 
   const peerGrade = room.peerGrades.find(
@@ -39,28 +68,51 @@ export function getTeamQuestionScore(
   );
   if (peerGrade) {
     return {
-      points: peerGrade.points,
+      points: scoringMode === 'ranking' ? peerGrade.points : null,
+      performancePoints: null,
+      rawResultSummary: null,
       source: 'peer',
       graderTeamId: peerGrade.graderTeamId,
     };
   }
 
   if (scoreEntry?.source === 'peer') {
-    return { points: scoreEntry.points, source: 'peer' };
+    return {
+      points: scoringMode === 'ranking' ? scoreEntry.points : null,
+      performancePoints:
+        scoringMode === 'performance' ? (scoreEntry.performancePoints ?? 0) : null,
+      rawResultSummary: scoreEntry.rawResultSummary ?? null,
+      source: 'peer',
+    };
   }
 
   if (scoreEntry) {
-    return { points: scoreEntry.points, source: scoreEntry.source };
+    return {
+      points: scoringMode === 'ranking' ? scoreEntry.points : null,
+      performancePoints:
+        scoringMode === 'performance' ? (scoreEntry.performancePoints ?? 0) : null,
+      rawResultSummary: scoreEntry.rawResultSummary ?? null,
+      source: scoreEntry.source,
+    };
   }
 
-  return { points: null, source: null };
+  return empty;
+}
+
+export function getTeamQuestionPerformancePoints(
+  room: PublicRoomState,
+  teamId: string,
+  questionId: string,
+): number | null {
+  const { performancePoints } = getTeamQuestionScore(room, teamId, questionId);
+  return performancePoints;
 }
 
 export function computeTeamTotalPoints(room: PublicRoomState, teamId: string): number {
-  return room.questions.reduce((sum, q) => {
-    const { points } = getTeamQuestionScore(room, teamId, q.id);
-    return sum + (points ?? 0);
-  }, 0);
+  const scoringMode = resolveScoringMode(room.settings);
+  return room.scores
+    .filter((s) => s.teamId === teamId)
+    .reduce((sum, entry) => sum + scoreEntryTotal(entry, scoringMode), 0);
 }
 
 export function scoreSourceLabel(source: TeamQuestionScore['source']): string {
@@ -78,4 +130,10 @@ export function scoreSourceLabel(source: TeamQuestionScore['source']): string {
     default:
       return 'Ikke satt';
   }
+}
+
+export function leaderboardPointsLabel(room: PublicRoomState): string {
+  return resolveScoringMode(room.settings) === 'performance'
+    ? 'Prestasjonspoeng totalt'
+    : 'Quizpoeng';
 }

@@ -1,5 +1,4 @@
 import type { GameId, GameQuestionConfig } from './types.js';
-import { createDefaultAnagramConfig } from './modules/anagram.js';
 import { createDefaultDropBallConfig } from './modules/dropBall.js';
 import { createDefaultEmojiHuntConfig } from './modules/emojiHunt.js';
 import { createDefaultMathExpressionConfig } from './modules/mathExpression.js';
@@ -15,12 +14,6 @@ export interface BuiltInGameDefinition {
 }
 
 export const builtInGames: BuiltInGameDefinition[] = [
-  {
-    id: 'anagram',
-    label: 'Anagram',
-    description: 'Lagene løser et stokket ord eller en kort frase.',
-    createDefaultConfig: createDefaultAnagramConfig,
-  },
   {
     id: 'mathExpression',
     label: 'Regnestykke',

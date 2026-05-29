@@ -42,6 +42,7 @@ import {
   readHostDraftSession,
   writeHostDraftSession,
 } from '../lib/hostDraftSession';
+import { HostScoringModePanel } from '../components/host/HostScoringModePanel';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
 import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
 import { clearTeamSession } from '../lib/tokens';
@@ -599,6 +600,7 @@ export function HostEditPage() {
                     isLiveEdit &&
                     !isQuestionEditableDuringLiveQuiz(room.questionStatus, q.id)
                   }
+                  scoringMode={room.settings.scoringMode}
                 />
               ))
             )}
@@ -744,6 +746,11 @@ export function HostEditPage() {
       ) : (
         <>
           <div className="mb-6">{syncStatusBanner}</div>
+          {room.phase === 'lobby' && (
+            <div className="mb-6">
+              <HostScoringModePanel room={room} />
+            </div>
+          )}
           {room && !isLiveEdit && (
             <div className="mb-6">
               <HostTestModeControls

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import type {
-  AnagramGameConfig,
   DropBallConfig,
   EmojiHuntConfig,
   GamePointBand,
@@ -18,9 +17,9 @@ import {
   clampQuizPointsPerQuestion,
   createDefaultMathRaceConfig,
   DEFAULT_RANKED_POINT_BANDS,
+  isPerformanceScoringMode,
   QUIZ_MAX_POINTS_PER_QUESTION,
-  scrambleAnagramText,
-  validateAnagramAnswerText,
+  type QuizScoringMode,
   validateMathExpression,
   validateMathExpressionConfig,
   validateMcChoices,
@@ -56,6 +55,7 @@ interface HostQuestionEditorCardProps {
   titleInputRef?: React.RefObject<HTMLTextAreaElement | null>;
   /** Live quiz: åpne spørsmål kan ikke endres før de lukkes. */
   readOnly?: boolean;
+  scoringMode?: QuizScoringMode;
 }
 
 export function HostQuestionEditorCard({
@@ -70,7 +70,9 @@ export function HostQuestionEditorCard({
   roomId,
   titleInputRef,
   readOnly = false,
+  scoringMode,
 }: HostQuestionEditorCardProps) {
+  const performanceScoring = isPerformanceScoringMode({ scoringMode });
   const localTitleRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = titleInputRef ?? localTitleRef;
   const incomplete = isQuestionIncomplete(question);
@@ -234,7 +236,12 @@ export function HostQuestionEditorCard({
           ) : question.type === 'ordering' ? (
             <OrderingQuestionEditor question={question} onChange={onChange} roomId={roomId} />
           ) : (
-            <GameQuestionEditor question={question} onChange={onChange} roomId={roomId} />
+            <GameQuestionEditor
+              question={question}
+              onChange={onChange}
+              roomId={roomId}
+              performanceScoring={performanceScoring}
+            />
           )}
 
           <details
@@ -444,11 +451,15 @@ function GameQuestionEditor({
   question,
   onChange,
   roomId,
+  performanceScoring,
 }: {
   question: Question;
   onChange: (q: Question) => void;
   roomId?: string;
+  performanceScoring: boolean;
 }) {
+  const showRankedBands = !performanceScoring;
+
   if (question.game?.gameId === 'revealImage') {
     const config = question.game;
     const image = question.media?.find((m) => m.type === 'image');
@@ -543,6 +554,7 @@ function GameQuestionEditor({
             />
           </label>
         </div>
+        {showRankedBands ? (
         <div>
           <p className="mb-2 text-xs font-medium text-quiz-muted">
             Quiz-poeng etter plassering (maks {QUIZ_MAX_POINTS_PER_QUESTION} per oppgave)
@@ -578,6 +590,11 @@ function GameQuestionEditor({
             ))}
           </div>
         </div>
+        ) : (
+          <p className="text-xs text-amber-900 rounded-lg border border-amber-200/70 bg-amber-50/80 px-3 py-2">
+            10&nbsp;000 = sterk prestasjon per oppgave i prestasjonspoeng-modus.
+          </p>
+        )}
         <div className="rounded-lg border border-quiz-border/70 bg-quiz-bg/40 p-2">
           <p className="mb-2 text-xs font-semibold text-quiz-text">Alternativer (3-5, valgfritt)</p>
           <div className="space-y-2">
@@ -638,6 +655,7 @@ function GameQuestionEditor({
             Lagene spiller et fargerikt 5x5-brett. Høyeste poengsum vinner.
           </p>
         </div>
+        {showRankedBands ? (
         <div className="grid gap-2 sm:grid-cols-3">
           {[1, 2, 3].map((rank) => (
             <label key={rank} className="block min-w-0">
@@ -654,6 +672,7 @@ function GameQuestionEditor({
             </label>
           ))}
         </div>
+        ) : null}
       </div>
     );
   }
@@ -689,6 +708,11 @@ function GameQuestionEditor({
           <p className="mt-1 text-xs text-quiz-muted">
             Lagene finner målemojier raskest mulig. Laveste tid vinner.
           </p>
+          {performanceScoring && config.targetCount < 3 ? (
+            <p className="mt-2 text-xs font-medium text-amber-900">
+              Prestasjonspoeng bruker 3 emojier for balanse, uavhengig av valg her.
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block min-w-0">
@@ -731,6 +755,7 @@ function GameQuestionEditor({
             />
           </label>
         </div>
+        {showRankedBands ? (
         <div className="grid gap-2 sm:grid-cols-3">
           {[1, 2, 3].map((rank) => (
             <label key={rank} className="block min-w-0">
@@ -747,6 +772,7 @@ function GameQuestionEditor({
             </label>
           ))}
         </div>
+        ) : null}
       </div>
     );
   }
@@ -816,6 +842,7 @@ function GameQuestionEditor({
             1 poeng per ms i lufta. Mynter gir 1k, 2k og 3k, med +{config.allCoinsBonus.toLocaleString('nb-NO')} for alle tre.
           </p>
         </div>
+        {showRankedBands ? (
         <div className="grid gap-2 sm:grid-cols-3">
           {[1, 2, 3].map((rank) => (
             <label key={rank} className="block min-w-0">
@@ -832,68 +859,23 @@ function GameQuestionEditor({
             </label>
           ))}
         </div>
+        ) : null}
       </div>
     );
   }
 
   if (question.game?.gameId === 'anagram') {
     const config = question.game;
-    const validation = validateAnagramAnswerText(config.answerText);
-    const updateGame = (next: AnagramGameConfig) => {
-      onChange({
-        ...question,
-        gameType: 'anagram',
-        game: next,
-      });
-    };
-    const updateAnswer = (answerText: string) => {
-      const nextValidation = validateAnagramAnswerText(answerText);
-      const normalized = nextValidation.normalizedText;
-      updateGame({
-        ...config,
-        answerText: normalized,
-        scrambledText: nextValidation.ok ? scrambleAnagramText(normalized) : config.scrambledText,
-      });
-    };
-
     return (
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
-        <div>
-          <p className="text-xs font-semibold text-amber-200">Spill: Anagram</p>
-          <p className="mt-1 text-xs text-quiz-muted leading-relaxed">
-            Deltakerne løser et stokket ord eller en kort frase. Riktig svar gir poeng. Anbefalt
-            maks 7 bokstaver per ord — lengre ord gir små fliser og brytes over flere linjer.
-          </p>
-        </div>
-        <label className="block min-w-0">
-          <span className="mb-1 block text-xs font-medium text-quiz-muted">
-            Anagram-svar
-          </span>
-          <Input
-            type="text"
-            value={config.answerText}
-            onChange={(event) => updateAnswer(event.target.value)}
-            placeholder="F.eks. DET ER FINT (maks 7 bokstaver per ord)"
-            className="bg-quiz-bg py-2 min-h-[44px]"
-          />
-        </label>
-        <div className="rounded-xl border border-quiz-border/70 bg-quiz-bg/50 px-3 py-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-quiz-muted">
-            Stokket visning
-          </p>
-          <p className="mt-1 break-words text-lg font-black tracking-wide text-quiz-text">
-            {config.scrambledText || 'Skriv et gyldig svar for å lage anagram.'}
-          </p>
-        </div>
-        <p className={`text-xs ${validation.ok ? 'text-quiz-muted' : 'text-red-800'}`}>
-          {validation.letterCount}/20 bokstaver · {validation.words.length}/4 ord
-          {validation.errors.length > 0 ? ` · ${validation.errors.join(' ')}` : ''}
+      <div className="rounded-lg border border-amber-500/40 bg-amber-500/15 p-3 space-y-2 min-w-0 max-w-full">
+        <p className="text-xs font-semibold text-amber-950">Legacy: Anagram (støttes ikke lenger)</p>
+        <p className="text-xs text-amber-900 leading-relaxed">
+          Slett oppgaven og legg til et annet spill. Deltakere ser en melding om at typen er
+          avviklet.
         </p>
-        {validation.warnings.map((warning) => (
-          <p key={warning} className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-900">
-            {warning}
-          </p>
-        ))}
+        {config.scrambledText ? (
+          <p className="text-sm font-mono text-quiz-text break-words">{config.scrambledText}</p>
+        ) : null}
       </div>
     );
   }

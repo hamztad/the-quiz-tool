@@ -19,6 +19,7 @@ export const CLIENT_EVENTS = {
   GRADING_START: 'grading:start',
   GRADING_END: 'grading:end',
   OPEN_ANSWER_GRADING_MODE_SET: 'settings:openAnswerGradingMode',
+  SETTINGS_SCORING_MODE_SET: 'settings:scoringMode',
   AI_GRADING_START: 'aiGrading:start',
   PEER_GRADE_SUBMIT: 'peerGrade:submit',
   PROTEST_SUBMIT: 'protest:submit',

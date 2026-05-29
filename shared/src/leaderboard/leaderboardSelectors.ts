@@ -1,15 +1,37 @@
-import type { FinalLeaderboardSnapshot, LeaderboardEntry, RoomState, ScoreEntry, Team } from '../types/room.js';
+import type {
+  FinalLeaderboardSnapshot,
+  LeaderboardEntry,
+  QuizScoringMode,
+  RoomState,
+  ScoreEntry,
+  Team,
+} from '../types/room.js';
+import { resolveScoringMode } from '../scoring/quizScoringMode.js';
+
+export function scoreEntryTotal(
+  entry: Pick<ScoreEntry, 'points' | 'performancePoints'>,
+  scoringMode: QuizScoringMode,
+): number {
+  if (scoringMode === 'performance') {
+    return entry.performancePoints ?? 0;
+  }
+  return entry.points;
+}
 
 export function computeLeaderboardFromScores(
   teams: Team[],
-  scores: Pick<ScoreEntry, 'teamId' | 'points'>[],
+  scores: Pick<ScoreEntry, 'teamId' | 'points' | 'performancePoints'>[],
+  scoringMode: QuizScoringMode = 'ranking',
 ): LeaderboardEntry[] {
   const totals = new Map<string, number>();
   for (const team of teams) {
     totals.set(team.id, 0);
   }
   for (const score of scores) {
-    totals.set(score.teamId, (totals.get(score.teamId) ?? 0) + score.points);
+    totals.set(
+      score.teamId,
+      (totals.get(score.teamId) ?? 0) + scoreEntryTotal(score, scoringMode),
+    );
   }
   return teams
     .map((team) => ({
@@ -22,20 +44,27 @@ export function computeLeaderboardFromScores(
 
 export function buildFinalLeaderboardSnapshot(
   teams: Team[],
-  scores: Pick<ScoreEntry, 'teamId' | 'points'>[],
+  scores: Pick<ScoreEntry, 'teamId' | 'points' | 'performancePoints'>[],
   lockedAt = Date.now(),
+  scoringMode: QuizScoringMode = 'ranking',
 ): FinalLeaderboardSnapshot {
   return {
     lockedAt,
-    entries: computeLeaderboardFromScores(teams, scores),
+    entries: computeLeaderboardFromScores(teams, scores, scoringMode),
   };
 }
 
-export function getOfficialLeaderboard(room: Pick<RoomState, 'teams' | 'scores' | 'settings' | 'finalLeaderboardSnapshot'>): LeaderboardEntry[] {
+export function getOfficialLeaderboard(
+  room: Pick<RoomState, 'teams' | 'scores' | 'settings' | 'finalLeaderboardSnapshot'>,
+): LeaderboardEntry[] {
   if (room.settings.finalResultLocked && room.finalLeaderboardSnapshot) {
     return room.finalLeaderboardSnapshot.entries;
   }
-  return computeLeaderboardFromScores(room.teams, room.scores);
+  return computeLeaderboardFromScores(
+    room.teams,
+    room.scores,
+    resolveScoringMode(room.settings),
+  );
 }
 
 export function getTeamFinalPlacement(

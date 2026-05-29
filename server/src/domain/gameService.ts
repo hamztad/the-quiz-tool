@@ -1,6 +1,7 @@
 import {
   buildAnagramResults,
   buildDropBallResults,
+  buildGamePerformanceResults,
   clampDropBallScore,
   sanitizeDropBallRounds,
   buildEmojiHuntResults,
@@ -9,14 +10,14 @@ import {
   buildRainbowPuzzleResults,
   buildTimerChallengeResults,
   gameResultsToScoreEntries,
-  isAnagramAnswerCorrect,
-  isAnagramSubmissionPayload,
   isDropBallSubmissionPayload,
   isEmojiHuntSubmissionPayload,
   isMathExpressionSubmissionPayload,
+  isPerformanceScoringMode,
   isRevealImageAnswerCorrect,
   isRevealImageClientAnswerPayload,
   isRainbowPuzzleSubmissionPayload,
+  resolveScoringMode,
   type GameSubmissionPayload,
   type StoredGameSubmissionPayload,
 } from '@quiz-tool/shared';
@@ -185,22 +186,16 @@ export function submitGameResult(
     if (!isEmojiHuntSubmissionPayload(payload)) {
       throw new Error('Ugyldig spillinnsending.');
     }
-    const maxTotalMs = question.game.targetCount * question.game.maxMsPerTarget;
+    const effectiveTargetCount = isPerformanceScoringMode(room.settings)
+      ? 3
+      : question.game.targetCount;
+    const maxTotalMs = effectiveTargetCount * question.game.maxMsPerTarget;
     submissionPayload = {
       gameId: 'emojiHunt',
       totalMs: Math.min(maxTotalMs, Math.max(0, Math.round(payload.totalMs))),
     };
   } else if (question.game.gameId === 'anagram') {
-    if (!isAnagramSubmissionPayload(payload)) {
-      throw new Error('Ugyldig spillinnsending.');
-    }
-    if (!isAnagramAnswerCorrect(payload.answer, question.game.answerText)) {
-      return room;
-    }
-    submissionPayload = {
-      gameId: 'anagram',
-      answer: payload.answer.slice(0, 200),
-    };
+    throw new Error('Denne oppgavetypen støttes ikke lenger.');
   } else if (question.game.gameId === 'mathExpression') {
     if (!isMathExpressionSubmissionPayload(payload)) {
       throw new Error('Ugyldig spillinnsending.');
@@ -321,6 +316,32 @@ export function calculateGameQuestionResults(
 
   let results: GameResult[] = [];
   const submissions = room.gameSubmissions.filter((item) => item.questionId === questionId);
+  const scoringMode = resolveScoringMode(room.settings);
+  const teamIds = room.teams.map((team) => team.id);
+
+  if (scoringMode === 'performance') {
+    results = buildGamePerformanceResults(
+      questionId,
+      question.game,
+      submissions,
+      teamIds,
+    );
+    const scoreEntries = gameResultsToScoreEntries(results, scoringMode);
+    const scoresWithoutGameQuestion = room.scores.filter(
+      (score) => !(score.questionId === questionId && score.source === 'game'),
+    );
+    const scores = scoreEntries.reduce(upsertScore, scoresWithoutGameQuestion);
+    return {
+      ...room,
+      gameRounds,
+      gameResults: [
+        ...room.gameResults.filter((item) => item.questionId !== questionId),
+        ...results,
+      ],
+      scores,
+    };
+  }
+
   if (question.game.gameId === 'timerChallenge') {
     results = buildTimerChallengeResults(
       questionId,
@@ -389,7 +410,7 @@ export function calculateGameQuestionResults(
     );
   }
 
-  const scoreEntries = gameResultsToScoreEntries(results);
+  const scoreEntries = gameResultsToScoreEntries(results, scoringMode);
   const scoresWithoutGameQuestion = room.scores.filter(
     (score) => !(score.questionId === questionId && score.source === 'game'),
   );

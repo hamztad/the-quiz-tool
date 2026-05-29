@@ -271,7 +271,7 @@ export function HostAiGeneratePanel({ roomId, onGenerated }: HostAiGeneratePanel
         </span>
         <span className="mt-3 block text-xs text-quiz-muted">
           Bruker temaet og vanskelighetsgraden over. Inneholder åpent spørsmål, flervalg,
-          rekkefølge, anagram/regnerace og ett annet spill.
+          rekkefølge, regnerace og ett annet spill.
         </span>
       </button>
 

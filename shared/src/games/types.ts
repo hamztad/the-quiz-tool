@@ -292,6 +292,8 @@ export interface GameResult {
   rank: number;
   quizPoints: number;
   status: 'ranked' | 'invalid' | 'missing';
+  performancePoints?: number;
+  rawResultLabel?: string;
 }
 
 export interface GameRankInput {

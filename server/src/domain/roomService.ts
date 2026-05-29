@@ -23,7 +23,7 @@ import {
   markTeamDisconnected,
   type HostPresence,
 } from '@quiz-tool/shared';
-import { buildFinalLeaderboardSnapshot } from '@quiz-tool/shared';
+import { buildFinalLeaderboardSnapshot, resolveScoringMode } from '@quiz-tool/shared';
 import type { RoomRecord } from '../store/roomStoreTypes.js';
 import { generateId, generateJoinCode, generateToken } from '../utils/id.js';
 import { computeLeaderboard } from './leaderboardService.js';
@@ -66,6 +66,7 @@ export function createRoom(title?: string): RoomRecord {
       testMode: false,
       teamsLockedOut: false,
       openAnswerGradingMode: 'peer',
+      scoringMode: 'ranking',
     },
     hostToken,
     teamTokens: {},
@@ -447,7 +448,12 @@ export function lockFinalResult(room: RoomRecord, now = Date.now()): RoomRecord 
       showLeaderboard: true,
       finalResultLocked: true,
     },
-    finalLeaderboardSnapshot: buildFinalLeaderboardSnapshot(room.teams, room.scores, now),
+    finalLeaderboardSnapshot: buildFinalLeaderboardSnapshot(
+      room.teams,
+      room.scores,
+      now,
+      resolveScoringMode(room.settings),
+    ),
   };
 }
 

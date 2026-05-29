@@ -1,5 +1,5 @@
 import type { Protest, Question, RoomState, ScoreEntry } from '@quiz-tool/shared';
-import { scoreOrderingAnswer } from '@quiz-tool/shared';
+import { buildGraderScoreEntry, resolveScoringMode, scoreOrderingAnswer } from '@quiz-tool/shared';
 import { generateId } from '../utils/id.js';
 
 export {
@@ -8,13 +8,21 @@ export {
 } from '@quiz-tool/shared';
 
 export function mergePeerGradesToScores(room: RoomState): ScoreEntry[] {
+  const scoringMode = resolveScoringMode(room.settings);
+  const questionById = new Map(room.questions.map((q) => [q.id, q]));
   const nonPeer = room.scores.filter((s) => s.source !== 'peer');
-  const peerScores: ScoreEntry[] = room.peerGrades.map((pg) => ({
-    teamId: pg.targetTeamId,
-    questionId: pg.questionId,
-    points: pg.points,
-    source: 'peer' as const,
-  }));
+  const peerScores: ScoreEntry[] = room.peerGrades.map((pg) => {
+    const question = questionById.get(pg.questionId);
+    const maxPoints = question?.maxPoints ?? 10;
+    return buildGraderScoreEntry({
+      teamId: pg.targetTeamId,
+      questionId: pg.questionId,
+      graderPoints: pg.points,
+      maxPoints,
+      source: 'peer',
+      scoringMode,
+    });
+  });
   const keepAi = room.scores.filter((s) => s.source === 'ai');
   return [...nonPeer, ...keepAi, ...peerScores];
 }

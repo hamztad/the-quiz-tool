@@ -1,5 +1,5 @@
 import { clampQuizPointsPerQuestion } from '../scoring/quizScoring.js';
-import type { ScoreEntry } from '../types/room.js';
+import type { QuizScoringMode, ScoreEntry } from '../types/room.js';
 import type { GamePointBand, GamePointMode, GameResult } from './types.js';
 
 export function quizPointsForRank(
@@ -20,7 +20,22 @@ export function quizPointsForRank(
   return 0;
 }
 
-export function gameResultsToScoreEntries(results: GameResult[]): ScoreEntry[] {
+export function gameResultsToScoreEntries(
+  results: GameResult[],
+  scoringMode: QuizScoringMode = 'ranking',
+): ScoreEntry[] {
+  if (scoringMode === 'performance') {
+    return results
+      .filter((result) => result.status === 'ranked' || result.status === 'invalid')
+      .map((result) => ({
+        teamId: result.teamId,
+        questionId: result.questionId,
+        points: 0,
+        performancePoints: result.performancePoints ?? 0,
+        rawResultSummary: result.rawResultLabel,
+        source: 'game' as const,
+      }));
+  }
   return results
     .filter((result) => result.status === 'ranked')
     .map((result) => ({

@@ -66,6 +66,23 @@ describe('computeLeaderboardFromScores', () => {
     });
   });
 
+  it('sums performancePoints in performance mode', () => {
+    expect(
+      computeLeaderboardFromScores(
+        teams,
+        [
+          { teamId: 'team-a', points: 0, performancePoints: 8000 },
+          { teamId: 'team-b', points: 0, performancePoints: 12000 },
+        ],
+        'performance',
+      ),
+    ).toEqual([
+      { teamId: 'team-b', teamName: 'Team B', totalPoints: 12000 },
+      { teamId: 'team-a', teamName: 'Team A', totalPoints: 8000 },
+      { teamId: 'team-c', teamName: 'Team C', totalPoints: 0 },
+    ]);
+  });
+
   it('uses live scores before final result is locked', () => {
     const room = {
       teams,

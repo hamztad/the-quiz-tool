@@ -17,8 +17,15 @@ import {
 import { checkHostReconnectAccess } from '../../domain/hostRoomAccess.js';
 import { checkRoomAccess } from '../../domain/roomAccess.js';
 import { submitOrUpdateAnswer } from '../../domain/answerService.js';
+import {
+  buildOverrideScoreEntry,
+  resolveScoringMode,
+  scoreEntryTotal,
+  type QuizScoringMode,
+} from '@quiz-tool/shared';
 import { createProtest, mergePeerGradesToScores, upsertScore } from '../../domain/gradingService.js';
 import { setOpenAnswerGradingMode } from '../../domain/aiGradingService.js';
+import { setScoringMode } from '../../domain/scoringModeService.js';
 import { runAiGradingBatch, runIncrementalAiGrade } from '../../domain/runAiGradingBatch.js';
 import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import { canStartAiGrading, collectOpenAnswerGradeJobs } from '@quiz-tool/shared';
@@ -712,6 +719,21 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     },
   );
 
+  socket.on(
+    CLIENT_EVENTS.SETTINGS_SCORING_MODE_SET,
+    (payload: { mode: QuizScoringMode }) => {
+      const roomId = socket.data.roomId as string;
+      if (!requireHost(socket, roomId)) return;
+      if (!ensureFinalResultUnlocked(socket, roomId)) return;
+      try {
+        roomStore.update(roomId, (r) => setScoringMode(r, payload.mode));
+        publishRoomState(io, roomId);
+      } catch (e) {
+        emitError(socket, e instanceof Error ? e.message : 'Kunne ikke lagre poengmodus');
+      }
+    },
+  );
+
   socket.on(CLIENT_EVENTS.AI_GRADING_START, () => {
     const roomId = socket.data.roomId as string;
     if (!requireHost(socket, roomId)) return;
@@ -853,7 +875,10 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         const aiGrade = r.aiGrades.find(
           (g) => g.teamId === teamId && g.questionId === payload.questionId,
         );
-        const awardedPoints = scoreEntry?.points ?? peerGrade?.points ?? aiGrade?.points;
+        const scoringMode = resolveScoringMode(r.settings);
+        const awardedPoints = scoreEntry
+          ? scoreEntryTotal(scoreEntry, scoringMode)
+          : peerGrade?.points ?? aiGrade?.points;
         if (awardedPoints === undefined) {
           throw new Error('Du kan protestere når oppgaven er poengsatt.');
         }
@@ -896,12 +921,19 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
         let scores = r.scores;
         if (payload.approved && payload.points !== undefined) {
-          scores = upsertScore(scores, {
-            teamId: protest.teamId,
-            questionId: protest.questionId,
-            points: payload.points,
-            source: 'override',
-          });
+          const question = r.questions.find((q) => q.id === protest.questionId);
+          const maxPoints = question?.maxPoints ?? 10;
+          const clamped = Math.max(0, Math.min(maxPoints, Math.round(payload.points)));
+          scores = upsertScore(
+            scores,
+            buildOverrideScoreEntry({
+              teamId: protest.teamId,
+              questionId: protest.questionId,
+              points: clamped,
+              maxPoints,
+              scoringMode: resolveScoringMode(r.settings),
+            }),
+          );
         }
 
         return { ...r, protests, scores };
@@ -924,12 +956,16 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
         return {
           ...r,
-          scores: upsertScore(r.scores, {
-            teamId: payload.teamId,
-            questionId: payload.questionId,
-            points,
-            source: 'override',
-          }),
+          scores: upsertScore(
+            r.scores,
+            buildOverrideScoreEntry({
+              teamId: payload.teamId,
+              questionId: payload.questionId,
+              points,
+              maxPoints: max,
+              scoringMode: resolveScoringMode(r.settings),
+            }),
+          ),
         };
       });
       publishRoomState(io, roomId);

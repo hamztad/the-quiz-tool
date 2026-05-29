@@ -1,4 +1,5 @@
 import { computeLeaderboard } from '../../lib/leaderboard';
+import { leaderboardPointsLabel } from '../../lib/teamScoreDisplay';
 import type { PublicRoomState } from '@quiz-tool/shared';
 import { Card } from '../ui/Card';
 
@@ -56,6 +57,9 @@ export function Leaderboard(props: LeaderboardProps) {
           {provisional && !room.settings.finalResultLocked && (
             <p className="text-sm font-semibold text-amber-800">Underveis — kan endres</p>
           )}
+          <p className="text-xs font-semibold text-quiz-muted mt-0.5">
+            {leaderboardPointsLabel(room)}
+          </p>
         </div>
       </div>
       {hostInteractive && (

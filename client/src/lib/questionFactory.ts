@@ -149,7 +149,7 @@ export function createRevealImageQuestion(order: number): Question {
 }
 
 export function createGameQuestion(order: number, gameId: GameId): Question {
-  if (gameId === 'anagram') return createAnagramQuestion(order);
+  if (gameId === 'anagram') return createMathExpressionQuestion(order);
   if (gameId === 'mathExpression') return createMathExpressionQuestion(order);
   if (gameId === 'dropBall') return createDropBallQuestion(order);
   if (gameId === 'revealImage') return createRevealImageQuestion(order);

@@ -1,4 +1,6 @@
 import type { AiGrade, Answer, Question, RoomState, ScoreEntry } from '../types/room.js';
+import { buildGraderScoreEntry } from '../scoring/performanceQuestionScoring.js';
+import { resolveScoringMode } from '../scoring/quizScoringMode.js';
 import { getOpenQuestionIds } from './buildGradingAssignments.js';
 
 export type { OpenAnswerGradingMode } from '../types/room.js';
@@ -42,32 +44,48 @@ export function upsertAiGrade(room: RoomState, grade: AiGrade): RoomState {
   return { ...room, aiGrades: [...filtered, grade] };
 }
 
+function buildAiScoreEntries(room: RoomState): ScoreEntry[] {
+  const scoringMode = resolveScoringMode(room.settings);
+  const questionById = new Map(room.questions.map((q) => [q.id, q]));
+  return room.aiGrades.map((g) => {
+    const question = questionById.get(g.questionId);
+    const maxPoints = question?.maxPoints ?? 10;
+    return buildGraderScoreEntry({
+      teamId: g.teamId,
+      questionId: g.questionId,
+      graderPoints: g.points,
+      maxPoints,
+      source: 'ai',
+      scoringMode,
+    });
+  });
+}
+
+function buildPeerScoreEntries(room: RoomState): ScoreEntry[] {
+  const scoringMode = resolveScoringMode(room.settings);
+  const questionById = new Map(room.questions.map((q) => [q.id, q]));
+  return room.peerGrades.map((pg) => {
+    const question = questionById.get(pg.questionId);
+    const maxPoints = question?.maxPoints ?? 10;
+    return buildGraderScoreEntry({
+      teamId: pg.targetTeamId,
+      questionId: pg.questionId,
+      graderPoints: pg.points,
+      maxPoints,
+      source: 'peer',
+      scoringMode,
+    });
+  });
+}
+
 export function mergeAiGradesToScores(room: RoomState): ScoreEntry[] {
   const nonAi = room.scores.filter((s) => s.source !== 'ai');
-  const aiScores: ScoreEntry[] = room.aiGrades.map((g) => ({
-    teamId: g.teamId,
-    questionId: g.questionId,
-    points: g.points,
-    source: 'ai' as const,
-  }));
-  return [...nonAi, ...aiScores];
+  return [...nonAi, ...buildAiScoreEntries(room)];
 }
 
 export function mergePeerAndAiGradesToScores(room: RoomState): ScoreEntry[] {
   const base = room.scores.filter((s) => s.source !== 'peer' && s.source !== 'ai');
-  const peerScores: ScoreEntry[] = room.peerGrades.map((pg) => ({
-    teamId: pg.targetTeamId,
-    questionId: pg.questionId,
-    points: pg.points,
-    source: 'peer' as const,
-  }));
-  const aiScores: ScoreEntry[] = room.aiGrades.map((g) => ({
-    teamId: g.teamId,
-    questionId: g.questionId,
-    points: g.points,
-    source: 'ai' as const,
-  }));
-  return [...base, ...peerScores, ...aiScores];
+  return [...base, ...buildPeerScoreEntries(room), ...buildAiScoreEntries(room)];
 }
 
 export type CanStartAiGradingResult = { ok: true } | { ok: false; message: string };

@@ -31,6 +31,8 @@ describe('aiGrading', () => {
 
   it('merges ai grades into scores', () => {
     const room = {
+      questions: [openQuestion('q2')],
+      settings: { scoringMode: 'ranking' as const, openAnswerGradingMode: 'ai' as const },
       scores: [{ teamId: 't1', questionId: 'q1', points: 1, source: 'auto' as const }],
       aiGrades: [
         {

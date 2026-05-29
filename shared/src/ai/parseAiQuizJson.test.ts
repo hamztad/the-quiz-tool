@@ -104,13 +104,13 @@ describe('parseAiQuizJson', () => {
           },
           {
             type: 'puzzle',
-            puzzleType: 'anagram',
-            text: 'Løs anagrammet',
+            puzzleType: 'mathRace',
+            text: 'Regnerace',
             body: null,
-            answerText: 'NORDLYS',
+            answerText: '',
             anagramKind: 'commonWord',
-            anagramEvidence: 'Nordlys er et etablert norsk ord for aurora borealis.',
-            expressions: [],
+            anagramEvidence: '',
+            expressions: ['2 + 2', '3 * 4'],
           },
           {
             type: 'game',
@@ -132,8 +132,9 @@ describe('parseAiQuizJson', () => {
       'game',
     ]);
     expect(result.questions[2]?.maxPoints).toBe(2);
-    expect(result.questions[3]?.game?.gameId).toBe('anagram');
-    expect(result.questions[3]?.lines[0]?.text).toBe('Løs anagrammet');
+    expect(result.questions[3]?.game?.gameId).toBe('mathExpression');
+    expect(result.questions[3]?.game?.mode).toBe('race');
+    expect(result.questions[3]?.lines[0]?.text).toBe('Regnerace');
     expect(result.questions[4]?.game?.gameId).toBe('emojiHunt');
     expect(result.questions[4]?.lines[0]?.text).toBe('Emoji-jakt');
   });
@@ -150,7 +151,7 @@ describe('parseAiQuizJson', () => {
     expect(result.errors).toEqual(
       expect.arrayContaining([
         'Oppgave 3 må være rekkefølge.',
-        'Oppgave 4 må være anagram eller regnerace.',
+        'Oppgave 4 må være regnerace.',
         'Oppgave 5 må være et annet eksisterende spill.',
       ]),
     );

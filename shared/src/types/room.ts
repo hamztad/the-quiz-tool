@@ -93,6 +93,8 @@ export interface Answer {
   questionId: string;
   value: string;
   updatedAt: number;
+  /** 1-based attempt count for this team/question (MC, ordering, math single). */
+  attemptNumber?: number;
 }
 
 export interface PeerGrade {
@@ -108,6 +110,10 @@ export interface ScoreEntry {
   questionId: string;
   points: number;
   source: 'auto' | 'peer' | 'override' | 'game' | 'ai';
+  /** Prestasjonspoeng for denne oppgaven (performance mode). */
+  performancePoints?: number;
+  /** Kort råresultat for visning, f.eks. «182 440 poeng». */
+  rawResultSummary?: string;
 }
 
 export interface AiGrade {
@@ -152,6 +158,8 @@ export type RoomPhase = 'lobby' | 'live' | 'grading' | 'leaderboard' | 'post_qui
 
 export type OpenAnswerGradingMode = 'peer' | 'ai';
 
+export type QuizScoringMode = 'ranking' | 'performance';
+
 export interface RoomSettings {
   showLeaderboard: boolean;
   teamReviewOpen: boolean;
@@ -165,6 +173,8 @@ export interface RoomSettings {
   teamsLockedOut?: boolean;
   /** Hvordan åpne tekstsvar poengsettes etter quiz. */
   openAnswerGradingMode: OpenAnswerGradingMode;
+  /** Rangering (5/3/1) eller prestasjonspoeng (10 000 = sterk prestasjon). */
+  scoringMode?: QuizScoringMode;
 }
 
 export interface FinalLeaderboardSnapshot {

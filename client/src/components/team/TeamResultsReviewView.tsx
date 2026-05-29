@@ -20,8 +20,12 @@ import { formatOppgaveLabel } from '../../lib/participantCopy';
 import { PARTICIPANT_BACK_TO_QUIZ_LABEL } from '../../lib/teamQuestionListNav';
 import { ParticipantBackToQuizLink } from './ParticipantBackToQuizLink';
 import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
+import { formatPerformancePoints, resolveScoringMode } from '@quiz-tool/shared';
+import { PerformanceScoreBreakdown } from '../scoring/PerformanceScoreBreakdown';
 import {
+  computeTeamTotalPoints,
   getTeamQuestionScore,
+  leaderboardPointsLabel,
   scoreSourceLabel,
 } from '../../lib/teamScoreDisplay';
 
@@ -128,13 +132,12 @@ export function TeamResultsReviewView({
     .filter((score) => score.teamId === reviewTeamId)
     .forEach((score) => ownQuestionIds.add(score.questionId));
   const answeredQuestions = room.questions.filter((q) => ownQuestionIds.has(q.id));
-  const gradedCount = answeredQuestions.filter(
-    (question) => getTeamQuestionScore(room, reviewTeamId, question.id).points !== null,
-  ).length;
-  const totalPoints = answeredQuestions.reduce((sum, question) => {
+  const performanceMode = resolveScoringMode(room.settings) === 'performance';
+  const gradedCount = answeredQuestions.filter((question) => {
     const score = getTeamQuestionScore(room, reviewTeamId, question.id);
-    return sum + (score.points ?? 0);
-  }, 0);
+    return performanceMode ? score.performancePoints != null : score.points !== null;
+  }).length;
+  const totalPoints = computeTeamTotalPoints(room, reviewTeamId);
 
   const submitProtest = (questionId: string) => {
     socket.emit(CLIENT_EVENTS.PROTEST_SUBMIT, {
@@ -169,9 +172,9 @@ export function TeamResultsReviewView({
       </p>
 
       <Card className="mb-5 border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 sm:p-5">
-        <p className="text-sm font-semibold text-quiz-muted">Din totalsum</p>
+        <p className="text-sm font-semibold text-quiz-muted">{leaderboardPointsLabel(room)}</p>
         <p className="mt-1 text-3xl font-black text-quiz-text tabular-nums">
-          {totalPoints} poeng
+          {performanceMode ? formatPerformancePoints(totalPoints) : `${totalPoints} poeng`}
         </p>
       </Card>
 
@@ -214,13 +217,20 @@ export function TeamResultsReviewView({
             const resolvedProtest = protests.find((p) => p.status !== 'pending');
             const latestProtest = activeProtest ?? resolvedProtest;
             const locallySubmitted = submittedProtestIds.has(question.id);
+            const hasScore = performanceMode
+              ? score.performancePoints != null
+              : score.points !== null;
             const status = reviewStatus(
-              score.points,
+              hasScore ? (performanceMode ? score.performancePoints : score.points) : null,
               activeProtest,
               resolvedProtest,
               locallySubmitted,
             );
-            const canProtest = score.points !== null && !activeProtest && !locallySubmitted;
+            const canProtest = hasScore && !activeProtest && !locallySubmitted;
+            const gameResult = room.gameResults.find(
+              (result) =>
+                result.teamId === reviewTeamId && result.questionId === question.id,
+            );
             const showProtestForm = openProtestId === question.id && canProtest;
             const protestSnapshot = room.protests.find(
               (p) => p.teamId === reviewTeamId && p.questionId === question.id,
@@ -287,13 +297,33 @@ export function TeamResultsReviewView({
                   <h3 className="text-xs font-bold uppercase tracking-wider text-quiz-muted mb-1">
                     Poeng
                   </h3>
-                  {score.points !== null ? (
+                  {performanceMode && (gameResult?.performancePoints != null || score.performancePoints != null) ? (
+                    <PerformanceScoreBreakdown
+                      rawLabel={
+                        gameResult?.rawResultLabel ??
+                        score.rawResultSummary ??
+                        undefined
+                      }
+                      performancePoints={
+                        gameResult?.performancePoints ?? score.performancePoints ?? 0
+                      }
+                    />
+                  ) : score.points !== null ? (
                     <p className="text-base font-semibold text-quiz-text">
                       {score.points}/{question.maxPoints} poeng
                       <span className="text-sm font-normal text-quiz-muted">
                         {' '}
                         · {scoreSourceLabel(score.source)}
                         {graderTeam ? ` · rettet av ${graderTeam.name}` : ''}
+                      </span>
+                    </p>
+                  ) : performanceMode && score.performancePoints != null ? (
+                    <p className="text-base font-semibold text-quiz-text">
+                      {formatPerformancePoints(score.performancePoints)} prestasjonspoeng
+                      <span className="text-sm font-normal text-quiz-muted">
+                        {' '}
+                        · {scoreSourceLabel(score.source)}
+                        {score.rawResultSummary ? ` · ${score.rawResultSummary}` : ''}
                       </span>
                     </p>
                   ) : (

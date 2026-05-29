@@ -10,7 +10,6 @@ import {
   type Question,
 } from '@quiz-tool/shared';
 import type {
-  AnagramSubmissionPayload,
   DropBallSubmissionPayload,
   GameSubmission,
   EmojiHuntSubmissionPayload,
@@ -22,7 +21,8 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import { getTeamSession } from '../lib/tokens';
 import { isQuestionFrozen } from '../lib/gameFreeze';
-import { AnagramGame } from './anagram/AnagramGame';
+import { UnsupportedQuestionView } from '../components/question/UnsupportedQuestionView';
+import { formatPerformancePoints, isPerformanceScoringMode } from '@quiz-tool/shared';
 import { DropBallGame } from './dropBall/DropBallGame';
 import { EmojiHuntGame } from './emojiHunt/EmojiHuntGame';
 import { MathExpressionGame } from './mathExpression/MathExpressionGame';
@@ -86,10 +86,7 @@ export function TeamGameView({ room, question, teamId }: TeamGameViewProps) {
     );
   }
   if (question.game?.gameId === 'anagram') {
-    return wrapGameFreeze(
-      <AnagramTeamView room={room} question={question} teamId={teamId} frozen={frozen} />,
-      frozen,
-    );
+    return <UnsupportedQuestionView />;
   }
   if (question.game?.gameId === 'mathExpression') {
     return wrapGameFreeze(
@@ -156,9 +153,15 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
                 )}
                 <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Deltaker'}</span>
                 <span className="shrink-0 text-quiz-muted">{result.displayValue}</span>
-                <span className="shrink-0 font-semibold text-quiz-accent">
-                  {result.quizPoints}p
-                </span>
+                {isPerformanceScoringMode(room.settings) ? (
+                  <span className="shrink-0 font-semibold text-amber-900">
+                    {formatPerformancePoints(result.performancePoints ?? 0)}
+                  </span>
+                ) : (
+                  <span className="shrink-0 font-semibold text-quiz-accent">
+                    {result.quizPoints}p
+                  </span>
+                )}
               </li>
             );
           })}
@@ -229,12 +232,6 @@ function isEmojiHuntSubmission(
   submission: GameSubmission,
 ): submission is GameSubmission & { payload: EmojiHuntSubmissionPayload } {
   return submission.payload.gameId === 'emojiHunt';
-}
-
-function isAnagramSubmission(
-  submission: GameSubmission,
-): submission is GameSubmission & { payload: AnagramSubmissionPayload } {
-  return submission.payload.gameId === 'anagram';
 }
 
 function isDropBallSubmission(
@@ -393,41 +390,6 @@ function DropBallTeamView({ room, question, teamId }: TeamGameViewProps) {
           payload: { gameId: 'dropBall', score, rounds },
         })
       }
-    />
-  );
-}
-
-function AnagramTeamView({
-  room,
-  question,
-  teamId,
-  frozen = false,
-}: TeamGameViewProps & { frozen?: boolean }) {
-  const { socket } = useSocket();
-  const submissions = room.gameSubmissions
-    .filter((item) => item.questionId === question.id && item.teamId === teamId)
-    .filter(isAnagramSubmission)
-    .sort((a, b) => a.serverReceivedAt - b.serverReceivedAt);
-  const latestAnswer = submissions.at(-1)?.payload.answer ?? null;
-  const config = question.game?.gameId === 'anagram' ? question.game : null;
-
-  const submitAnswer = (answer: string) => {
-    socket.emit(CLIENT_EVENTS.GAME_SUBMIT, {
-      questionId: question.id,
-      payload: { gameId: 'anagram', answer },
-    });
-  };
-
-  if (!config) return null;
-
-  return (
-    <AnagramGame
-      title={question.lines[0]?.text ?? 'Løs anagrammet'}
-      hint={question.hint}
-      scrambledText={config.scrambledText}
-      latestAnswer={latestAnswer}
-      disabled={frozen || Boolean(latestAnswer)}
-      onSubmit={submitAnswer}
     />
   );
 }

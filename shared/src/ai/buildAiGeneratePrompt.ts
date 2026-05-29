@@ -25,15 +25,11 @@ function buildStyleBlock(style: AiQuizQuestionStyle, count: number): string {
   1. type "open" med acceptedAnswers
   2. type "multipleChoice" med nøyaktig 4 options og én correct: true
   3. type "ordering" med 3-5 items, correctOrder og tydelig retning topp til bunn
-  4. type "puzzle" med puzzleType enten "anagram" ELLER "mathRace"
+  4. type "puzzle" med puzzleType "mathRace" (alltid — ikke anagram)
   5. type "game" med gameId enten "rainbowPuzzle", "emojiHunt" eller "dropBall"
-- Ikke bruk unsupported gameId.
+- Ikke bruk unsupported gameId eller puzzleType "anagram".
 - Ikke inkluder full spillconfig; systemet lager trygg konfigurasjon.
-- Spillnavn må være nøyaktige: "Rainbow Puzzle", "Emoji-jakt", "Drop the Ball", "Regnerace", "Løs anagrammet".
-- Velg helst "mathRace" i slot 4 hvis du ikke har et helt sikkert anagram.
-- Hvis puzzleType er "anagram", må answerText være et ekte, etablert norsk ord, egennavn, sted, tittel eller etablert uttrykk — aldri et konstruert/non-word, aldri blanding av engelsk/norsk.
-- Anagram krever også "anagramKind" og "anagramEvidence". Hvis du er usikker på om ordet faktisk finnes, bruk "mathRace" i stedet.
-- Anagram: bruk maks 7 bokstaver per ord (ikke lengre enkeltord) — ellers blir flisene små og ord brytes over flere linjer i spillet.
+- Spillnavn må være nøyaktige: "Rainbow Puzzle", "Emoji-jakt", "Drop the Ball", "Regnerace".
 
 JSON-eksempel (bruk disse feltene):
 {
@@ -46,12 +42,12 @@ JSON-eksempel (bruk disse feltene):
       { "text": "...", "correct": false }
     ] },
     { "type": "ordering", "text": "...", "body": null, "directionLabel": "Størst øverst → Minst nederst", "directionLabelTop": "Størst", "directionLabelBottom": "Minst", "items": ["..."], "correctOrder": ["..."] },
-    { "type": "puzzle", "puzzleType": "anagram", "text": "Løs anagrammet", "body": null, "answerText": "...", "anagramKind": "commonWord", "anagramEvidence": "Kort forklaring på hvorfor dette er et etablert ord/navn/uttrykk", "expressions": [] },
+    { "type": "puzzle", "puzzleType": "mathRace", "text": "Regnerace", "body": null, "answerText": "", "anagramKind": "commonWord", "anagramEvidence": "", "expressions": ["2 + 2", "3 * 4"] },
     { "type": "game", "gameId": "emojiHunt", "text": "Emoji-jakt", "body": null }
   ]
 }
 
-Hvis puzzleType er "mathRace", bruk "answerText": "", "anagramKind": "commonWord", "anagramEvidence": "" og "expressions": ["2 + 2", "3 * 4", ...] med 2-6 enkle regnestykker.`;
+Slot 4 skal alltid ha "expressions" med 2-6 enkle regnestykker.`;
   }
 
   if (style === 'open') {

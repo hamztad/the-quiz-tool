@@ -282,12 +282,9 @@ export function validateAiQuestionStyle(
     const slot4Game = questions[3]?.type === 'game' ? questions[3].game : undefined;
     if (
       !slot4Game ||
-      !(
-        slot4Game.gameId === 'anagram' ||
-        (slot4Game.gameId === 'mathExpression' && slot4Game.mode === 'race')
-      )
+      !(slot4Game.gameId === 'mathExpression' && slot4Game.mode === 'race')
     ) {
-      slotErrors.push('Oppgave 4 må være anagram eller regnerace.');
+      slotErrors.push('Oppgave 4 må være regnerace.');
     }
     const slot5Game = questions[4]?.type === 'game' ? questions[4].game : undefined;
     if (

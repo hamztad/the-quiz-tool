@@ -34,10 +34,10 @@ describe('buildAiGeneratePrompt', () => {
     const prompt = buildAiGeneratePrompt({ ...base, questionStyle: 'quizPackage' });
     expect(prompt).toContain('nøyaktig 5 spørsmål');
     expect(prompt).toContain('type "ordering"');
-    expect(prompt).toContain('puzzleType enten "anagram" ELLER "mathRace"');
-    expect(prompt).toContain('maks 7 bokstaver per ord');
+    expect(prompt).toContain('puzzleType "mathRace"');
+    expect(prompt).not.toContain('puzzleType enten "anagram"');
     expect(prompt).toContain('gameId enten "rainbowPuzzle", "emojiHunt" eller "dropBall"');
-    expect(prompt).toContain('ekte, etablert norsk ord');
+    expect(prompt).toContain('expressions');
     expect(prompt).toContain('Spillnavn må være nøyaktige');
   });
 });
