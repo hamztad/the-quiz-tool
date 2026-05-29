@@ -24,8 +24,12 @@ const CANVAS_WIDTH = 340;
 const CANVAS_HEIGHT = 560;
 const LAUNCH_HEIGHT = 58;
 const LAUNCH_Y = 42;
-const FLOOR_Y = CANVAS_HEIGHT - 24;
 const NORMAL_BALL_RADIUS = 10;
+const LAUNCH_RAIL_LEFT = 28;
+const LAUNCH_RAIL_RIGHT = CANVAS_WIDTH - 28;
+const RELEASE_ARROW_TOP = LAUNCH_Y + NORMAL_BALL_RADIUS + 10;
+const LAUNCH_INTERACTION_MAX_Y = RELEASE_ARROW_TOP + 28;
+const FLOOR_Y = CANVAS_HEIGHT - 24;
 
 type DropBallPhase = 'ready' | 'falling' | 'betweenBoards' | 'finished';
 
@@ -67,7 +71,10 @@ interface SimState {
 }
 
 function clampDropX(value: number): number {
-  return Math.max(26, Math.min(CANVAS_WIDTH - 26, value));
+  return Math.max(
+    LAUNCH_RAIL_LEFT + NORMAL_BALL_RADIUS,
+    Math.min(LAUNCH_RAIL_RIGHT - NORMAL_BALL_RADIUS, value),
+  );
 }
 
 function emptySnapshot(): DropBallSnapshot {
@@ -95,6 +102,76 @@ function drawRoundedRect(
   context.stroke();
 }
 
+function releaseArrowPulsePhase(timeMs: number): number {
+  return 0.82 + 0.18 * Math.sin(timeMs / 260);
+}
+
+function isPointOnReleaseArrow(canvasX: number, canvasY: number, dropX: number, timeMs: number): boolean {
+  const pulse = releaseArrowPulsePhase(timeMs);
+  const halfWidth = 16 * pulse;
+  const halfHeight = 20 * pulse;
+  const centerY = RELEASE_ARROW_TOP + halfHeight * 0.45;
+  return (
+    canvasX >= dropX - halfWidth &&
+    canvasX <= dropX + halfWidth &&
+    canvasY >= centerY - halfHeight &&
+    canvasY <= centerY + halfHeight
+  );
+}
+
+function drawLaunchSlider(
+  context: CanvasRenderingContext2D,
+  dropX: number,
+  timeMs: number,
+) {
+  context.strokeStyle = 'rgba(255,255,255,0.55)';
+  context.lineWidth = 4;
+  context.lineCap = 'round';
+  context.beginPath();
+  context.moveTo(LAUNCH_RAIL_LEFT, LAUNCH_Y);
+  context.lineTo(LAUNCH_RAIL_RIGHT, LAUNCH_Y);
+  context.stroke();
+
+  context.fillStyle = 'rgba(255,255,255,0.28)';
+  for (let x = LAUNCH_RAIL_LEFT + 18; x <= LAUNCH_RAIL_RIGHT - 18; x += 28) {
+    context.beginPath();
+    context.arc(x, LAUNCH_Y, 3, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.save();
+  context.shadowColor = '#dbeafe';
+  context.shadowBlur = 12;
+  context.beginPath();
+  context.arc(dropX, LAUNCH_Y, NORMAL_BALL_RADIUS, 0, Math.PI * 2);
+  context.fillStyle = '#f8fafc';
+  context.fill();
+  context.strokeStyle = '#bfdbfe';
+  context.lineWidth = 3;
+  context.stroke();
+  context.restore();
+
+  const pulse = releaseArrowPulsePhase(timeMs);
+  const arrowCenterY = RELEASE_ARROW_TOP + 10 * pulse;
+  context.save();
+  context.translate(dropX, arrowCenterY);
+  context.scale(pulse, pulse);
+  context.shadowColor = 'rgba(251, 191, 36, 0.85)';
+  context.shadowBlur = 14;
+  context.fillStyle = '#fbbf24';
+  context.strokeStyle = 'rgba(255,255,255,0.75)';
+  context.lineWidth = 2.5;
+  context.lineJoin = 'round';
+  context.beginPath();
+  context.moveTo(-11, -4);
+  context.lineTo(0, 10);
+  context.lineTo(11, -4);
+  context.closePath();
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
 function drawNeonBar(context: CanvasRenderingContext2D, body: Matter.Body, color: string) {
   context.save();
   context.shadowColor = color;
@@ -120,6 +197,7 @@ function drawGameBoard(
   boardIndex: number,
   layout: DropBallBoardLayout,
   sim: SimState | null,
+  launchPulseMs: number,
 ) {
   const context = canvas.getContext('2d');
   if (!context) return;
@@ -147,25 +225,9 @@ function drawGameBoard(
   context.fillStyle = '#f5d0fe';
   context.font = '900 12px system-ui, sans-serif';
   context.textAlign = 'center';
-  context.fillText('Trykk der du vil slippe ballen', CANVAS_WIDTH / 2, 29);
-  context.strokeStyle = 'rgba(255,255,255,0.48)';
-  context.lineWidth = 3;
-  context.beginPath();
-  context.moveTo(28, LAUNCH_Y);
-  context.lineTo(CANVAS_WIDTH - 28, LAUNCH_Y);
-  context.stroke();
+  context.fillText('Dra ballen langs sporet · trykk pilen for å slippe', CANVAS_WIDTH / 2, 29);
   if (!sim) {
-    context.save();
-    context.shadowColor = '#dbeafe';
-    context.shadowBlur = 12;
-    context.beginPath();
-    context.arc(dropX, LAUNCH_Y, NORMAL_BALL_RADIUS, 0, Math.PI * 2);
-    context.fillStyle = '#f8fafc';
-    context.fill();
-    context.strokeStyle = '#bfdbfe';
-    context.lineWidth = 3;
-    context.stroke();
-    context.restore();
+    drawLaunchSlider(context, dropX, launchPulseMs);
   }
 
   const obstacleColor = new Map(layout.bumpers.map((bumper) => [bumper.id, bumper.color]));
@@ -433,6 +495,7 @@ export function DropBallGame({
   const [layoutSeed, setLayoutSeed] = useState(() => newDropBallLayoutSeed());
   const [phase, setPhase] = useState<DropBallPhase>('ready');
   const [dropX, setDropX] = useState(CANVAS_WIDTH / 2);
+  const dropXRef = useRef(CANVAS_WIDTH / 2);
   const [normalBoardsPlayed, setNormalBoardsPlayed] = useState(0);
   const [completedRounds, setCompletedRounds] = useState<DropBallRoundResult[]>([]);
   const [snapshot, setSnapshot] = useState<DropBallSnapshot>(() => emptySnapshot());
@@ -479,11 +542,41 @@ export function DropBallGame({
     };
   }, []);
 
-  useEffect(() => {
+  const redrawLaunchPreview = (timeMs = performance.now()) => {
     const canvas = canvasRef.current;
-    if (!canvas || simRef.current) return;
-    drawGameBoard(canvas, config, dropX, normalBoardsPlayed, boardLayout, null);
-  }, [config, normalBoardsPlayed, dropX, boardLayout]);
+    if (!canvas || phase !== 'ready' || simRef.current) return;
+    drawGameBoard(
+      canvas,
+      config,
+      dropXRef.current,
+      normalBoardsPlayed,
+      boardLayout,
+      null,
+      timeMs,
+    );
+  };
+
+  const setDropXOnSlider = (nextX: number) => {
+    const clamped = clampDropX(nextX);
+    dropXRef.current = clamped;
+    setDropX(clamped);
+    redrawLaunchPreview();
+  };
+
+  useEffect(() => {
+    dropXRef.current = dropX;
+  }, [dropX]);
+
+  useEffect(() => {
+    if (phase !== 'ready') return;
+    let frame = 0;
+    const tick = (time: number) => {
+      redrawLaunchPreview(time);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [phase, config, normalBoardsPlayed, boardLayout]);
 
   const animate = (sim: SimState) => {
     const now = performance.now();
@@ -505,7 +598,7 @@ export function DropBallGame({
 
     const canvas = canvasRef.current;
     if (canvas) {
-      drawGameBoard(canvas, config, dropX, sim.boardIndex, sim.layout, sim);
+      drawGameBoard(canvas, config, dropX, sim.boardIndex, sim.layout, sim, 0);
     }
 
     if (nextSnapshot.bottomTouched) {
@@ -627,22 +720,33 @@ export function DropBallGame({
     finalSubmittedScoreRef.current = null;
   };
 
+  const canvasCoords = (event: PointerEvent<HTMLCanvasElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
+      y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT,
+    };
+  };
+
   const handleCanvasPointer = (event: PointerEvent<HTMLCanvasElement>) => {
     if (disabled || phase !== 'ready') return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const localY = ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT;
-    if (localY > LAUNCH_HEIGHT + 16) return;
-    const nextX = clampDropX(((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH);
+    const { x: localX, y: localY } = canvasCoords(event);
+    if (localY > LAUNCH_INTERACTION_MAX_Y) return;
+
+    if (isPointOnReleaseArrow(localX, localY, dropXRef.current, performance.now())) {
+      startDropAt(dropXRef.current);
+      return;
+    }
+
     draggingLaunchRef.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
-    setDropX(nextX);
+    setDropXOnSlider(localX);
   };
 
   const handleCanvasPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
     if (!draggingLaunchRef.current || disabled || phase !== 'ready') return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const nextX = clampDropX(((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH);
-    setDropX(nextX);
+    const { x: localX } = canvasCoords(event);
+    setDropXOnSlider(localX);
   };
 
   const stopLaunchDrag = (event: PointerEvent<HTMLCanvasElement>) => {
@@ -695,23 +799,12 @@ export function DropBallGame({
         </div>
       </div>
 
-      {phase === 'ready' && (
-        <button
-          type="button"
-          onClick={() => startDropAt(dropX)}
-          disabled={disabled}
-          className="mt-5 inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-fuchsia-200/30 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-blue-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.28)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-        >
-          Slipp ballen
-        </button>
-      )}
-
       <div className="relative mx-auto mt-5 max-w-[23rem] overflow-hidden rounded-3xl border-2 border-cyan-300/35 bg-violet-950/80 shadow-[inset_0_0_36px_rgba(15,23,42,0.4)]">
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="block h-auto w-full touch-pan-y"
+          className={`block h-auto w-full touch-none ${phase === 'ready' ? 'cursor-grab active:cursor-grabbing' : ''}`}
           onPointerDown={handleCanvasPointer}
           onPointerMove={handleCanvasPointerMove}
           onPointerUp={stopLaunchDrag}
