@@ -172,6 +172,7 @@ export function TeamPage() {
   const {
     room,
     unavailable,
+    unavailableDetail,
     reconnecting,
     reconnectFailed,
     noSession,
@@ -312,7 +313,7 @@ export function TeamPage() {
   }
 
   if (unavailable) {
-    return <RoomUnavailableView reason={unavailable} />;
+    return <RoomUnavailableView reason={unavailable} detail={unavailableDetail} />;
   }
 
   if (noSession) {

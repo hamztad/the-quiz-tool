@@ -3,7 +3,7 @@ import {
   isRevealImageAnswerCorrect,
   type RevealImageTeamProgress,
 } from '@quiz-tool/shared';
-import type { RoomRecord } from '../store/RoomStore.js';
+import type { RoomRecord } from '../store/roomStoreTypes.js';
 
 function hasTeamSolvedRevealImage(room: RoomRecord, questionId: string, teamId: string): boolean {
   const question = room.questions.find((item) => item.id === questionId);

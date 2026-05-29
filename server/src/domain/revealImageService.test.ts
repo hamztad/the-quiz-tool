@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultRevealImageConfig } from '@quiz-tool/shared';
-import type { RoomRecord } from '../store/RoomStore.js';
+import type { RoomRecord } from '../store/roomStoreTypes.js';
 import {
   clearRevealImageProgressForQuestion,
   getRevealImageProgress,

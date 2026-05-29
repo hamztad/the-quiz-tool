@@ -104,7 +104,10 @@ export function JoinPage() {
             : e.code === ROOM_ERROR_CODES.ROOM_EXPIRED
               ? 'expired'
               : 'not_found';
-        navigate(`/rom-utilgjengelig?reason=${reason}`, { replace: true });
+        navigate(`/rom-utilgjengelig?reason=${reason}`, {
+          replace: true,
+          state: e.message ? { detail: e.message } : undefined,
+        });
         return;
       }
       if (e.code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {

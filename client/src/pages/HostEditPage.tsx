@@ -59,6 +59,7 @@ export function HostEditPage() {
   const {
     room,
     unavailable,
+    unavailableDetail,
     loading,
     noSession,
     operationalError,
@@ -444,7 +445,7 @@ export function HostEditPage() {
   if (!roomId) return null;
 
   if (unavailable) {
-    return <RoomUnavailableView reason={unavailable} />;
+    return <RoomUnavailableView reason={unavailable} detail={unavailableDetail} />;
   }
 
   if (noSession) {

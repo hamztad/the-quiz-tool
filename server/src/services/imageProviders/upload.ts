@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
 import sharp from 'sharp';
-import { roomStore } from '../../store/memoryStore.js';
+import { roomStore } from '../../store/activeRoomStore.js';
 
 const MAX_UPLOAD_BYTES = 1_000_000;
 const MAX_IMAGE_SIDE = 1920;

@@ -8,7 +8,7 @@ import {
 } from './roomService.js';
 import { checkHostReconnectAccess } from './hostRoomAccess.js';
 import { sweepExpiredRooms } from './roomCleanup.js';
-import { roomStore } from '../store/memoryStore.js';
+import { roomStore } from '../store/activeRoomStore.js';
 
 const openQuestion: Question = {
   id: 'q-open',

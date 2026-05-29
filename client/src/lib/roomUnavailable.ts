@@ -12,18 +12,18 @@ const ROOM_UNAVAILABLE_COPY: Record<RoomUnavailableReason, RoomUnavailableConten
   not_found: {
     title: 'Quizrommet er ikke tilgjengelig',
     description:
-      'Quizen kan ha blitt avsluttet av quizmaster, eller romkoden er ugyldig.',
+      'Finner ikke quizen på serveren. Den kan ha utløpt, eller serveren kan ha startet på ny. Be quizmaster om ny kode eller prøv igjen senere.',
     icon: 'unavailable',
   },
   ended: {
     title: 'Quizen er avsluttet',
-    description: 'Quizmaster har avsluttet dette rommet. Takk for deltakelsen!',
+    description: 'Quizmaster har lukket dette rommet permanent. Takk for deltakelsen!',
     icon: 'ended',
   },
   expired: {
-    title: 'Quizrommet er ikke tilgjengelig',
+    title: 'Quizen er avsluttet',
     description:
-      'Rommet har utløpt og er ikke lenger aktivt. Be quizmaster om en ny kode.',
+      'Tidsplanen for quizen er over, og romdata er ikke lenger tilgjengelig. Be quizmaster om en ny kode hvis dere skal spille igjen.',
     icon: 'unavailable',
   },
   removed: {

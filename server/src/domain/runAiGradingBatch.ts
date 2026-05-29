@@ -10,7 +10,7 @@ import {
   gradeJobWithOpenAI,
   prepareAiGradingRun,
 } from './aiGradingService.js';
-import { roomStore } from '../store/memoryStore.js';
+import { roomStore } from '../store/activeRoomStore.js';
 import { publishRoomState } from '../socket/emitRoomState.js';
 
 export async function runAiGradingBatch(

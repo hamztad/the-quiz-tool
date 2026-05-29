@@ -4,7 +4,7 @@ import {
   mergeAiGradesToScores,
   type AiGrade,
 } from '@quiz-tool/shared';
-import type { RoomRecord } from '../store/RoomStore.js';
+import type { RoomRecord } from '../store/roomStoreTypes.js';
 import { gradeOpenAnswerWithOpenAI } from '../services/openaiAnswerGrade.js';
 
 export function setOpenAnswerGradingMode(

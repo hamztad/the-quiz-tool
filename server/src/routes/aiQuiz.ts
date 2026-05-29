@@ -8,7 +8,7 @@ import {
   type AiQuizQuestionStyle,
   type ParsedAiQuizQuestion,
 } from '@quiz-tool/shared';
-import { roomStore } from '../store/memoryStore.js';
+import { roomStore } from '../store/activeRoomStore.js';
 import { AiQuizGenerateError, generateQuizWithOpenAI } from '../services/openaiQuizGenerate.js';
 import {
   getUploadedImageMetadata,

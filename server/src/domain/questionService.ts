@@ -1,4 +1,4 @@
-import type { RoomRecord } from '../store/RoomStore.js';
+import type { RoomRecord } from '../store/roomStoreTypes.js';
 import { isRevealImageAnswerCorrect } from '@quiz-tool/shared';
 import { calculateGameQuestionResults, calculateGameResultsForQuestions, startGameRound } from './gameService.js';
 import { clearRevealImageProgressForQuestion } from './revealImageService.js';

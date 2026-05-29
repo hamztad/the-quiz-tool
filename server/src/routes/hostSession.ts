@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { buildHostRoomSummary, checkHostReconnectAccess } from '../domain/hostRoomAccess.js';
-import { roomStore } from '../store/memoryStore.js';
+import { roomStore } from '../store/activeRoomStore.js';
+import { buildRoomAccessDeniedMessage } from '../utils/roomAccessMessages.js';
 
 export const hostSessionRouter = Router();
 
@@ -19,7 +20,7 @@ hostSessionRouter.get('/session-summary', (req, res) => {
     res.status(access.code === 'SESSION_INVALID' ? 403 : 404).json({
       ok: false,
       code: access.code,
-      message: 'Denne quizen er ikke lenger aktiv.',
+      message: buildRoomAccessDeniedMessage(access.code, room),
     });
     return;
   }

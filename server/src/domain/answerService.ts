@@ -1,6 +1,6 @@
 import { isSelfPacedQuiz, isTeamQuestionLocked } from '@quiz-tool/shared';
 import type { Answer, Question } from '@quiz-tool/shared';
-import type { RoomRecord } from '../store/RoomStore.js';
+import type { RoomRecord } from '../store/roomStoreTypes.js';
 import { lockQuestionForTeam } from './selfPacedService.js';
 import { scoreAutoAnswer, upsertScore } from './gradingService.js';
 

@@ -1,7 +1,7 @@
 import { getNextRoomDeadline } from '@quiz-tool/shared';
 import type { Server } from 'socket.io';
 import { emitRoomStateToAll } from '../../socket/emitRoomState.js';
-import { roomStore } from '../../store/memoryStore.js';
+import { roomStore } from '../../store/activeRoomStore.js';
 import { applyDueDeadlines } from './applyTimerDeadline.js';
 
 export class TimerCoordinator {

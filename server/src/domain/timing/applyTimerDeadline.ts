@@ -1,5 +1,5 @@
 import { getDueDeadlines, type TimerDeadline } from '@quiz-tool/shared';
-import type { RoomRecord } from '../../store/RoomStore.js';
+import type { RoomRecord } from '../../store/roomStoreTypes.js';
 import { lockQuestion, openQuestion } from '../questionService.js';
 import { applyScheduledQuizEnd, applyScheduledQuizStart } from './scheduleService.js';
 

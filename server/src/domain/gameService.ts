@@ -22,7 +22,7 @@ import {
 } from '@quiz-tool/shared';
 import { isSelfPacedQuiz } from '@quiz-tool/shared';
 import type { GameResult, GameRound, GameSubmission } from '@quiz-tool/shared';
-import type { RoomRecord } from '../store/RoomStore.js';
+import type { RoomRecord } from '../store/roomStoreTypes.js';
 import { generateId } from '../utils/id.js';
 import { upsertScore } from './gradingService.js';
 import {

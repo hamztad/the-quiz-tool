@@ -1,7 +1,7 @@
 import { normalizeJoinCodeForMatch } from '@quiz-tool/shared';
-import type { RoomRecord, RoomStore } from './RoomStore.js';
+import type { RoomRecord, RoomStore } from './roomStoreTypes.js';
 
-class InMemoryRoomStore implements RoomStore {
+export class InMemoryRoomStore implements RoomStore {
   private rooms = new Map<string, RoomRecord>();
   private joinCodeIndex = new Map<string, string>();
 
@@ -29,6 +29,10 @@ class InMemoryRoomStore implements RoomStore {
     if (!room) return undefined;
     const updated = updater(room);
     this.rooms.set(roomId, updated);
+    if (normalizeJoinCodeForMatch(updated.joinCode) !== normalizeJoinCodeForMatch(room.joinCode)) {
+      this.joinCodeIndex.delete(normalizeJoinCodeForMatch(room.joinCode));
+      this.joinCodeIndex.set(normalizeJoinCodeForMatch(updated.joinCode), roomId);
+    }
     return updated;
   }
 
@@ -40,5 +44,3 @@ class InMemoryRoomStore implements RoomStore {
     this.rooms.delete(roomId);
   }
 }
-
-export const roomStore = new InMemoryRoomStore();

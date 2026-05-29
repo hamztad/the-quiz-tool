@@ -71,6 +71,7 @@ export function HostDashboardPage() {
   const {
     room,
     unavailable,
+    unavailableDetail,
     loading,
     noSession,
     operationalError,
@@ -118,7 +119,7 @@ export function HostDashboardPage() {
   if (!roomId) return null;
 
   if (unavailable) {
-    return <RoomUnavailableView reason={unavailable} />;
+    return <RoomUnavailableView reason={unavailable} detail={unavailableDetail} />;
   }
 
   if (noSession) {

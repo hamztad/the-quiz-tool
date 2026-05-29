@@ -3,7 +3,7 @@ import {
   computeRoomExpiresAt,
   type RoomErrorCode,
 } from '@quiz-tool/shared';
-import type { RoomRecord } from '../store/RoomStore.js';
+import type { RoomRecord } from '../store/roomStoreTypes.js';
 
 export type RoomAccessResult =
   | { ok: true; room: RoomRecord }

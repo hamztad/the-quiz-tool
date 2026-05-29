@@ -7,7 +7,7 @@ import {
   type QuizSchedule,
   type SetScheduleInput,
 } from '@quiz-tool/shared';
-import type { RoomRecord } from '../../store/RoomStore.js';
+import type { RoomRecord } from '../../store/roomStoreTypes.js';
 import { endQuizForTeams, startQuiz } from '../roomService.js';
 import { lockRound, openQuestion } from '../questionService.js';
 import { applySelfPacedQuizStart } from '../selfPacedService.js';

@@ -1,5 +1,5 @@
 import { ROOM_ERROR_CODES, type HostRoomSummary, type RoomErrorCode } from '@quiz-tool/shared';
-import type { RoomRecord } from '../store/RoomStore.js';
+import type { RoomRecord } from '../store/roomStoreTypes.js';
 import { getEffectiveRoomExpiresAt } from './roomAccess.js';
 import { deriveHostQuizTitle } from '@quiz-tool/shared';
 

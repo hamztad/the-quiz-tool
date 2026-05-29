@@ -24,7 +24,7 @@ import {
   type HostPresence,
 } from '@quiz-tool/shared';
 import { buildFinalLeaderboardSnapshot } from '@quiz-tool/shared';
-import type { RoomRecord } from '../store/RoomStore.js';
+import type { RoomRecord } from '../store/roomStoreTypes.js';
 import { generateId, generateJoinCode, generateToken } from '../utils/id.js';
 import { computeLeaderboard } from './leaderboardService.js';
 import { lockQuestion, openQuestion } from './questionService.js';

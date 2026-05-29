@@ -2,7 +2,7 @@ import { isScheduleArmed } from './scheduleService.js';
 import { applyDueDeadlines } from './applyTimerDeadline.js';
 import { logScheduleLifecycle } from './scheduleLifecycleLog.js';
 import { timerCoordinator } from './TimerCoordinator.js';
-import { roomStore } from '../../store/memoryStore.js';
+import { roomStore } from '../../store/activeRoomStore.js';
 
 const SWEEP_INTERVAL_MS = 60_000;
 

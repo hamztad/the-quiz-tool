@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { isQuestionRevealedToTeam } from '@quiz-tool/shared';
-import { roomStore } from '../store/memoryStore.js';
+import { roomStore } from '../store/activeRoomStore.js';
 import { getUploadedImageMetadata } from '../services/imageProviders/upload.js';
 import { resolveGameplayImage } from '../services/gameplayImage.js';
 

@@ -9,6 +9,8 @@ import { Button } from '../ui/Button';
 
 interface RoomUnavailableViewProps {
   reason: RoomUnavailableReason;
+  /** Server-provided detail (e.g. planned end time). */
+  detail?: string | null;
 }
 
 function RoomUnavailableIcon({ variant }: { variant: 'unavailable' | 'ended' }) {
@@ -22,7 +24,7 @@ function RoomUnavailableIcon({ variant }: { variant: 'unavailable' | 'ended' }) 
   );
 }
 
-export function RoomUnavailableView({ reason }: RoomUnavailableViewProps) {
+export function RoomUnavailableView({ reason, detail }: RoomUnavailableViewProps) {
   const navigate = useNavigate();
   const { title, description, icon } = getRoomUnavailableContent(reason);
 
@@ -35,6 +37,11 @@ export function RoomUnavailableView({ reason }: RoomUnavailableViewProps) {
           {title}
         </h1>
         <p className="mt-3 max-w-md text-base text-quiz-muted leading-relaxed">{description}</p>
+        {detail && detail.trim() !== description && (
+          <p className="mt-3 max-w-md rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm font-medium text-amber-950 leading-relaxed">
+            {detail}
+          </p>
+        )}
         <Button
           size="lg"
           className="mt-10 w-full max-w-sm"

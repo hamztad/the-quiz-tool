@@ -48,20 +48,36 @@ function defaultStartLocal(): string {
   return toDatetimeLocalValue(d.getTime());
 }
 
-function defaultEndLocal(startLocal: string): string {
+function defaultEndLocal(startLocal: string, durationMs: number): string {
   const startMs = fromDatetimeLocalValue(startLocal);
-  return toDatetimeLocalValue(startMs + 60 * 60_000);
+  return toDatetimeLocalValue(startMs + durationMs);
+}
+
+function defaultDurationMs(
+  deliveryMode: QuizDeliveryMode,
+  fromSchedule?: number,
+): number {
+  if (fromSchedule != null && fromSchedule > 0) return fromSchedule;
+  if (deliveryMode === 'self_paced' || deliveryMode === 'interval') {
+    return MAX_SCHEDULE_DURATION_MS;
+  }
+  return 60 * 60_000;
 }
 
 export function HostScheduleCard({ room, disabled = false }: HostScheduleCardProps) {
   const { socket } = useSocket();
+  const initialDelivery = normalizeDeliveryMode(room.schedule?.deliveryMode);
   const [open, setOpen] = useState(Boolean(room.schedule?.enabled));
   const [timingMode, setTimingMode] = useState<TimingMode>('relative');
   const [startDelayMs, setStartDelayMs] = useState(room.schedule?.startDelayMs ?? 5 * 60_000);
-  const [durationMs, setDurationMs] = useState(room.schedule?.durationMs ?? 60 * 60_000);
+  const [durationMs, setDurationMs] = useState(() =>
+    defaultDurationMs(initialDelivery, room.schedule?.durationMs),
+  );
   const [startLocal, setStartLocal] = useState(defaultStartLocal);
   const [endMode, setEndMode] = useState<EndMode>('duration');
-  const [endLocal, setEndLocal] = useState(() => defaultEndLocal(defaultStartLocal()));
+  const [endLocal, setEndLocal] = useState(() =>
+    defaultEndLocal(defaultStartLocal(), defaultDurationMs(initialDelivery, room.schedule?.durationMs)),
+  );
   const [deliveryMode, setDeliveryMode] = useState<QuizDeliveryMode>(() =>
     normalizeDeliveryMode(room.schedule?.deliveryMode),
   );
@@ -239,7 +255,7 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
                     const startMs = fromDatetimeLocalValue(e.target.value);
                     const endMs = fromDatetimeLocalValue(endLocal);
                     if (!Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs <= startMs) {
-                      setEndLocal(defaultEndLocal(e.target.value));
+                      setEndLocal(defaultEndLocal(e.target.value, durationMs));
                     }
                   }
                 }}
@@ -347,7 +363,14 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
                   key={mode.id}
                   type="button"
                   disabled={disabled}
-                  onClick={() => setDeliveryMode(mode.id)}
+                  onClick={() => {
+                    setDeliveryMode(mode.id);
+                    if (mode.id === 'self_paced' || mode.id === 'interval') {
+                      setDurationMs((prev) =>
+                        prev > 0 ? prev : MAX_SCHEDULE_DURATION_MS,
+                      );
+                    }
+                  }}
                   className={`rounded-xl border-2 px-3 py-2 text-sm font-semibold text-left max-w-full ${
                     deliveryMode === mode.id
                       ? 'border-cyan-500 bg-cyan-50 text-cyan-900'

@@ -145,9 +145,13 @@ export function useRoomGate(
   const teamSession = mode === 'team' && session ? (session as TeamSession) : null;
   const hostSession = mode === 'host' && session ? (session as HostSession) : null;
 
+  const unavailableDetail =
+    unavailable && roomError?.message ? roomError.message : null;
+
   return {
     room: unavailable ? null : (room as PublicRoomState | null),
     unavailable,
+    unavailableDetail,
     reconnecting,
     waitingForSession,
     reconnectFailed,

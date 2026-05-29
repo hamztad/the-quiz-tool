@@ -34,6 +34,7 @@ export function HostLobbyPage() {
   const {
     room,
     unavailable,
+    unavailableDetail,
     loading,
     noSession,
     operationalError,
@@ -83,7 +84,7 @@ export function HostLobbyPage() {
   if (!roomId) return null;
 
   if (unavailable) {
-    return <RoomUnavailableView reason={unavailable} />;
+    return <RoomUnavailableView reason={unavailable} detail={unavailableDetail} />;
   }
 
   if (noSession) {

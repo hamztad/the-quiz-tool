@@ -9,6 +9,7 @@ import {
   getOpenQuestionIds,
   hasActiveProtest,
   ROOM_ERROR_CODES,
+  type RoomErrorCode,
   SERVER_EVENTS,
   type GameSubmissionPayload,
   type Question,
@@ -52,7 +53,9 @@ import {
   unlockFinalResult,
   updateQuestions,
 } from '../../domain/roomService.js';
-import { roomStore } from '../../store/memoryStore.js';
+import { roomStore } from '../../store/activeRoomStore.js';
+import type { RoomRecord } from '../../store/roomStoreTypes.js';
+import { buildRoomAccessDeniedMessage } from '../../utils/roomAccessMessages.js';
 import { generateId } from '../../utils/id.js';
 import { emitRoomStateToSocket, publishRoomState } from '../emitRoomState.js';
 
@@ -96,16 +99,16 @@ function maybeGradeOpenAnswerAfterSubmit(
   void runIncrementalAiGrade(io, roomId, apiKey, teamId, questionId);
 }
 
-function emitRoomAccessError(socket: Socket, code: string) {
-  const messages: Record<string, string> = {
-    [ROOM_ERROR_CODES.ROOM_NOT_FOUND]: 'Rommet finnes ikke.',
-    [ROOM_ERROR_CODES.ROOM_ENDED]: 'Quizen er avsluttet.',
-    [ROOM_ERROR_CODES.ROOM_EXPIRED]: 'Rommet har utløpt.',
-    [ROOM_ERROR_CODES.JOIN_CODE_INVALID]: 'Ugyldig join-kode.',
-    [ROOM_ERROR_CODES.SESSION_INVALID]: NB.sessionInvalid,
-    [ROOM_ERROR_CODES.TEAM_JOIN_LOCKED]: NB.joinLocked,
-  };
-  emitError(socket, messages[code] ?? 'Rommet er ikke tilgjengelig.', code);
+function emitRoomAccessError(
+  socket: Socket,
+  code: RoomErrorCode,
+  room?: RoomRecord,
+) {
+  if (code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {
+    emitError(socket, NB.joinLocked, code);
+    return;
+  }
+  emitError(socket, buildRoomAccessDeniedMessage(code, room), code);
 }
 
 function requireHost(socket: Socket, roomId: string): boolean {
@@ -222,7 +225,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
           if (!room) {
             emitRoomAccessError(socket, ROOM_ERROR_CODES.JOIN_CODE_INVALID);
           } else {
-            emitRoomAccessError(socket, access.code);
+            emitRoomAccessError(socket, access.code, room);
           }
           return;
         }
@@ -288,7 +291,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
             if (hostAccess.code === ROOM_ERROR_CODES.ROOM_EXPIRED && room) {
               roomStore.delete(room.id);
             }
-            emitRoomAccessError(socket, hostAccess.code);
+            emitRoomAccessError(socket, hostAccess.code, room);
             ack?.({ ok: false, code: hostAccess.code });
             return;
           }
@@ -309,7 +312,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
           if (access.code === ROOM_ERROR_CODES.ROOM_EXPIRED && room) {
             roomStore.delete(room.id);
           }
-          emitRoomAccessError(socket, access.code);
+          emitRoomAccessError(socket, access.code, room);
           ack?.({ ok: false, code: access.code });
           return;
         }
@@ -439,7 +442,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     const room = roomStore.get(roomId);
     const access = checkRoomAccess(room);
     if (!access.ok) {
-      emitRoomAccessError(socket, access.code);
+      emitRoomAccessError(socket, access.code, room);
       return;
     }
     roomStore.update(roomId, (r) => endQuizForTeams(r));
@@ -452,7 +455,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     const room = roomStore.get(roomId);
     const access = checkRoomAccess(room);
     if (!access.ok) {
-      emitRoomAccessError(socket, access.code);
+      emitRoomAccessError(socket, access.code, room);
       return;
     }
     roomStore.update(roomId, (r) => ({ ...r, phase: 'ended' }));

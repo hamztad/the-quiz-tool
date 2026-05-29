@@ -6,7 +6,7 @@ import { touchRoomActivity } from '@quiz-tool/shared';
 import { applyDueDeadlines } from '../domain/timing/applyTimerDeadline.js';
 import { timerCoordinator } from '../domain/timing/TimerCoordinator.js';
 import { toPublicState } from '../domain/roomService.js';
-import { roomStore } from '../store/memoryStore.js';
+import { roomStore } from '../store/activeRoomStore.js';
 
 export function emitRoomStateToAll(io: Server, roomId: string): void {
   const room = roomStore.get(roomId);
