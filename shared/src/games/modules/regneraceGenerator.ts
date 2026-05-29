@@ -83,10 +83,10 @@ function generateDivide(rng: RegneraceRandomFn): RegneraceGeneratedProblem {
     if (qMin > qMax) continue;
     const quotient = randomInt(rng, qMin, qMax);
     const dividend = divisor * quotient;
-    const expression = `${dividend} / ${divisor}`;
+    const expression = `${dividend} : ${divisor}`;
     return { expression, answer: quotient, operation: 'divide' };
   }
-  return { expression: '144 / 12', answer: 12, operation: 'divide' };
+  return { expression: '144 : 12', answer: 12, operation: 'divide' };
 }
 
 export function generateRegneraceProblem(

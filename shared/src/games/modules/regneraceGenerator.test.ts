@@ -56,7 +56,7 @@ describe('regneraceGenerator', () => {
   it('division uses dividend and divisor in range with integer quotient', () => {
     for (let i = 0; i < 40; i += 1) {
       const problem = generateRegneraceProblem(rng, ['divide']);
-      const parts = problem.expression.split('/').map((s) => Number(s.trim()));
+      const parts = problem.expression.split(':').map((s) => Number(s.trim()));
       expect(parts).toHaveLength(2);
       const [dividend, divisor] = parts;
       expect(dividend).toBeGreaterThanOrEqual(REGNERACE_DIVIDEND_MIN);

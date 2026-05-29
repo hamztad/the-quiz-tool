@@ -177,12 +177,26 @@ function MathRaceView({
   const rngRef = useRef(createRegneraceRandom(Date.now()));
   const intervalRef = useRef<number | null>(null);
   const submittedRef = useRef(false);
+  const answerInputRef = useRef<HTMLInputElement>(null);
   const [retrying, setRetrying] = useState(false);
   const [attemptIndex, setAttemptIndex] = useState(0);
   const completed = Boolean(result) && !retrying;
   const effectiveProblemSeed = problemSeed ? `${problemSeed}-try-${attemptIndex}` : undefined;
   const showBestResult =
     result != null && bestResult != null && !raceResultsEqual(result, bestResult);
+
+  const focusAnswerInput = useCallback(() => {
+    if (config.answerMode !== 'input') return;
+    requestAnimationFrame(() => {
+      answerInputRef.current?.focus({ preventScroll: true });
+    });
+  }, [config.answerMode]);
+
+  useEffect(() => {
+    if (started && !completed && expression && config.answerMode === 'input') {
+      focusAnswerInput();
+    }
+  }, [started, completed, expression, config.answerMode, focusAnswerInput]);
 
   const options = useMemo(
     () =>
@@ -297,6 +311,7 @@ function MathRaceView({
       setWrongAttempts((current) => current + 1);
       setMessage('Prøv igjen på samme oppgave.');
       setAnswer('');
+      focusAnswerInput();
       return;
     }
 
@@ -390,12 +405,21 @@ function MathRaceView({
           ) : (
             <div className="space-y-3">
               <input
+                ref={answerInputRef}
                 type="text"
                 inputMode="numeric"
+                enterKeyHint="done"
+                autoComplete="off"
                 value={answer}
                 onChange={(event) => setAnswer(event.target.value)}
-                className="box-border w-full rounded-2xl border border-quiz-border bg-quiz-bg px-4 py-3 text-base text-quiz-text outline-none focus:border-quiz-accent"
-                placeholder="Skriv svaret (heltall)"
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter') return;
+                  event.preventDefault();
+                  if (answer.trim()) submitAnswer(answer);
+                }}
+                className="box-border w-full rounded-2xl border-2 border-indigo-300/45 bg-indigo-300/10 px-4 py-4 text-center text-3xl font-black tabular-nums text-indigo-900 outline-none focus:border-indigo-400 sm:text-4xl"
+                placeholder="?"
+                aria-label="Skriv svaret (heltall)"
               />
               <button
                 type="button"
