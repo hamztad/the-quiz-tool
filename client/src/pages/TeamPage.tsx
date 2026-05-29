@@ -8,7 +8,6 @@ import {
   isSelfPacedQuiz,
   parseOrderingAnswer,
   serializeOrderingAnswer,
-  shuffleOrderingItems,
   type Question,
 } from '@quiz-tool/shared';
 import { TeamSelfPacedQuiz } from '../components/team/TeamSelfPacedQuiz';
@@ -42,7 +41,11 @@ import { TeamIntervalQuiz } from '../components/team/TeamIntervalQuiz';
 import { QuestionTimerBar } from '../components/timing/QuestionTimerBar';
 import { PARTICIPANT_BACK_TO_QUIZ_LABEL, teamQuestionListAnchorId } from '../lib/teamQuestionListNav';
 import { useScrollToQuestionOnListReturn } from '../hooks/useScrollToQuestionOnListReturn';
-import { ParticipantBackToQuizLink } from '../components/team/ParticipantBackToQuizLink';
+import { getParticipantQuestionViewState } from '../lib/participantQuestionAccess';
+import { prepareParticipantQuestionDraft } from '../lib/prepareParticipantQuestionDraft';
+import { useParticipantQuestionNavigation } from '../hooks/useParticipantQuestionNavigation';
+import { QuestionNavigation } from '../components/team/QuestionNavigation';
+import { QuestionLockedPlaceholder } from '../components/team/QuestionLockedPlaceholder';
 import { shouldHideParticipantChoiceLabels } from '../lib/participantChoiceDisplay';
 
 const PARTICIPANT_ACTIVE_MEDIA_CREDITS = 'deferred' as const;
@@ -192,6 +195,50 @@ export function TeamPage() {
     selfPacedQuestionNavRef.current = navigate;
   }, []);
 
+  const teamId = teamSession?.teamId;
+
+  const selfPacedLive =
+    Boolean(room) &&
+    isSelfPacedQuiz(room?.schedule) &&
+    room?.phase === 'live';
+
+  const selectQuestion = useCallback(
+    (q: Question) => {
+      if (!room || !teamId) return;
+      setHighlightedQuestionId(null);
+      const getAnswer = (questionId: string) =>
+        room.answers.find((a) => a.teamId === teamId && a.questionId === questionId);
+      const value = prepareParticipantQuestionDraft(q, answerDrafts, getAnswer);
+      setAnswerText(value);
+      if (q.type === 'ordering' && !answerDrafts[q.id]) {
+        const existing = getAnswer(q.id);
+        const hadStored =
+          answerDrafts[q.id] ??
+          (existing?.value && existing.value !== '[hidden]' ? existing.value : '');
+        if (!hadStored) {
+          setAnswerDrafts((current) => ({ ...current, [q.id]: value }));
+        }
+      }
+    },
+    [room, teamId, answerDrafts],
+  );
+
+  const {
+    activeIndex,
+    totalQuestions,
+    canGoPrev,
+    canGoNext,
+    goPrev,
+    goNext,
+    navigateToQuestionId,
+  } = useParticipantQuestionNavigation({
+    questions: room?.questions ?? [],
+    activeQuestionId,
+    setActiveQuestionId,
+    onSelectQuestion: selectQuestion,
+    enabled: Boolean(room && !selfPacedLive && room.phase === 'live'),
+  });
+
   const questionNotifications = useQuestionOpenNotifications(room, {
     onNavigateToQuestion: (questionId) => {
       if (selfPacedQuestionNavRef.current) {
@@ -208,7 +255,6 @@ export function TeamPage() {
     },
   });
 
-  const teamId = teamSession?.teamId;
   const showOwnReview = searchParams.get('review') === '1';
   const showAnswerKey = searchParams.get('fasit') === '1';
   const showRestoredMessage = sessionRestored || searchParams.get('restored') === '1';
@@ -234,49 +280,17 @@ export function TeamPage() {
     }
   }, [activeQuestionId, room, teamId]);
 
-  useEffect(() => {
-    if (!room || !activeQuestionId) return;
-    if (!isQuestionRevealedToTeam(room, activeQuestionId)) {
-      setActiveQuestionId(null);
-      return;
-    }
-    if ((room.questionStatus[activeQuestionId] ?? 'locked') !== 'open') {
-      setActiveQuestionId(null);
-    }
-  }, [activeQuestionId, room]);
-
-  const selfPacedLive =
-    Boolean(room) &&
-    isSelfPacedQuiz(room?.schedule) &&
-    room?.phase === 'live';
-
   // Must run before any early returns to keep hook order stable.
   useEffect(() => {
     if (!room || selfPacedLive) {
       hostedQuestionNavRef.current = null;
       return;
     }
-    hostedQuestionNavRef.current = (questionId) => {
-      const q = room.questions.find((item) => item.id === questionId);
-      if (!q || !isQuestionRevealedToTeam(room, q.id)) return;
-      setHighlightedQuestionId(null);
-      setActiveQuestionId(q.id);
-      const ans = room.answers.find((a) => a.teamId === teamId && a.questionId === q.id);
-      const storedValue =
-        answerDrafts[q.id] ?? (ans?.value && ans.value !== '[hidden]' ? ans.value : '');
-      if (q.type === 'ordering' && !storedValue) {
-        const shuffled = shuffleOrderingItems(q.orderingItems ?? []);
-        const value = serializeOrderingAnswer(shuffled);
-        setAnswerText(value);
-        setAnswerDrafts((current) => ({ ...current, [q.id]: value }));
-        return;
-      }
-      setAnswerText(storedValue);
-    };
+    hostedQuestionNavRef.current = navigateToQuestionId;
     return () => {
       hostedQuestionNavRef.current = null;
     };
-  }, [room, selfPacedLive, answerDrafts, teamId]);
+  }, [room, selfPacedLive, navigateToQuestionId]);
 
   if (!roomId) return null;
 
@@ -371,18 +385,9 @@ export function TeamPage() {
 
   const openQuestion = (q: Question) => {
     if (!isQuestionRevealedToTeam(room, q.id)) return;
-    setHighlightedQuestionId(null);
+    if ((room.questionStatus[q.id] ?? 'locked') !== 'open') return;
+    selectQuestion(q);
     setActiveQuestionId(q.id);
-    const ans = getMyAnswer(q.id);
-    const storedValue = answerDrafts[q.id] ?? (ans?.value && ans.value !== '[hidden]' ? ans.value : '');
-    if (q.type === 'ordering' && !storedValue) {
-      const shuffled = shuffleOrderingItems(q.orderingItems ?? []);
-      const value = serializeOrderingAnswer(shuffled);
-      setAnswerText(value);
-      setAnswerDrafts((current) => ({ ...current, [q.id]: value }));
-      return;
-    }
-    setAnswerText(storedValue);
   };
 
   const updateActiveAnswer = (value: string) => {
@@ -398,8 +403,10 @@ export function TeamPage() {
   };
 
   const activeQuestion = room.questions.find((q) => q.id === activeQuestionId);
-  const activeQuestionOpen =
-    activeQuestion && (room.questionStatus[activeQuestion.id] ?? 'locked') === 'open';
+  const activeQuestionViewState =
+    activeQuestion && teamId
+      ? getParticipantQuestionViewState(room, teamId, activeQuestion)
+      : null;
   const activeOrderingOrder =
     activeQuestion?.type === 'ordering' ? (parseOrderingAnswer(answerText) ?? []) : [];
 
@@ -630,119 +637,135 @@ export function TeamPage() {
       <TeamQuestionNotifyLayer room={room} notifications={questionNotifications} />
 
       <div className="quiz-page-content space-y-4">
-          {activeQuestionOpen ? (
+          {activeQuestion ? (
             <Card elevated className="border-2 border-violet-400/50 ring-2 ring-violet-200/40 p-4 sm:p-5 min-w-0">
-              {activeQuestion &&
-                room.activeQuestionTimers[activeQuestion.id] && (
-                  <div className="mb-4">
-                    <QuestionTimerBar
-                      endsAt={room.activeQuestionTimers[activeQuestion.id].endsAt}
-                      openedAt={room.activeQuestionTimers[activeQuestion.id].openedAt}
-                      serverNow={room.serverNow}
+              <QuestionNavigation
+                questionNumber={activeIndex + 1}
+                totalQuestions={totalQuestions}
+                canGoPrev={canGoPrev}
+                canGoNext={canGoNext}
+                onPrev={goPrev}
+                onNext={goNext}
+                onBackToOverview={closeActiveQuestion}
+              />
+              {activeQuestionViewState === 'available' ? (
+                <>
+                  {room.activeQuestionTimers[activeQuestion.id] && (
+                    <div className="mb-4">
+                      <QuestionTimerBar
+                        endsAt={room.activeQuestionTimers[activeQuestion.id].endsAt}
+                        openedAt={room.activeQuestionTimers[activeQuestion.id].openedAt}
+                        serverNow={room.serverNow}
+                      />
+                    </div>
+                  )}
+                  <p className="mb-4 text-sm text-quiz-muted leading-relaxed">
+                    Du kan gå tilbake til oppgavelisten og åpne denne igjen så lenge quizmaster holder den
+                    åpen.
+                  </p>
+                  {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
+                    activeQuestion.game?.gameId !== 'emojiHunt' &&
+                    activeQuestion.game?.gameId !== 'dropBall' &&
+                    activeQuestion.game?.gameId !== 'anagram' &&
+                    activeQuestion.game?.gameId !== 'revealImage' && (
+                    <QuestionBody
+                      question={activeQuestion}
+                      showTypeHeading={false}
+                      mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
                     />
-                  </div>
-                )}
-              <ParticipantBackToQuizLink onClick={closeActiveQuestion} />
-              <p className="mb-4 text-sm text-quiz-muted leading-relaxed">
-                Du kan gå tilbake til oppgavelisten og åpne denne igjen så lenge quizmaster holder den
-                åpen.
-              </p>
-              {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
-                activeQuestion.game?.gameId !== 'emojiHunt' &&
-                activeQuestion.game?.gameId !== 'dropBall' &&
-                activeQuestion.game?.gameId !== 'anagram' &&
-                activeQuestion.game?.gameId !== 'revealImage' && (
-                <QuestionBody
-                  question={activeQuestion}
-                  showTypeHeading={false}
-                  mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
-                />
-              )}
-              {activeQuestion.type === 'game' ? (
-                <TeamGameView
-                  room={room}
-                  question={activeQuestion}
-                  teamId={teamId!}
-                />
-              ) : activeQuestion.type === 'open' ? (
-                <TextArea
-                  className="mt-4"
-                  value={answerText}
-                  onChange={(e) => updateActiveAnswer(e.target.value)}
-                  placeholder="Ditt svar…"
-                />
-              ) : activeQuestion.type === 'ordering' ? (
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-2xl border-2 border-cyan-200/70 bg-gradient-to-r from-cyan-50 to-teal-50 px-4 py-3">
-                    <p className="text-sm font-bold text-cyan-900">🧩 Dra kortene i riktig rekkefølge</p>
-                    <p className="mt-1 text-xs text-quiz-muted">
-                      {activeQuestion.orderingDirectionTop || 'Øverst'} →{' '}
-                      {activeQuestion.orderingDirectionBottom || 'Nederst'}
-                    </p>
-                  </div>
-                  <SortableOrderingList
-                    items={activeQuestion.orderingItems ?? []}
-                    order={activeOrderingOrder}
-                    onOrderChange={(nextOrder) => updateActiveAnswer(serializeOrderingAnswer(nextOrder))}
-                    topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
-                    bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
-                    dragHandleLabel="Dra svar"
-                    getItemContent={(item, index) => (
-                      <OrderingChoiceContent
-                        item={item}
-                        variant="participant"
-                        hideParticipantLabel={hideChoiceLabels}
-                        itemIndex={index}
-                        mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                  )}
+                  {activeQuestion.type === 'game' ? (
+                    <TeamGameView
+                      room={room}
+                      question={activeQuestion}
+                      teamId={teamId!}
+                    />
+                  ) : activeQuestion.type === 'open' ? (
+                    <TextArea
+                      className="mt-4"
+                      value={answerText}
+                      onChange={(e) => updateActiveAnswer(e.target.value)}
+                      placeholder="Ditt svar…"
+                    />
+                  ) : activeQuestion.type === 'ordering' ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="rounded-2xl border-2 border-cyan-200/70 bg-gradient-to-r from-cyan-50 to-teal-50 px-4 py-3">
+                        <p className="text-sm font-bold text-cyan-900">🧩 Dra kortene i riktig rekkefølge</p>
+                        <p className="mt-1 text-xs text-quiz-muted">
+                          {activeQuestion.orderingDirectionTop || 'Øverst'} →{' '}
+                          {activeQuestion.orderingDirectionBottom || 'Nederst'}
+                        </p>
+                      </div>
+                      <SortableOrderingList
+                        items={activeQuestion.orderingItems ?? []}
+                        order={activeOrderingOrder}
+                        onOrderChange={(nextOrder) => updateActiveAnswer(serializeOrderingAnswer(nextOrder))}
+                        topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
+                        bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
+                        dragHandleLabel="Dra svar"
+                        getItemContent={(item, index) => (
+                          <OrderingChoiceContent
+                            item={item}
+                            variant="participant"
+                            hideParticipantLabel={hideChoiceLabels}
+                            itemIndex={index}
+                            mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                          />
+                        )}
                       />
-                    )}
-                  />
-                </div>
-              ) : (
-                <div className="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-2 sm:grid-cols-2">
-                  {activeQuestion.options?.map((opt, optIndex) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => updateActiveAnswer(opt.id)}
-                      aria-label={
-                        hideChoiceLabels
-                          ? `Alternativ ${String.fromCharCode(65 + optIndex)}`
-                          : opt.text.trim() || `Alternativ ${String.fromCharCode(65 + optIndex)}`
-                      }
-                      className={`quiz-hover-lift box-border flex w-full min-w-0 max-w-full flex-col items-stretch justify-center rounded-2xl border-2 px-3 py-3 text-left min-h-[3.5rem] transition-all quiz-user-text sm:min-h-[4.75rem] ${
-                        answerText === opt.id
-                          ? 'border-violet-500 bg-gradient-to-br from-violet-100 to-fuchsia-50 shadow-md ring-2 ring-violet-300/40'
-                          : 'border-indigo-200/80 bg-white/95 hover:border-violet-300'
-                      }`}
+                    </div>
+                  ) : (
+                    <div className="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-2 sm:grid-cols-2">
+                      {activeQuestion.options?.map((opt, optIndex) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => updateActiveAnswer(opt.id)}
+                          aria-label={
+                            hideChoiceLabels
+                              ? `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                              : opt.text.trim() || `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                          }
+                          className={`quiz-hover-lift box-border flex w-full min-w-0 max-w-full flex-col items-stretch justify-center rounded-2xl border-2 px-3 py-3 text-left min-h-[3.5rem] transition-all quiz-user-text sm:min-h-[4.75rem] ${
+                            answerText === opt.id
+                              ? 'border-violet-500 bg-gradient-to-br from-violet-100 to-fuchsia-50 shadow-md ring-2 ring-violet-300/40'
+                              : 'border-indigo-200/80 bg-white/95 hover:border-violet-300'
+                          }`}
+                        >
+                          <McOptionButtonContent
+                            option={opt}
+                            hideParticipantLabel={hideChoiceLabels}
+                            optionIndex={optIndex}
+                            mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {activeQuestion.type !== 'game' && (
+                    <Button
+                      variant="cta"
+                      size="lg"
+                      className="w-full mt-4"
+                      onClick={() => submitAnswer(activeQuestion)}
+                      disabled={!answerText.trim()}
                     >
-                      <McOptionButtonContent
-                        option={opt}
-                        hideParticipantLabel={hideChoiceLabels}
-                        optionIndex={optIndex}
-                        mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-              {activeQuestion.type !== 'game' && (
-                <Button
-                  variant="cta"
-                  size="lg"
-                  className="w-full mt-4"
-                  onClick={() => submitAnswer(activeQuestion)}
-                  disabled={!answerText.trim()}
-                >
-                  ✨ Send svar
-                </Button>
+                      ✨ Send svar
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <QuestionLockedPlaceholder
+                  questionNumber={activeIndex + 1}
+                  viewState={activeQuestionViewState ?? 'locked'}
+                />
               )}
             </Card>
           ) : (
             <>
               <p className="text-sm text-quiz-muted">
                 {room.questions.length} oppgaver i quizen. Trykk på en åpen oppgave for å sende
-                svar — du kommer tilbake til listen automatisk.
+                svar — eller bla mellom oppgaver med pilene når du er inne i en oppgave.
               </p>
               {room.questions.map((q) => {
                 const status = room.questionStatus[q.id] ?? 'locked';

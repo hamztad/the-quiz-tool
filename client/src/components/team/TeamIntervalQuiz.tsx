@@ -2,14 +2,20 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   CLIENT_EVENTS,
   isQuestionRevealedToTeam,
+  parseOrderingAnswer,
+  serializeOrderingAnswer,
   type PublicRoomState,
   type Question,
 } from '@quiz-tool/shared';
 import { formatOppgaveLabel } from '../../lib/participantCopy';
 import { teamQuestionListAnchorId } from '../../lib/teamQuestionListNav';
 import { useScrollToQuestionOnListReturn } from '../../hooks/useScrollToQuestionOnListReturn';
-import { ParticipantBackToQuizLink } from './ParticipantBackToQuizLink';
 import { shouldHideParticipantChoiceLabels } from '../../lib/participantChoiceDisplay';
+import { getParticipantQuestionViewState } from '../../lib/participantQuestionAccess';
+import { prepareParticipantQuestionDraft } from '../../lib/prepareParticipantQuestionDraft';
+import { useParticipantQuestionNavigation } from '../../hooks/useParticipantQuestionNavigation';
+import { QuestionNavigation } from './QuestionNavigation';
+import { QuestionLockedPlaceholder } from './QuestionLockedPlaceholder';
 
 const PARTICIPANT_ACTIVE_MEDIA_CREDITS = 'deferred' as const;
 import { QuestionBody } from '../question/QuestionBody';
@@ -24,11 +30,6 @@ import { formatTeamAnswerDisplay } from '../../lib/teamAnswerDisplay';
 import { TeamGameView } from '../../games/registry';
 import { OrderingChoiceContent } from '../ordering/OrderingChoiceContent';
 import { SortableOrderingList } from '../ordering/SortableOrderingList';
-import {
-  parseOrderingAnswer,
-  serializeOrderingAnswer,
-  shuffleOrderingItems,
-} from '@quiz-tool/shared';
 import { useSocket } from '../../hooks/useSocket';
 import { McOptionButtonContent } from '../question/McOptionButtonContent';
 
@@ -64,35 +65,54 @@ export function TeamIntervalQuiz({
   const hasAnswered = (questionId: string) =>
     (room.answeredByTeam[teamId] ?? []).includes(questionId);
 
+  const selectQuestion = useCallback(
+    (q: Question) => {
+      setHighlightedQuestionId(null);
+      const value = prepareParticipantQuestionDraft(q, answerDrafts, getMyAnswer);
+      setAnswerText(value);
+      if (q.type === 'ordering' && !answerDrafts[q.id]) {
+        const existing = getMyAnswer(q.id);
+        const hadStored =
+          answerDrafts[q.id] ??
+          (existing?.value && existing.value !== '[hidden]' ? existing.value : '');
+        if (!hadStored) {
+          setAnswerDrafts((current) => ({ ...current, [q.id]: value }));
+        }
+      }
+    },
+    [answerDrafts, room.answers, teamId],
+  );
+
+  const {
+    activeIndex,
+    totalQuestions,
+    canGoPrev,
+    canGoNext,
+    goPrev,
+    goNext,
+    navigateToQuestionId,
+  } = useParticipantQuestionNavigation({
+    questions: room.questions,
+    activeQuestionId,
+    setActiveQuestionId,
+    onSelectQuestion: selectQuestion,
+  });
+
   const openQuestion = useCallback(
     (q: Question) => {
       if ((room.questionStatus[q.id] ?? 'locked') !== 'open') return;
       if (!isQuestionRevealedToTeam(room, q.id)) return;
-      setHighlightedQuestionId(null);
+      selectQuestion(q);
       setActiveQuestionId(q.id);
-      const ans = room.answers.find((a) => a.teamId === teamId && a.questionId === q.id);
-      const storedValue =
-        answerDrafts[q.id] ?? (ans?.value && ans.value !== '[hidden]' ? ans.value : '');
-      if (q.type === 'ordering' && !storedValue) {
-        const shuffled = shuffleOrderingItems(q.orderingItems ?? []);
-        const value = serializeOrderingAnswer(shuffled);
-        setAnswerText(value);
-        setAnswerDrafts((current) => ({ ...current, [q.id]: value }));
-        return;
-      }
-      setAnswerText(storedValue);
     },
-    [room, answerDrafts, teamId],
+    [room, selectQuestion],
   );
 
   useEffect(() => {
     if (!onBindQuestionNavigator) return;
-    onBindQuestionNavigator((questionId) => {
-      const q = room.questions.find((item) => item.id === questionId);
-      if (q) openQuestion(q);
-    });
+    onBindQuestionNavigator(navigateToQuestionId);
     return () => onBindQuestionNavigator(() => {});
-  }, [room.questions, onBindQuestionNavigator, openQuestion]);
+  }, [onBindQuestionNavigator, navigateToQuestionId]);
 
   const submitAnswer = (question: Question) => {
     const trimmed = (answerDrafts[question.id] ?? answerText).trim();
@@ -115,6 +135,9 @@ export function TeamIntervalQuiz({
   };
 
   const activeQuestion = room.questions.find((q) => q.id === activeQuestionId);
+  const activeQuestionViewState = activeQuestion
+    ? getParticipantQuestionViewState(room, teamId, activeQuestion)
+    : null;
   const activeOrderingOrder =
     activeQuestion?.type === 'ordering' ? (parseOrderingAnswer(answerText) ?? []) : [];
 
@@ -146,75 +169,102 @@ export function TeamIntervalQuiz({
         </div>
       )}
 
-      {activeQuestion && (room.questionStatus[activeQuestion.id] ?? 'locked') === 'open' ? (
+      {activeQuestion ? (
         <Card elevated className="border-2 border-violet-400/50 p-4 min-w-0">
-          {room.activeQuestionTimers[activeQuestion.id] && (
-            <div className="mb-4">
-              <QuestionTimerBar
-                endsAt={room.activeQuestionTimers[activeQuestion.id].endsAt}
-                openedAt={room.activeQuestionTimers[activeQuestion.id].openedAt}
-                serverNow={room.serverNow}
-              />
-            </div>
-          )}
-          <ParticipantBackToQuizLink onClick={closeActiveQuestion} />
-          {activeQuestion.game?.gameId !== 'revealImage' && (
-            <QuestionBody
-              question={activeQuestion}
-              showTypeHeading={false}
-              mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
-            />
-          )}
-          {activeQuestion.type === 'game' ? (
-            <TeamGameView room={room} question={activeQuestion} teamId={teamId} />
-          ) : activeQuestion.type === 'open' ? (
-            <TextArea className="mt-4" value={answerText} onChange={(e) => setAnswerText(e.target.value)} placeholder="Ditt svar…" />
-          ) : activeQuestion.type === 'ordering' ? (
-            <SortableOrderingList
-              items={activeQuestion.orderingItems ?? []}
-              order={activeOrderingOrder}
-              onOrderChange={(o) => setAnswerText(serializeOrderingAnswer(o))}
-              topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
-              bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
-              dragHandleLabel="Dra"
-              getItemContent={(item, index) => (
-                <OrderingChoiceContent
-                  item={item}
-                  variant="participant"
-                  hideParticipantLabel={hideChoiceLabels}
-                  itemIndex={index}
+          <QuestionNavigation
+            questionNumber={activeIndex + 1}
+            totalQuestions={totalQuestions}
+            canGoPrev={canGoPrev}
+            canGoNext={canGoNext}
+            onPrev={goPrev}
+            onNext={goNext}
+            onBackToOverview={closeActiveQuestion}
+          />
+          {activeQuestionViewState === 'available' ? (
+            <>
+              {room.activeQuestionTimers[activeQuestion.id] && (
+                <div className="mb-4">
+                  <QuestionTimerBar
+                    endsAt={room.activeQuestionTimers[activeQuestion.id].endsAt}
+                    openedAt={room.activeQuestionTimers[activeQuestion.id].openedAt}
+                    serverNow={room.serverNow}
+                  />
+                </div>
+              )}
+              {activeQuestion.game?.gameId !== 'revealImage' && (
+                <QuestionBody
+                  question={activeQuestion}
+                  showTypeHeading={false}
                   mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
                 />
               )}
-            />
-          ) : (
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {activeQuestion.options?.map((opt, optIndex) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setAnswerText(opt.id)}
-                  aria-label={
-                    hideChoiceLabels
-                      ? `Alternativ ${String.fromCharCode(65 + optIndex)}`
-                      : opt.text.trim() || `Alternativ ${String.fromCharCode(65 + optIndex)}`
-                  }
-                  className={`rounded-2xl border-2 px-3 py-3 text-left ${answerText === opt.id ? 'border-violet-500 bg-violet-50' : 'border-indigo-200'}`}
+              {activeQuestion.type === 'game' ? (
+                <TeamGameView room={room} question={activeQuestion} teamId={teamId} />
+              ) : activeQuestion.type === 'open' ? (
+                <TextArea
+                  className="mt-4"
+                  value={answerText}
+                  onChange={(e) => setAnswerText(e.target.value)}
+                  placeholder="Ditt svar…"
+                />
+              ) : activeQuestion.type === 'ordering' ? (
+                <SortableOrderingList
+                  items={activeQuestion.orderingItems ?? []}
+                  order={activeOrderingOrder}
+                  onOrderChange={(o) => setAnswerText(serializeOrderingAnswer(o))}
+                  topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
+                  bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
+                  dragHandleLabel="Dra"
+                  getItemContent={(item, index) => (
+                    <OrderingChoiceContent
+                      item={item}
+                      variant="participant"
+                      hideParticipantLabel={hideChoiceLabels}
+                      itemIndex={index}
+                      mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                    />
+                  )}
+                />
+              ) : (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {activeQuestion.options?.map((opt, optIndex) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setAnswerText(opt.id)}
+                      aria-label={
+                        hideChoiceLabels
+                          ? `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                          : opt.text.trim() || `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                      }
+                      className={`rounded-2xl border-2 px-3 py-3 text-left ${answerText === opt.id ? 'border-violet-500 bg-violet-50' : 'border-indigo-200'}`}
+                    >
+                      <McOptionButtonContent
+                        option={opt}
+                        hideParticipantLabel={hideChoiceLabels}
+                        optionIndex={optIndex}
+                        mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {activeQuestion.type !== 'game' && (
+                <Button
+                  variant="cta"
+                  className="w-full mt-4"
+                  onClick={() => submitAnswer(activeQuestion)}
+                  disabled={!answerText.trim()}
                 >
-                  <McOptionButtonContent
-                    option={opt}
-                    hideParticipantLabel={hideChoiceLabels}
-                    optionIndex={optIndex}
-                    mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-          {activeQuestion.type !== 'game' && (
-            <Button variant="cta" className="w-full mt-4" onClick={() => submitAnswer(activeQuestion)} disabled={!answerText.trim()}>
-              ✨ Send svar
-            </Button>
+                  ✨ Send svar
+                </Button>
+              )}
+            </>
+          ) : (
+            <QuestionLockedPlaceholder
+              questionNumber={activeIndex + 1}
+              viewState={activeQuestionViewState ?? 'locked'}
+            />
           )}
         </Card>
       ) : (

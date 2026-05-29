@@ -6,7 +6,6 @@ import {
   isTeamQuestionLocked,
   parseOrderingAnswer,
   serializeOrderingAnswer,
-  shuffleOrderingItems,
   type PublicRoomState,
   type Question,
 } from '@quiz-tool/shared';
@@ -23,11 +22,14 @@ import { OrderingChoiceContent } from '../ordering/OrderingChoiceContent';
 import { SortableOrderingList } from '../ordering/SortableOrderingList';
 import { McOptionButtonContent } from '../question/McOptionButtonContent';
 import { useSocket } from '../../hooks/useSocket';
-import { formatOppgaveLabel } from '../../lib/participantCopy';
 import { teamQuestionListAnchorId } from '../../lib/teamQuestionListNav';
 import { useScrollToQuestionOnListReturn } from '../../hooks/useScrollToQuestionOnListReturn';
-import { ParticipantBackToQuizLink } from './ParticipantBackToQuizLink';
 import { shouldHideParticipantChoiceLabels } from '../../lib/participantChoiceDisplay';
+import { getParticipantQuestionViewState } from '../../lib/participantQuestionAccess';
+import { prepareParticipantQuestionDraft } from '../../lib/prepareParticipantQuestionDraft';
+import { useParticipantQuestionNavigation } from '../../hooks/useParticipantQuestionNavigation';
+import { QuestionNavigation } from './QuestionNavigation';
+import { QuestionLockedPlaceholder } from './QuestionLockedPlaceholder';
 
 const PARTICIPANT_ACTIVE_MEDIA_CREDITS = 'deferred' as const;
 
@@ -74,6 +76,39 @@ export function TeamSelfPacedQuiz({
   const hasAnswered = (questionId: string) =>
     (room.answeredByTeam[teamId] ?? []).includes(questionId);
 
+  const selectQuestion = useCallback(
+    (q: Question) => {
+      setHighlightedQuestionId(null);
+      const value = prepareParticipantQuestionDraft(q, answerDrafts, getMyAnswer);
+      setAnswerText(value);
+      if (q.type === 'ordering' && !answerDrafts[q.id]) {
+        const existing = getMyAnswer(q.id);
+        const hadStored =
+          answerDrafts[q.id] ??
+          (existing?.value && existing.value !== '[hidden]' ? existing.value : '');
+        if (!hadStored) {
+          setAnswerDrafts((current) => ({ ...current, [q.id]: value }));
+        }
+      }
+    },
+    [answerDrafts, room.answers, teamId],
+  );
+
+  const {
+    activeIndex,
+    totalQuestions,
+    canGoPrev,
+    canGoNext,
+    goPrev,
+    goNext,
+    navigateToQuestionId,
+  } = useParticipantQuestionNavigation({
+    questions: room.questions,
+    activeQuestionId,
+    setActiveQuestionId,
+    onSelectQuestion: selectQuestion,
+  });
+
   const submitAnswer = (question: Question) => {
     const trimmed = (answerDrafts[question.id] ?? answerText).trim();
     if (!trimmed) return;
@@ -89,42 +124,24 @@ export function TeamSelfPacedQuiz({
     setActiveQuestionId(null);
   };
 
-  const openQuestion = useCallback((q: Question) => {
-    if (!canTeamWorkOnQuestion(room.schedule, room.phase, teamsLockedOut, locks, teamId, q)) {
-      return;
-    }
-    setHighlightedQuestionId(null);
-    setActiveQuestionId(q.id);
-    const ans = getMyAnswer(q.id);
-    const storedValue = answerDrafts[q.id] ?? (ans?.value && ans.value !== '[hidden]' ? ans.value : '');
-    if (q.type === 'ordering' && !storedValue) {
-      const shuffled = shuffleOrderingItems(q.orderingItems ?? []);
-      const value = serializeOrderingAnswer(shuffled);
-      setAnswerText(value);
-      setAnswerDrafts((current) => ({ ...current, [q.id]: value }));
-      return;
-    }
-    setAnswerText(storedValue);
-  }, [
-    room.schedule,
-    room.phase,
-    teamsLockedOut,
-    locks,
-    teamId,
-    answerDrafts,
-    room.answers,
-  ]);
+  const openQuestion = useCallback(
+    (q: Question) => {
+      if (!canTeamWorkOnQuestion(room.schedule, room.phase, teamsLockedOut, locks, teamId, q)) {
+        return;
+      }
+      selectQuestion(q);
+      setActiveQuestionId(q.id);
+    },
+    [room.schedule, room.phase, teamsLockedOut, locks, teamId, selectQuestion],
+  );
 
   useEffect(() => {
     if (!onBindQuestionNavigator) return;
-    onBindQuestionNavigator((questionId) => {
-      const q = room.questions.find((item) => item.id === questionId);
-      if (q) openQuestion(q);
-    });
+    onBindQuestionNavigator(navigateToQuestionId);
     return () => {
       onBindQuestionNavigator(() => {});
     };
-  }, [room.questions, onBindQuestionNavigator, openQuestion]);
+  }, [onBindQuestionNavigator, navigateToQuestionId]);
 
   const updateActiveAnswer = (value: string) => {
     if (activeQuestionId) {
@@ -139,6 +156,9 @@ export function TeamSelfPacedQuiz({
   };
 
   const activeQuestion = room.questions.find((q) => q.id === activeQuestionId);
+  const activeQuestionViewState = activeQuestion
+    ? getParticipantQuestionViewState(room, teamId, activeQuestion)
+    : null;
   const activeOrderingOrder =
     activeQuestion?.type === 'ordering' ? (parseOrderingAnswer(answerText) ?? []) : [];
 
@@ -225,100 +245,112 @@ export function TeamSelfPacedQuiz({
         )}
       </div>
 
-      {activeQuestion && !teamsLockedOut ? (
+      {activeQuestion ? (
         <Card elevated className="border-2 border-violet-400/50 p-4 sm:p-5 min-w-0">
-          <ParticipantBackToQuizLink onClick={closeActiveQuestion} className="mb-2" />
-          <div className="mb-4 min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-quiz-muted">
-              {formatOppgaveLabel(
-                room.questions.findIndex((q) => q.id === activeQuestion.id) + 1,
-              )}
-            </p>
-            <p className="text-sm font-semibold text-quiz-text">
-              {activeQuestion.type === 'game'
-                ? 'Spill — du kan prøve igjen til tidsfrist'
-                : 'Send inn for å låse oppgaven'}
-            </p>
-          </div>
-          {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
-            activeQuestion.game?.gameId !== 'emojiHunt' &&
-            activeQuestion.game?.gameId !== 'dropBall' &&
-            activeQuestion.game?.gameId !== 'anagram' &&
-            activeQuestion.game?.gameId !== 'revealImage' && (
-              <QuestionBody
-                question={activeQuestion}
-                mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
-              />
-            )}
-          {activeQuestion.type === 'game' ? (
-            <TeamGameView room={room} question={activeQuestion} teamId={teamId} />
-          ) : activeQuestion.type === 'open' ? (
-            <TextArea
-              className="mt-4"
-              value={answerText}
-              onChange={(e) => updateActiveAnswer(e.target.value)}
-              placeholder="Ditt svar…"
-            />
-          ) : activeQuestion.type === 'ordering' ? (
-            <div className="mt-4 space-y-3">
-              <SortableOrderingList
-                items={activeQuestion.orderingItems ?? []}
-                order={activeOrderingOrder}
-                onOrderChange={(nextOrder) =>
-                  updateActiveAnswer(serializeOrderingAnswer(nextOrder))
-                }
-                topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
-                bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
-                dragHandleLabel="Dra svar"
-                getItemContent={(item, index) => (
-                  <OrderingChoiceContent
-                    item={item}
-                    variant="participant"
-                    hideParticipantLabel={hideChoiceLabels}
-                    itemIndex={index}
+          <QuestionNavigation
+            questionNumber={activeIndex + 1}
+            totalQuestions={totalQuestions}
+            canGoPrev={canGoPrev}
+            canGoNext={canGoNext}
+            onPrev={goPrev}
+            onNext={goNext}
+            onBackToOverview={closeActiveQuestion}
+          />
+          {activeQuestionViewState === 'available' ? (
+            <>
+              <div className="mb-4 min-w-0">
+                <p className="text-sm font-semibold text-quiz-text">
+                  {activeQuestion.type === 'game'
+                    ? 'Spill — du kan prøve igjen til tidsfrist'
+                    : 'Send inn for å låse oppgaven'}
+                </p>
+              </div>
+              {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
+                activeQuestion.game?.gameId !== 'emojiHunt' &&
+                activeQuestion.game?.gameId !== 'dropBall' &&
+                activeQuestion.game?.gameId !== 'anagram' &&
+                activeQuestion.game?.gameId !== 'revealImage' && (
+                  <QuestionBody
+                    question={activeQuestion}
                     mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
                   />
                 )}
-              />
-            </div>
-          ) : (
-            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {activeQuestion.options?.map((opt, optIndex) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => updateActiveAnswer(opt.id)}
-                  aria-label={
-                    hideChoiceLabels
-                      ? `Alternativ ${String.fromCharCode(65 + optIndex)}`
-                      : opt.text.trim() || `Alternativ ${String.fromCharCode(65 + optIndex)}`
-                  }
-                  className={`rounded-2xl border-2 px-3 py-3 text-left min-h-[3.5rem] ${
-                    answerText === opt.id
-                      ? 'border-violet-500 bg-violet-50'
-                      : 'border-indigo-200/80 bg-white'
-                  }`}
-                >
-                  <McOptionButtonContent
-                    option={opt}
-                    hideParticipantLabel={hideChoiceLabels}
-                    optionIndex={optIndex}
-                    mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+              {activeQuestion.type === 'game' ? (
+                <TeamGameView room={room} question={activeQuestion} teamId={teamId} />
+              ) : activeQuestion.type === 'open' ? (
+                <TextArea
+                  className="mt-4"
+                  value={answerText}
+                  onChange={(e) => updateActiveAnswer(e.target.value)}
+                  placeholder="Ditt svar…"
+                />
+              ) : activeQuestion.type === 'ordering' ? (
+                <div className="mt-4 space-y-3">
+                  <SortableOrderingList
+                    items={activeQuestion.orderingItems ?? []}
+                    order={activeOrderingOrder}
+                    onOrderChange={(nextOrder) =>
+                      updateActiveAnswer(serializeOrderingAnswer(nextOrder))
+                    }
+                    topLabel={activeQuestion.orderingDirectionTop || 'Øverst'}
+                    bottomLabel={activeQuestion.orderingDirectionBottom || 'Nederst'}
+                    dragHandleLabel="Dra svar"
+                    getItemContent={(item, index) => (
+                      <OrderingChoiceContent
+                        item={item}
+                        variant="participant"
+                        hideParticipantLabel={hideChoiceLabels}
+                        itemIndex={index}
+                        mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                      />
+                    )}
                   />
-                </button>
-              ))}
-            </div>
-          )}
-          {activeQuestion.type !== 'game' && (
-            <Button
-              variant="cta"
-              size="lg"
-              className="w-full mt-4"
-              onClick={() => submitAnswer(activeQuestion)}
-              disabled={!answerText.trim()}
-            >
-              ✨ Send inn og lås oppgave
-            </Button>
+                </div>
+              ) : (
+                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {activeQuestion.options?.map((opt, optIndex) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => updateActiveAnswer(opt.id)}
+                      aria-label={
+                        hideChoiceLabels
+                          ? `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                          : opt.text.trim() || `Alternativ ${String.fromCharCode(65 + optIndex)}`
+                      }
+                      className={`rounded-2xl border-2 px-3 py-3 text-left min-h-[3.5rem] ${
+                        answerText === opt.id
+                          ? 'border-violet-500 bg-violet-50'
+                          : 'border-indigo-200/80 bg-white'
+                      }`}
+                    >
+                      <McOptionButtonContent
+                        option={opt}
+                        hideParticipantLabel={hideChoiceLabels}
+                        optionIndex={optIndex}
+                        mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {activeQuestion.type !== 'game' && !teamsLockedOut && (
+                <Button
+                  variant="cta"
+                  size="lg"
+                  className="w-full mt-4"
+                  onClick={() => submitAnswer(activeQuestion)}
+                  disabled={!answerText.trim()}
+                >
+                  ✨ Send inn og lås oppgave
+                </Button>
+              )}
+            </>
+          ) : (
+            <QuestionLockedPlaceholder
+              questionNumber={activeIndex + 1}
+              viewState={activeQuestionViewState ?? 'locked'}
+            />
           )}
         </Card>
       ) : (
