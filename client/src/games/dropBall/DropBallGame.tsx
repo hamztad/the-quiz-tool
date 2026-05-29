@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import Matter from 'matter-js';
 import {
   calculateDropBallBoardScore,
@@ -7,6 +7,17 @@ import {
   type DropBallRoundResult,
 } from '@quiz-tool/shared';
 import dropTheBallMusicUrl from '../../../../music/Drop The Ball.mp3';
+import {
+  createDropBallBoardLayout,
+  isDropBallLaunchClear,
+  newDropBallLayoutSeed,
+  type DropBallBoardLayout,
+} from './dropBallBoardLayout';
+import {
+  calculateFloorBounceVelocity,
+  calculateObstacleBounceVelocity,
+  calculateWallBounceVelocity,
+} from './dropBallPhysics';
 
 const CANVAS_WIDTH = 340;
 const CANVAS_HEIGHT = 560;
@@ -24,26 +35,6 @@ interface DropBallGameProps {
   onComplete: (score: number, rounds: DropBallRoundResult[]) => void;
 }
 
-interface BumperDefinition {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  angle: number;
-  color: string;
-  moving?: boolean;
-  phase?: number;
-}
-
-interface CoinDefinition {
-  id: string;
-  x: number;
-  y: number;
-  value: number;
-  color: string;
-}
-
 interface DropBallSnapshot {
   currentScore: number;
   airTimeMs: number;
@@ -56,6 +47,7 @@ interface DropBallSnapshot {
 interface SimState {
   engine: Matter.Engine;
   ball: Matter.Body;
+  layout: DropBallBoardLayout;
   boardIndex: number;
   startTime: number;
   finalAirTimeMs: number | null;
@@ -73,48 +65,8 @@ interface SimState {
   animationFrame: number | null;
 }
 
-const baseBumpers: BumperDefinition[] = [
-  { id: 'b1', x: 58, y: 142, width: 72, height: 16, angle: 0.58, color: '#f59e0b' },
-  { id: 'b2', x: 160, y: 148, width: 52, height: 14, angle: -0.07, color: '#ec4899' },
-  { id: 'b3', x: 263, y: 146, width: 48, height: 14, angle: -0.06, color: '#8b5cf6' },
-  { id: 'b4', x: 78, y: 225, width: 48, height: 16, angle: 1.07, color: '#06b6d4' },
-  { id: 'b5', x: 190, y: 203, width: 88, height: 17, angle: 0.08, color: '#93c5fd', moving: true, phase: 0.5 },
-  { id: 'b6', x: 270, y: 215, width: 70, height: 16, angle: -0.46, color: '#8b5cf6' },
-  { id: 'b7', x: 205, y: 250, width: 90, height: 19, angle: 0.74, color: '#f59e0b' },
-  { id: 'b8', x: 66, y: 325, width: 82, height: 17, angle: 0.62, color: '#ef4444' },
-  { id: 'b9', x: 170, y: 318, width: 80, height: 17, angle: 0.88, color: '#f43f5e' },
-  { id: 'b10', x: 258, y: 365, width: 74, height: 16, angle: 0.47, color: '#8b5cf6', moving: true, phase: 2.1 },
-  { id: 'b11', x: 144, y: 392, width: 52, height: 17, angle: -1.15, color: '#8b5cf6' },
-  { id: 'b12', x: 211, y: 440, width: 112, height: 20, angle: -0.33, color: '#06b6d4' },
-  { id: 'b13', x: 68, y: 482, width: 100, height: 16, angle: 0.22, color: '#8b5cf6' },
-  { id: 'b14', x: 268, y: 477, width: 86, height: 18, angle: -0.72, color: '#06b6d4' },
-];
-
-const baseCoins: CoinDefinition[] = [
-  { id: 'c1', x: 246, y: 294, value: 2000, color: '#f472b6' },
-  { id: 'c2', x: 263, y: 468, value: 1000, color: '#fb923c' },
-  { id: 'c3', x: 128, y: 474, value: 3000, color: '#facc15' },
-];
-
 function clampDropX(value: number): number {
   return Math.max(26, Math.min(CANVAS_WIDTH - 26, value));
-}
-
-function boardBumpers(boardIndex: number): BumperDefinition[] {
-  const offset = boardIndex * 0.18;
-  return baseBumpers.map((bumper, index) => ({
-    ...bumper,
-    angle: bumper.angle + (index % 3 === 0 ? offset : index % 3 === 1 ? -offset : offset / 2),
-    y: bumper.y + (boardIndex % 2 === 0 ? 0 : index % 2 === 0 ? 8 : -6),
-  }));
-}
-
-function boardCoins(boardIndex: number): CoinDefinition[] {
-  return baseCoins.map((coin, index) => ({
-    ...coin,
-    x: coin.x + (boardIndex === 1 ? [-14, 10, 16][index] : boardIndex === 2 ? [12, -12, -10][index] : 0),
-    y: coin.y + (boardIndex === 2 ? [-8, -18, 10][index] : 0),
-  }));
 }
 
 function emptySnapshot(): DropBallSnapshot {
@@ -125,70 +77,6 @@ function emptySnapshot(): DropBallSnapshot {
     coinValues: [],
     bottomTouched: false,
     latestMessage: null,
-  };
-}
-
-function dot(a: Matter.Vector, b: Matter.Vector): number {
-  return a.x * b.x + a.y * b.y;
-}
-
-function getLocalObstacleHitNormal(ball: Matter.Body, obstacle: Matter.Body): Matter.Vector {
-  const angle = obstacle.angle;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  const dx = ball.position.x - obstacle.position.x;
-  const dy = ball.position.y - obstacle.position.y;
-  const localBall = {
-    x: dx * cos + dy * sin,
-    y: -dx * sin + dy * cos,
-  };
-  const localVertices = obstacle.vertices.map((vertex) => {
-    const vx = vertex.x - obstacle.position.x;
-    const vy = vertex.y - obstacle.position.y;
-    return {
-      x: vx * cos + vy * sin,
-      y: -vx * sin + vy * cos,
-    };
-  });
-  const halfWidth = Math.max(1, Math.max(...localVertices.map((vertex) => Math.abs(vertex.x))));
-  const halfHeight = Math.max(1, Math.max(...localVertices.map((vertex) => Math.abs(vertex.y))));
-  const edgeBias = Math.abs(localBall.x) / halfWidth > Math.abs(localBall.y) / halfHeight * 1.12;
-  const localNormal = edgeBias
-    ? { x: Math.sign(localBall.x) || 1, y: 0 }
-    : { x: 0, y: Math.sign(localBall.y) || -1 };
-
-  return {
-    x: localNormal.x * cos - localNormal.y * sin,
-    y: localNormal.x * sin + localNormal.y * cos,
-  };
-}
-
-function calculateObstacleBounceVelocity(
-  ball: Matter.Body,
-  obstacle: Matter.Body,
-): Matter.Vector {
-  const normal = getLocalObstacleHitNormal(ball, obstacle);
-  const tangent = { x: -normal.y, y: normal.x };
-  const velocity = ball.velocity;
-  const speed = Math.max(1, Math.hypot(velocity.x, velocity.y));
-  const normalVelocity = dot(velocity, normal);
-  const tangentVelocity = dot(velocity, tangent);
-  const minAwaySpeed = 4;
-  const targetSpeed = Math.max(7, speed * 1.04);
-  const awayNormalVelocity =
-    normalVelocity < 0
-      ? Math.max(-normalVelocity * 1.04, minAwaySpeed)
-      : Math.max(normalVelocity, minAwaySpeed * 0.7);
-  const preservedTangentVelocity = tangentVelocity * 0.94;
-  const raw = {
-    x: tangent.x * preservedTangentVelocity + normal.x * awayNormalVelocity,
-    y: tangent.y * preservedTangentVelocity + normal.y * awayNormalVelocity,
-  };
-  const rawSpeed = Math.max(1, Math.hypot(raw.x, raw.y));
-  const scale = targetSpeed / rawSpeed;
-  return {
-    x: raw.x * scale,
-    y: raw.y * scale,
   };
 }
 
@@ -229,6 +117,7 @@ function drawGameBoard(
   config: DropBallConfig,
   dropX: number,
   boardIndex: number,
+  layout: DropBallBoardLayout,
   sim: SimState | null,
 ) {
   const context = canvas.getContext('2d');
@@ -278,13 +167,13 @@ function drawGameBoard(
     context.restore();
   }
 
-  const obstacleColor = new Map(baseBumpers.map((bumper) => [bumper.id, bumper.color]));
+  const obstacleColor = new Map(layout.bumpers.map((bumper) => [bumper.id, bumper.color]));
   if (sim) {
     for (const [id, body] of sim.obstacleBodies) {
       drawNeonBar(context, body, obstacleColor.get(id) ?? '#38bdf8');
     }
     for (const [id, body] of sim.coinBodies) {
-      const definition = baseCoins.find((coin) => coin.id === id);
+      const definition = layout.coins.find((coin) => coin.id === id);
       const value = definition?.value ?? 0;
       context.save();
       context.shadowColor = definition?.color ?? '#facc15';
@@ -314,14 +203,14 @@ function drawGameBoard(
     context.stroke();
     context.restore();
   } else {
-    for (const bumper of boardBumpers(boardIndex)) {
+    for (const bumper of layout.bumpers) {
       const body = Matter.Bodies.rectangle(bumper.x, bumper.y, bumper.width, bumper.height, {
         angle: bumper.angle,
         chamfer: { radius: 7 },
       });
       drawNeonBar(context, body, bumper.color);
     }
-    for (const coin of boardCoins(boardIndex)) {
+    for (const coin of layout.coins) {
       context.save();
       context.shadowColor = coin.color;
       context.shadowBlur = 18;
@@ -354,6 +243,7 @@ function drawGameBoard(
 function createSimulation(
   config: DropBallConfig,
   boardIndex: number,
+  layout: DropBallBoardLayout,
   dropX: number,
   onSnapshot: (snapshot: DropBallSnapshot) => void,
 ): SimState {
@@ -372,17 +262,23 @@ function createSimulation(
     y: 6.2,
   });
 
-  const wallOptions = { isStatic: true, restitution: 0.92, friction: 0.01 };
+  const wallOptions = { isStatic: true, restitution: 0.96, friction: 0.008, frictionStatic: 0.01 };
   const walls = [
-    Matter.Bodies.rectangle(-20, CANVAS_HEIGHT / 2, 40, CANVAS_HEIGHT + 80, wallOptions),
-    Matter.Bodies.rectangle(CANVAS_WIDTH + 20, CANVAS_HEIGHT / 2, 40, CANVAS_HEIGHT + 80, wallOptions),
+    Matter.Bodies.rectangle(-20, CANVAS_HEIGHT / 2, 40, CANVAS_HEIGHT + 80, {
+      ...wallOptions,
+      label: 'wallLeft',
+    }),
+    Matter.Bodies.rectangle(CANVAS_WIDTH + 20, CANVAS_HEIGHT / 2, 40, CANVAS_HEIGHT + 80, {
+      ...wallOptions,
+      label: 'wallRight',
+    }),
     Matter.Bodies.rectangle(CANVAS_WIDTH / 2, -20, CANVAS_WIDTH + 80, 40, {
       ...wallOptions,
       label: 'ceiling',
     }),
     Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y + 20, CANVAS_WIDTH + 80, 40, {
       ...wallOptions,
-      restitution: 1.08,
+      restitution: 1.14,
       label: 'floor',
     }),
     Matter.Bodies.rectangle(CANVAS_WIDTH / 2, FLOOR_Y - 8, CANVAS_WIDTH, 8, {
@@ -394,12 +290,12 @@ function createSimulation(
 
   const obstacleBodies = new Map<string, Matter.Body>();
   const movingBodies: SimState['movingBodies'] = [];
-  for (const bumper of boardBumpers(boardIndex)) {
+  for (const bumper of layout.bumpers) {
     const body = Matter.Bodies.rectangle(bumper.x, bumper.y, bumper.width, bumper.height, {
       isStatic: true,
       angle: bumper.angle,
-      restitution: 1.2,
-      friction: 0.006,
+      restitution: 1.22,
+      friction: 0.005,
       label: `obstacle:${bumper.id}`,
       chamfer: { radius: 7 },
     });
@@ -416,7 +312,7 @@ function createSimulation(
   }
 
   const coinBodies = new Map<string, Matter.Body>();
-  for (const coin of boardCoins(boardIndex)) {
+  for (const coin of layout.coins) {
     const body = Matter.Bodies.circle(coin.x, coin.y, 17, {
       isStatic: true,
       isSensor: true,
@@ -428,6 +324,7 @@ function createSimulation(
   const sim: SimState = {
     engine,
     ball,
+    layout,
     boardIndex,
     startTime: performance.now(),
     finalAirTimeMs: null,
@@ -455,6 +352,18 @@ function createSimulation(
       if (other.label === 'bottomSensor' && sim.finalAirTimeMs === null) {
         sim.finalAirTimeMs = Math.round(performance.now() - sim.startTime);
         onSnapshot(buildSnapshot(config, sim, 'Ballen traff bunnen. Du kan gå videre når du vil.'));
+        continue;
+      }
+
+      if (other.label === 'wallLeft' || other.label === 'wallRight') {
+        const outward =
+          other.label === 'wallLeft' ? { x: 1, y: 0 } : { x: -1, y: 0 };
+        Matter.Body.setVelocity(sim.ball, calculateWallBounceVelocity(sim.ball, outward));
+        continue;
+      }
+
+      if (other.label === 'floor') {
+        Matter.Body.setVelocity(sim.ball, calculateFloorBounceVelocity(sim.ball));
         continue;
       }
 
@@ -522,6 +431,7 @@ export function DropBallGame({
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const draggingLaunchRef = useRef(false);
   const finalSubmittedScoreRef = useRef<number | null>(null);
+  const [layoutSeed, setLayoutSeed] = useState(() => newDropBallLayoutSeed());
   const [phase, setPhase] = useState<DropBallPhase>('ready');
   const [dropX, setDropX] = useState(CANVAS_WIDTH / 2);
   const [normalBoardsPlayed, setNormalBoardsPlayed] = useState(0);
@@ -536,6 +446,17 @@ export function DropBallGame({
   const normalBoardsAfterCurrent =
     normalBoardsPlayed + (snapshot.bottomTouched ? 1 : 0);
   const hasNextBoard = normalBoardsAfterCurrent < config.totalRounds;
+
+  const boardLayout = useMemo(
+    () =>
+      createDropBallBoardLayout(
+        layoutSeed,
+        normalBoardsPlayed,
+        config.obstacleCount,
+        config.coinValues,
+      ),
+    [layoutSeed, normalBoardsPlayed, config.obstacleCount, config.coinValues],
+  );
 
   const stopSimulation = () => {
     const sim = simRef.current;
@@ -562,8 +483,8 @@ export function DropBallGame({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || simRef.current) return;
-    drawGameBoard(canvas, config, dropX, normalBoardsPlayed, null);
-  }, [config, normalBoardsPlayed, dropX]);
+    drawGameBoard(canvas, config, dropX, normalBoardsPlayed, boardLayout, null);
+  }, [config, normalBoardsPlayed, dropX, boardLayout]);
 
   const animate = (sim: SimState) => {
     const now = performance.now();
@@ -585,7 +506,7 @@ export function DropBallGame({
 
     const canvas = canvasRef.current;
     if (canvas) {
-      drawGameBoard(canvas, config, dropX, sim.boardIndex, sim);
+      drawGameBoard(canvas, config, dropX, sim.boardIndex, sim.layout, sim);
     }
 
     if (nextSnapshot.bottomTouched) {
@@ -615,7 +536,24 @@ export function DropBallGame({
   const startDropAt = (nextDropX: number) => {
     if (disabled || phase !== 'ready') return;
     stopSimulation();
-    const sim = createSimulation(config, normalBoardsPlayed, nextDropX, setSnapshot);
+    let activeSeed = layoutSeed;
+    let layout = createDropBallBoardLayout(
+      activeSeed,
+      normalBoardsPlayed,
+      config.obstacleCount,
+      config.coinValues,
+    );
+    if (!isDropBallLaunchClear(layout, nextDropX)) {
+      activeSeed = newDropBallLayoutSeed();
+      setLayoutSeed(activeSeed);
+      layout = createDropBallBoardLayout(
+        activeSeed,
+        normalBoardsPlayed,
+        config.obstacleCount,
+        config.coinValues,
+      );
+    }
+    const sim = createSimulation(config, normalBoardsPlayed, layout, nextDropX, setSnapshot);
     simRef.current = sim;
     setSnapshot(emptySnapshot());
     setDetailsOpen(false);
@@ -673,12 +611,14 @@ export function DropBallGame({
       setPhase('finished');
       onComplete(nextTotal, nextRounds);
     } else {
+      setLayoutSeed(newDropBallLayoutSeed());
       setPhase('ready');
     }
   };
 
   const resetAttempt = () => {
     stopSimulation();
+    setLayoutSeed(newDropBallLayoutSeed());
     setPhase('ready');
     setDropX(CANVAS_WIDTH / 2);
     setNormalBoardsPlayed(0);
