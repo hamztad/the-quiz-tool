@@ -15,7 +15,12 @@ import { shouldHideParticipantChoiceLabels } from '../../lib/participantChoiceDi
 import { getParticipantQuestionViewState } from '../../lib/participantQuestionAccess';
 import { prepareParticipantQuestionDraft } from '../../lib/prepareParticipantQuestionDraft';
 import { useParticipantQuestionNavigation } from '../../hooks/useParticipantQuestionNavigation';
+import { GameCompleteNavigation } from './GameCompleteNavigation';
 import { QuestionNavigation } from './QuestionNavigation';
+import {
+  canParticipantRetryGame,
+  hasParticipantGameAttempt,
+} from '../../lib/participantGameComplete';
 import { QuestionLockedPlaceholder } from './QuestionLockedPlaceholder';
 
 const PARTICIPANT_ACTIVE_MEDIA_CREDITS = 'deferred' as const;
@@ -146,8 +151,19 @@ export function TeamIntervalQuiz({
     ? shouldHideParticipantChoiceLabels(activeQuestion, hasAnswered(activeQuestion.id))
     : false;
 
+  const showGameCompleteNav = Boolean(
+    activeQuestion &&
+      activeQuestion.type === 'game' &&
+      activeQuestionViewState === 'available' &&
+      hasParticipantGameAttempt(room, teamId, activeQuestion),
+  );
+  const gameCompleteCanRetry =
+    showGameCompleteNav && activeQuestion
+      ? canParticipantRetryGame(room, teamId, activeQuestion)
+      : false;
+
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${showGameCompleteNav ? 'pb-28' : ''}`}>
       <LiveQuizClock room={room} />
 
       <Card className="border-2 border-indigo-200/70 bg-indigo-50/80 p-4 space-y-2">
@@ -171,6 +187,7 @@ export function TeamIntervalQuiz({
       )}
 
       {activeQuestion ? (
+        <>
         <Card elevated className="border-2 border-violet-400/50 p-4 min-w-0">
           <QuestionNavigation
             questionNumber={activeIndex + 1}
@@ -269,6 +286,19 @@ export function TeamIntervalQuiz({
             />
           )}
         </Card>
+        {showGameCompleteNav && (
+          <GameCompleteNavigation
+            questionNumber={activeIndex + 1}
+            totalQuestions={totalQuestions}
+            canGoPrev={canGoPrev}
+            canGoNext={canGoNext}
+            canRetry={gameCompleteCanRetry}
+            onBackToOverview={closeActiveQuestion}
+            onPrev={goPrev}
+            onNext={goNext}
+          />
+        )}
+        </>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {room.questions.map((q, index) => {

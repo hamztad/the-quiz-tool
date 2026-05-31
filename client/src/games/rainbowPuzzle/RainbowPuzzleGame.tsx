@@ -150,6 +150,7 @@ export function RainbowPuzzleGame({ disabled = false, bestScore, onComplete }: R
         type="button"
         onClick={newAttempt}
         disabled={disabled || isAnimating}
+        data-participant-game-retry={completed ? true : undefined}
         className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border-2 border-fuchsia-200/30 bg-gradient-to-r from-fuchsia-500 via-purple-500 to-blue-500 px-6 py-3 text-base font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.24)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
         Nytt forsøk

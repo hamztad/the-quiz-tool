@@ -29,7 +29,12 @@ import { shouldHideParticipantChoiceLabels } from '../../lib/participantChoiceDi
 import { getParticipantQuestionViewState } from '../../lib/participantQuestionAccess';
 import { prepareParticipantQuestionDraft } from '../../lib/prepareParticipantQuestionDraft';
 import { useParticipantQuestionNavigation } from '../../hooks/useParticipantQuestionNavigation';
+import { GameCompleteNavigation } from './GameCompleteNavigation';
 import { QuestionNavigation } from './QuestionNavigation';
+import {
+  canParticipantRetryGame,
+  hasParticipantGameAttempt,
+} from '../../lib/participantGameComplete';
 import { QuestionLockedPlaceholder } from './QuestionLockedPlaceholder';
 
 const PARTICIPANT_ACTIVE_MEDIA_CREDITS = 'deferred' as const;
@@ -167,6 +172,17 @@ export function TeamSelfPacedQuiz({
     ? shouldHideParticipantChoiceLabels(activeQuestion, hasAnswered(activeQuestion.id))
     : false;
 
+  const showGameCompleteNav = Boolean(
+    activeQuestion &&
+      activeQuestion.type === 'game' &&
+      activeQuestionViewState === 'available' &&
+      hasParticipantGameAttempt(room, teamId, activeQuestion),
+  );
+  const gameCompleteCanRetry =
+    showGameCompleteNav && activeQuestion
+      ? canParticipantRetryGame(room, teamId, activeQuestion)
+      : false;
+
   const lockedNonGameCount = room.questions.filter(
     (q) => q.type !== 'game' && isTeamQuestionLocked(locks, teamId, q.id),
   ).length;
@@ -182,7 +198,7 @@ export function TeamSelfPacedQuiz({
   }
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${showGameCompleteNav ? 'pb-28' : ''}`}>
       <LiveQuizClock room={room} />
 
       {teamsLockedOut && (
@@ -247,6 +263,7 @@ export function TeamSelfPacedQuiz({
       </div>
 
       {activeQuestion ? (
+        <>
         <Card elevated className="border-2 border-violet-400/50 p-4 sm:p-5 min-w-0">
           <QuestionNavigation
             questionNumber={activeIndex + 1}
@@ -355,6 +372,19 @@ export function TeamSelfPacedQuiz({
             />
           )}
         </Card>
+        {showGameCompleteNav && (
+          <GameCompleteNavigation
+            questionNumber={activeIndex + 1}
+            totalQuestions={totalQuestions}
+            canGoPrev={canGoPrev}
+            canGoNext={canGoNext}
+            canRetry={gameCompleteCanRetry}
+            onBackToOverview={closeActiveQuestion}
+            onPrev={goPrev}
+            onNext={goNext}
+          />
+        )}
+        </>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {room.questions.map((q) => {

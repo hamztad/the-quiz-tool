@@ -422,6 +422,7 @@ function MathRaceView({
             type="button"
             disabled={disabled}
             onClick={start}
+            data-participant-game-retry={result ? true : undefined}
             className="inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-6 py-3 font-black text-white disabled:opacity-50 sm:w-auto"
           >
             {result ? 'Prøv igjen' : 'Start'}
@@ -508,6 +509,7 @@ function MathRaceView({
             <button
               type="button"
               onClick={retry}
+              data-participant-game-retry
               className="inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl border-2 border-indigo-200/30 bg-quiz-bg px-6 py-3 font-black text-indigo-950 shadow-sm transition-transform hover:scale-[1.01] sm:w-auto"
             >
               Prøv igjen

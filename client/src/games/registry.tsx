@@ -648,6 +648,7 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
           <button
             ref={startButtonRef}
             type="button"
+            data-participant-game-retry={latestSubmission ? true : undefined}
             className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-blue-200/30 bg-gradient-to-r from-blue-500 via-fuchsia-500 to-purple-500 px-6 py-3 text-lg font-black text-white shadow-[0_0_24px_rgba(59,130,246,0.3)] transition-transform hover:scale-[1.01] hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-200"
             onClick={startTimer}
             disabled={!round}

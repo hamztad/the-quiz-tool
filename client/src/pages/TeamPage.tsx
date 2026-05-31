@@ -45,7 +45,12 @@ import { useScrollToQuestionOnListReturn } from '../hooks/useScrollToQuestionOnL
 import { getParticipantQuestionViewState } from '../lib/participantQuestionAccess';
 import { prepareParticipantQuestionDraft } from '../lib/prepareParticipantQuestionDraft';
 import { useParticipantQuestionNavigation } from '../hooks/useParticipantQuestionNavigation';
+import { GameCompleteNavigation } from '../components/team/GameCompleteNavigation';
 import { QuestionNavigation } from '../components/team/QuestionNavigation';
+import {
+  canParticipantRetryGame,
+  hasParticipantGameAttempt,
+} from '../lib/participantGameComplete';
 import { QuestionLockedPlaceholder } from '../components/team/QuestionLockedPlaceholder';
 import { shouldHideParticipantChoiceLabels } from '../lib/participantChoiceDisplay';
 
@@ -417,6 +422,18 @@ export function TeamPage() {
       ? shouldHideParticipantChoiceLabels(activeQuestion, hasAnswered(activeQuestion.id))
       : false;
 
+  const showGameCompleteNav = Boolean(
+    activeQuestion &&
+      teamId &&
+      activeQuestion.type === 'game' &&
+      activeQuestionViewState === 'available' &&
+      hasParticipantGameAttempt(room, teamId, activeQuestion),
+  );
+  const gameCompleteCanRetry =
+    showGameCompleteNav && teamId && activeQuestion
+      ? canParticipantRetryGame(room, teamId, activeQuestion)
+      : false;
+
   const canReviewOwn = room.settings.teamReviewOpen === true;
   const canSeeAnswerKey = room.settings.answerKeyOpen === true;
   const finalPlacement = teamId ? getTeamFinalPlacement(room, teamId) : null;
@@ -638,9 +655,13 @@ export function TeamPage() {
 
       <TeamQuestionNotifyLayer room={room} notifications={questionNotifications} />
 
-      <div className="quiz-page-content space-y-4">
+      <div className={`quiz-page-content space-y-4 ${showGameCompleteNav ? 'pb-28' : ''}`}>
           {activeQuestion ? (
-            <Card elevated className="border-2 border-violet-400/50 ring-2 ring-violet-200/40 p-4 sm:p-5 min-w-0">
+            <>
+            <Card
+              elevated
+              className={`border-2 border-violet-400/50 ring-2 ring-violet-200/40 p-4 sm:p-5 min-w-0 ${showGameCompleteNav ? 'pb-8' : ''}`}
+            >
               <QuestionNavigation
                 questionNumber={activeIndex + 1}
                 totalQuestions={totalQuestions}
@@ -766,6 +787,19 @@ export function TeamPage() {
                 />
               )}
             </Card>
+            {showGameCompleteNav && (
+              <GameCompleteNavigation
+                questionNumber={activeIndex + 1}
+                totalQuestions={totalQuestions}
+                canGoPrev={canGoPrev}
+                canGoNext={canGoNext}
+                canRetry={gameCompleteCanRetry}
+                onBackToOverview={closeActiveQuestion}
+                onPrev={goPrev}
+                onNext={goNext}
+              />
+            )}
+            </>
           ) : (
             <>
               <p className="text-sm text-quiz-muted">

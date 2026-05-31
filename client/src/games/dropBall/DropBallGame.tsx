@@ -970,6 +970,7 @@ export function DropBallGame({
               type="button"
               onClick={resetAttempt}
               disabled={disabled}
+              data-participant-game-retry
               className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-sky-100/70 bg-sky-200 text-2xl font-black text-sky-950 shadow-[0_0_18px_rgba(125,211,252,0.42)] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Start på nytt"
             >

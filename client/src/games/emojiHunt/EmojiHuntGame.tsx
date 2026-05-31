@@ -240,6 +240,7 @@ export function EmojiHuntGame({
             type="button"
             onClick={resetAttempt}
             disabled={disabled}
+            data-participant-game-retry
             className="rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-2 font-black text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
             Start på nytt
