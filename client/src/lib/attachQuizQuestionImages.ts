@@ -93,3 +93,17 @@ export function countQuestionsEligibleForImageAttach(
       (!onlyMarked || Boolean(q.autoImageProvider)),
   ).length;
 }
+
+/** Hent bilder for ARP-merkede oppgaver etter tekstimport (kun nye merkede uten media). */
+export async function attachMarkedImportImagesIfAny(
+  session: HostSession,
+  questions: Question[],
+): Promise<AttachQuizImagesResult> {
+  if (countQuestionsEligibleForImageAttach(questions, true) === 0) {
+    return { questions, attached: 0, skipped: questions.length, failed: 0, errors: [] };
+  }
+  return attachImagesToQuizQuestions(session, questions, {
+    defaultProvider: 'pixabay',
+    onlyMarked: true,
+  });
+}

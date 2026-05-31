@@ -9,12 +9,8 @@ import {
   type GamePickRequest,
   type Question,
 } from '@quiz-tool/shared';
-import {
-  attachImagesToQuizQuestions,
-  countQuestionsEligibleForImageAttach,
-} from '../../lib/attachQuizQuestionImages';
-import type { SearchImageProvider } from '../../lib/pixabayApi';
 import type { HostSession } from '../../lib/tokens';
+import { AttachQuizImagesPanel } from './AttachQuizImagesPanel';
 import { AiQuizPromptPanel } from './AiQuizPromptPanel';
 import { GameImportPickPanel } from './GameImportPickPanel';
 import { QuestionPreviewStrip } from './QuestionPreviewStrip';
@@ -54,9 +50,6 @@ export function QuickImportPanel({
   const [showReplace, setShowReplace] = useState(false);
   const [gamePickRequests, setGamePickRequests] = useState<GamePickRequest[]>([]);
   const [gamePicks, setGamePicks] = useState<Record<string, GameId>>({});
-  const [imageProvider, setImageProvider] = useState<SearchImageProvider>('pixabay');
-  const [onlyArpMarked, setOnlyArpMarked] = useState(false);
-  const [attachingImages, setAttachingImages] = useState(false);
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -221,102 +214,6 @@ export function QuickImportPanel({
     </div>
   ) : null;
 
-  const eligibleAll = countQuestionsEligibleForImageAttach(draftQuestions, false);
-  const eligibleMarked = countQuestionsEligibleForImageAttach(draftQuestions, true);
-  const eligibleCount = onlyArpMarked ? eligibleMarked : eligibleAll;
-
-  const runAttachImages = async () => {
-    if (!hostSession) {
-      onImageAttachMessage?.('Koble til Gruizen på nytt for å søke etter bilder.');
-      return;
-    }
-    if (eligibleCount === 0) {
-      onImageAttachMessage?.(
-        onlyArpMarked
-          ? 'Ingen ARP-merkede oppgaver uten bilde. Legg til ARP-P eller ARP-W i teksten.'
-          : 'Ingen oppgaver uten bilde å hente bilder til.',
-      );
-      return;
-    }
-    setAttachingImages(true);
-    onImageAttachMessage?.(null);
-    try {
-      const result = await attachImagesToQuizQuestions(hostSession, draftQuestions, {
-        defaultProvider: imageProvider,
-        onlyMarked: onlyArpMarked,
-      });
-      onDraftQuestionsChange(result.questions);
-      if (result.errors.length > 0) {
-        setParseErrors(result.errors);
-      }
-      onImageAttachMessage?.(
-        `La til bilde på ${result.attached} oppgaver` +
-          (result.failed > 0 ? ` · ${result.failed} feilet` : '') +
-          (result.skipped > 0 ? ` · ${result.skipped} hoppet over` : '') +
-          '.',
-      );
-    } catch (err) {
-      onImageAttachMessage?.(err instanceof Error ? err.message : 'Kunne ikke hente bilder.');
-    } finally {
-      setAttachingImages(false);
-    }
-  };
-
-  const imageAttachBlock = helpBelow ? (
-    <div className="rounded-2xl border-2 border-cyan-300/50 bg-gradient-to-br from-cyan-50/80 to-white p-4 space-y-3 min-w-0">
-      <div>
-        <p className="text-sm font-bold text-cyan-950">Legg til relevante bilder</p>
-        <p className="mt-1 text-xs text-cyan-900 leading-relaxed">
-          Søker ut fra spørsmålstekst (og riktig svar på MC, eller spillnavn på GAME). Oppgaver som
-          allerede har bilde hoppes over. ARP-P / ARP-W i teksten styrer kilde per oppgave.
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-4 text-sm text-cyan-950">
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="text-import-image-provider"
-            checked={imageProvider === 'pixabay'}
-            onChange={() => setImageProvider('pixabay')}
-          />
-          Pixabay
-        </label>
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="text-import-image-provider"
-            checked={imageProvider === 'wikimedia'}
-            onChange={() => setImageProvider('wikimedia')}
-          />
-          Wikimedia
-        </label>
-      </div>
-      <label className="flex items-start gap-2 text-xs text-cyan-900 cursor-pointer">
-        <input
-          type="checkbox"
-          className="mt-0.5"
-          checked={onlyArpMarked}
-          onChange={(e) => setOnlyArpMarked(e.target.checked)}
-        />
-        <span>
-          Kun oppgaver merket med ARP-P / ARP-W i teksten
-          {eligibleMarked > 0 ? ` (${eligibleMarked} stk.)` : ''}
-        </span>
-      </label>
-      <Button
-        type="button"
-        variant="secondary"
-        className="w-full sm:w-auto"
-        disabled={attachingImages || eligibleCount === 0 || !hostSession}
-        onClick={() => void runAttachImages()}
-      >
-        {attachingImages
-          ? 'Henter bilder…'
-          : `Legg til bilder på oppgaver (${eligibleCount})`}
-      </Button>
-    </div>
-  ) : null;
-
   const helpBlock = (
     <details className="rounded-xl border border-quiz-border/50 bg-quiz-bg/40" open={!helpBelow}>
       <summary className="cursor-pointer px-4 py-3 text-sm text-quiz-muted hover:text-quiz-text">
@@ -429,7 +326,14 @@ export function QuickImportPanel({
 
       <p className="text-xs text-quiz-muted">{listHint}</p>
 
-      {imageAttachBlock}
+      <AttachQuizImagesPanel
+        questions={draftQuestions}
+        hostSession={hostSession}
+        onQuestionsChange={onDraftQuestionsChange}
+        onStatusMessage={onImageAttachMessage}
+        onErrors={setParseErrors}
+        variant="tekst"
+      />
 
       {gamePickRequests.length > 0 && (
         <GameImportPickPanel

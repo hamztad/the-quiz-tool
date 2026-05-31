@@ -19,7 +19,9 @@ import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
 import { HostQuestionEditorCard } from '../components/host/HostQuestionEditorCard';
 import { AiShopWizard } from '../components/host/AiShopWizard';
+import { AttachQuizImagesPanel } from '../components/host/AttachQuizImagesPanel';
 import { QuickImportPanel } from '../components/host/QuickImportPanel';
+import { attachMarkedImportImagesIfAny } from '../lib/attachQuizQuestionImages';
 import { QuizBackupPanel } from '../components/host/QuizBackupPanel';
 import { QuizEditModeTabs, type QuizEditMode } from '../components/host/QuizEditModeTabs';
 import { RoomUnavailableView } from '../components/room/RoomUnavailableView';
@@ -360,17 +362,57 @@ export function HostEditPage() {
     });
   };
 
+  const finishImportWithOptionalArpImages = async (
+    nextList: Question[],
+    highlight?: { id: string; index: number },
+  ) => {
+    updateDraft(nextList);
+    setEditMode('editor');
+    const session = roomId ? getHostSession(roomId) : null;
+    if (!session) {
+      if (highlight) flashHighlight(highlight.id, highlight.index);
+      return;
+    }
+    setSaveMessage('Henter ARP-bilder…');
+    try {
+      const result = await attachMarkedImportImagesIfAny(session, nextList);
+      if (result.attached > 0 || result.failed > 0) {
+        updateDraft(result.questions);
+        nextList = result.questions;
+      }
+      if (result.attached > 0) {
+        const summary =
+          `La til bilde på ${result.attached} oppgaver` +
+          (result.failed > 0 ? ` · ${result.failed} feilet` : '') +
+          '.';
+        setSaveMessage(
+          result.errors.length > 0 ? `${summary} ${result.errors.join(' · ')}` : summary,
+        );
+      } else if (result.failed > 0) {
+        setSaveMessage(
+          result.errors.length > 0
+            ? `ARP-bilder feilet: ${result.errors.join(' · ')}`
+            : 'ARP-bilder: ingen ble lagt til.',
+        );
+      } else {
+        setSaveMessage(null);
+      }
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : 'Kunne ikke hente ARP-bilder.');
+    }
+    if (highlight) flashHighlight(highlight.id, highlight.index);
+  };
+
   const appendImportedQuestions = (parsed: ParsedImportQuestion[]) => {
     if (isLiveEdit) return;
     const startIndex = draftQuestions.length;
     const stamped = stampImportedQuestions(parsed, startIndex);
     const nextList = [...draftQuestions, ...stamped];
-    updateDraft(nextList);
-    setEditMode('editor');
     setExpandedIds(new Set(stamped.map((q) => q.id)));
-    if (stamped.length > 0) {
-      flashHighlight(stamped[0].id, startIndex);
-    }
+    void finishImportWithOptionalArpImages(
+      nextList,
+      stamped.length > 0 ? { id: stamped[0].id, index: startIndex } : undefined,
+    );
   };
 
   const replaceAllQuestions = (parsed: ParsedImportQuestion[]) => {
@@ -381,12 +423,11 @@ export function HostEditPage() {
     if (typed !== REPLACE_CONFIRM_WORD) return;
 
     const stamped = stampImportedQuestions(parsed, 0);
-    updateDraft(stamped);
-    setEditMode('editor');
     setExpandedIds(new Set(stamped.map((q) => q.id)));
-    if (stamped.length > 0) {
-      flashHighlight(stamped[0].id, 0);
-    }
+    void finishImportWithOptionalArpImages(
+      stamped,
+      stamped.length > 0 ? { id: stamped[0].id, index: 0 } : undefined,
+    );
   };
 
   const importFromQuizFile = (questions: Question[]) => {
@@ -609,6 +650,19 @@ export function HostEditPage() {
               onExpandAllIncomplete={expandAllIncompleteQuestions}
               onNextIncomplete={focusNextIncompleteQuestion}
             />
+
+            {!isLiveEdit && (
+              <AttachQuizImagesPanel
+                questions={draftQuestions}
+                hostSession={roomId ? getHostSession(roomId) : null}
+                onQuestionsChange={(next) => updateDraft(next)}
+                onStatusMessage={setSaveMessage}
+                onErrors={(errs) =>
+                  setSaveMessage(errs.length > 0 ? errs.join(' · ') : null)
+                }
+                variant="editor"
+              />
+            )}
 
             <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/10">
               <h3 className="text-base font-bold">Spørsmål ({draftQuestions.length})</h3>

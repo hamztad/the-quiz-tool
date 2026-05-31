@@ -14,4 +14,13 @@ describe('finalizeParseResult', () => {
     expect(result.questions[0].game?.gameId).toBe('timerChallenge');
     expect(result.gamePickRequests).toHaveLength(0);
   });
+
+  it('keeps autoImageProvider on game pick requests', () => {
+    const raw = parseQuizText('GAME\nTittel\nARP-W');
+    expect(raw.gamePickRequests[0]?.autoImageProvider).toBe('wikimedia');
+    const result = finalizeParseResult(raw, {
+      [raw.gamePickRequests[0].tempId]: 'timerChallenge',
+    });
+    expect(result.questions[0]?.autoImageProvider).toBe('wikimedia');
+  });
 });

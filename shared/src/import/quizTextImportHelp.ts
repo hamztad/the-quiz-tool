@@ -28,7 +28,7 @@ ARP-P`;
 
 /** Korte steg vist over tekstfeltet i editoren. */
 export const QUIZ_TEXT_IMPORT_STEPS = [
-  'Kopier eksemplet under (eller skriv i samme mønster). Valgfritt: ARP-P eller ARP-W for relevant bilde per oppgave.',
+  'Kopier eksemplet under (eller skriv i samme mønster). Valgfritt: ARP-P eller ARP-W — bilder hentes automatisk når du trykker Legg til.',
   'Lim inn i tekstfeltet. Ett spørsmål per blokk — tom linje mellom hvert spørsmål.',
   'Trykk «Legg til», deretter «Legg til bilder på oppgaver» (Pixabay eller Wikimedia) hvis du vil.',
 ] as const;
@@ -62,6 +62,6 @@ export const QUIZ_TEXT_IMPORT_SECTIONS: { title: string; body: string }[] = [
   {
     title: 'Relevant bilde (ARP / RP)',
     body:
-      'Egen linje ARP-P (Pixabay) eller ARP-W (Wikimedia) etter spørsmålsteksten — også på spill (GAME). ARP uten suffiks = Pixabay. For Avslør bildet blir bildet spillmotivet; sjekk fasit i editoren etterpå. Etter import: «Legg til bilder på oppgaver».',
+      'Egen linje ARP-P (Pixabay) eller ARP-W (Wikimedia) etter spørsmålsteksten — også på spill (GAME). ARP uten suffiks = Pixabay. Ved «Legg til» hentes bilder automatisk; du kan også trykke «Hent bilder» i Tekst eller Editor.',
   },
 ];

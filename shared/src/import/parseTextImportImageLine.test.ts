@@ -6,6 +6,7 @@ describe('parseTextImportImageLine', () => {
   it('parses ARP-P and ARP-W', () => {
     expect(parseTextImportImageLine('ARP-P')).toEqual({ ok: true, provider: 'pixabay' });
     expect(parseTextImportImageLine('arp-w')).toEqual({ ok: true, provider: 'wikimedia' });
+    expect(parseTextImportImageLine('ARP W')).toEqual({ ok: true, provider: 'wikimedia' });
     expect(parseTextImportImageLine('RP')).toEqual({ ok: true, provider: 'pixabay' });
   });
 

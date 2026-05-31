@@ -15,6 +15,7 @@ export interface GamePickRequest {
   lines: QuestionLine[];
   hint?: string;
   maxPoints: number;
+  autoImageProvider?: 'pixabay' | 'wikimedia';
 }
 
 export interface ParseResult {
@@ -120,6 +121,7 @@ export function parseQuizText(raw: string): ParseResult {
               : [{ text: 'Spillspørsmål', style: 'title' }],
           hint: current.hint,
           maxPoints: current.maxPoints ?? DEFAULT_MAX_POINTS,
+          autoImageProvider: current.autoImageProvider,
         });
       } else {
         current.lines = lines.length > 0 ? lines : [{ text: getBuiltInGame(current.gameType as GameId)?.label ?? 'Spill', style: 'title' }];

@@ -34,6 +34,7 @@ export function finalizeParseResult(
       gameType: gameId,
       game: def.createDefaultConfig(),
       hint: req.hint,
+      autoImageProvider: req.autoImageProvider,
     });
   }
 

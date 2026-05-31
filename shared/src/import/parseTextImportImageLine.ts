@@ -4,7 +4,7 @@ export type TextImportImageProvider = 'pixabay' | 'wikimedia';
 export function parseTextImportImageLine(
   trimmed: string,
 ): { ok: true; provider: TextImportImageProvider } | { ok: false; error: string } {
-  const match = trimmed.match(/^(ARP|RP)(?:-([PW]))?$/i);
+  const match = trimmed.match(/^(ARP|RP)(?:[\s-]+([PW]))?\s*$/i);
   if (!match) return { ok: false, error: 'Ikke en ARP/RP-linje.' };
 
   const suffix = match[2]?.toUpperCase();
