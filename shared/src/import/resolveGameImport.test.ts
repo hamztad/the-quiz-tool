@@ -7,6 +7,14 @@ describe('resolveGameImportToken', () => {
     expect(resolveGameImportToken('mathExpression')?.gameId).toBe('mathExpression');
   });
 
+  it('defaults Regnestykke to regnerace mode', () => {
+    const resolved = resolveGameImportToken('Regnestykke');
+    expect(resolved?.config.mode).toBe('race');
+    if (resolved?.config.mode === 'race') {
+      expect(resolved.config.enabledOperations?.length).toBeGreaterThan(0);
+    }
+  });
+
   it('returns null for empty or placeholder', () => {
     expect(resolveGameImportToken('')).toBeNull();
     expect(resolveGameImportToken('?')).toBeNull();

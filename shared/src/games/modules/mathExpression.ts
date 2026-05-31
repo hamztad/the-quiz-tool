@@ -383,6 +383,11 @@ export function createDefaultMathExpressionConfig(): MathExpressionConfig {
   };
 }
 
+/** Standard når Regnestykke legges til (AI, import, editor) — dynamisk generering under spill. */
+export function createDefaultMathGameConfig(): MathExpressionRaceConfig {
+  return createDefaultMathRaceConfig();
+}
+
 export function createDefaultMathRaceConfig(): MathExpressionRaceConfig {
   return normalizeMathRaceConfig({
     gameId: 'mathExpression',

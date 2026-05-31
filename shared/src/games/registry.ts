@@ -1,7 +1,7 @@
 import type { GameId, GameQuestionConfig } from './types.js';
 import { createDefaultDropBallConfig } from './modules/dropBall.js';
 import { createDefaultEmojiHuntConfig } from './modules/emojiHunt.js';
-import { createDefaultMathExpressionConfig } from './modules/mathExpression.js';
+import { createDefaultMathGameConfig } from './modules/mathExpression.js';
 import { createDefaultRevealImageConfig } from './modules/revealImage.js';
 import { createDefaultRainbowPuzzleConfig } from './modules/rainbowPuzzle.js';
 import { createDefaultTimerChallengeConfig } from './modules/timerChallenge.js';
@@ -17,8 +17,8 @@ export const builtInGames: BuiltInGameDefinition[] = [
   {
     id: 'mathExpression',
     label: 'Regnestykke',
-    description: 'Enkelt regnestykke eller regnerace med auto-scoring.',
-    createDefaultConfig: createDefaultMathExpressionConfig,
+    description: 'Regnerace med tilfeldige regnestykker underveis (enkelt regnestykke kan velges i editor).',
+    createDefaultConfig: createDefaultMathGameConfig,
   },
   {
     id: 'dropBall',

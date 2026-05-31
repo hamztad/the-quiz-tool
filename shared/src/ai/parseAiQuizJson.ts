@@ -5,6 +5,7 @@ import { createAnagramConfigForAnswer, validateAnagramAnswerText } from '../game
 import { createDefaultDropBallConfig } from '../games/modules/dropBall.js';
 import { createDefaultEmojiHuntConfig } from '../games/modules/emojiHunt.js';
 import {
+  createDefaultMathGameConfig,
   createDefaultMathRaceConfig,
   validateMathExpressionConfig,
 } from '../games/modules/mathExpression.js';
@@ -173,7 +174,8 @@ function parseRegistryGameQuestion(
     type: 'game',
     lines: withCanonicalTitle(lines, canonicalTitle),
     gameType: def.id,
-    game: def.createDefaultConfig(),
+    game:
+      def.id === 'mathExpression' ? createDefaultMathGameConfig() : def.createDefaultConfig(),
     maxPoints: def.id === 'mathExpression' ? 5 : 5,
   };
 }
