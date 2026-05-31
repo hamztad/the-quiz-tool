@@ -691,9 +691,9 @@ export function TeamPage() {
                   ) : activeQuestion.type === 'ordering' ? (
                     <div className="mt-4 space-y-3">
                       <div className="rounded-2xl border-2 border-cyan-200/70 bg-gradient-to-r from-cyan-50 to-teal-50 px-4 py-3">
-                        <p className="text-sm font-bold text-cyan-900">🧩 Dra kortene i riktig rekkefølge</p>
+                        <p className="text-sm font-bold text-cyan-900">🧩 Sett kortene i riktig rekkefølge</p>
                         <p className="mt-1 text-xs text-quiz-muted">
-                          {activeQuestion.orderingDirectionTop || 'Øverst'} →{' '}
+                          Dra et kort, eller trykk ↑ ↓. {activeQuestion.orderingDirectionTop || 'Øverst'} →{' '}
                           {activeQuestion.orderingDirectionBottom || 'Nederst'}
                         </p>
                       </div>

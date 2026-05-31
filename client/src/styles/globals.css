@@ -528,6 +528,17 @@ pre {
   }
 }
 
+/* Rekkefølge under spill: touch til drag-lag, ikke nettleserens bilde-drag */
+.ordering-sortable-list {
+  touch-action: none;
+}
+
+.ordering-sortable-content img {
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .quiz-animate-in,
   .quiz-hover-lift,

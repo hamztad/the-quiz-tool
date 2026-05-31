@@ -39,6 +39,7 @@ export function ChoiceMediaDisplay({
       alt={alt}
       loading="lazy"
       decoding="async"
+      draggable={false}
       className={`${variantClass[variant]} ${className}`.trim()}
     />
   );

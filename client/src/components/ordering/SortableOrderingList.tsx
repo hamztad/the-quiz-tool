@@ -1,13 +1,16 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
 import type { OrderingItem } from '@quiz-tool/shared';
 import {
   closestCenter,
   DndContext,
+  DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -17,6 +20,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { moveOrderingIds } from './orderingListOrder';
 
 interface SortableOrderingListProps {
   items: OrderingItem[];
@@ -28,6 +32,9 @@ interface SortableOrderingListProps {
   getItemContent?: (item: OrderingItem, index: number) => ReactNode;
   getItemClassName?: (item: OrderingItem, index: number) => string;
   dragHandleLabel?: string;
+  /** Whole card draggable (participant). False when row has inputs (host editor). */
+  enableRowDrag?: boolean;
+  showReorderButtons?: boolean;
 }
 
 function orderedItems(items: OrderingItem[], order: string[]): OrderingItem[] {
@@ -44,20 +51,99 @@ function orderedItems(items: OrderingItem[], order: string[]): OrderingItem[] {
   return [...sorted, ...items.filter((item) => !seen.has(item.id))];
 }
 
+function stopDragPointer(event: ReactPointerEvent) {
+  event.stopPropagation();
+}
+
+function OrderingDragHandle({
+  index,
+  className = '',
+}: {
+  index: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex min-h-[3rem] w-8 shrink-0 flex-col items-center justify-center rounded-lg border border-quiz-border bg-quiz-bg/80 px-0.5 text-quiz-muted sm:min-h-[52px] sm:w-9 ${className}`}
+      aria-hidden
+    >
+      <span className="text-xs font-black text-quiz-accent">{index + 1}</span>
+      <span className="text-base leading-none sm:text-lg">↕</span>
+    </div>
+  );
+}
+
+function ReorderButtons({
+  item,
+  index,
+  itemCount,
+  disabled,
+  onMoveUp,
+  onMoveDown,
+}: {
+  item: OrderingItem;
+  index: number;
+  itemCount: number;
+  disabled?: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  const canMoveUp = index > 0 && !disabled;
+  const canMoveDown = index < itemCount - 1 && !disabled;
+  const label = item.text || `element ${index + 1}`;
+
+  return (
+    <div
+      className="flex shrink-0 flex-col justify-center gap-0.5"
+      onPointerDown={stopDragPointer}
+      onTouchStart={(event) => event.stopPropagation()}
+    >
+      <button
+        type="button"
+        className="flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-xl border-2 border-quiz-border bg-quiz-bg text-lg font-black text-quiz-accent transition-colors hover:border-quiz-accent/60 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-[44px] sm:min-w-[44px]"
+        disabled={!canMoveUp}
+        aria-label={`Flytt «${label}» opp`}
+        onClick={onMoveUp}
+      >
+        ↑
+      </button>
+      <button
+        type="button"
+        className="flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-xl border-2 border-quiz-border bg-quiz-bg text-lg font-black text-quiz-accent transition-colors hover:border-quiz-accent/60 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-[44px] sm:min-w-[44px]"
+        disabled={!canMoveDown}
+        aria-label={`Flytt «${label}» ned`}
+        onClick={onMoveDown}
+      >
+        ↓
+      </button>
+    </div>
+  );
+}
+
 function SortableOrderingCard({
   item,
   index,
+  itemCount,
   disabled,
   children,
   className,
   dragHandleLabel = 'Dra for å flytte',
+  enableRowDrag,
+  showReorderButtons,
+  onMoveUp,
+  onMoveDown,
 }: {
   item: OrderingItem;
   index: number;
+  itemCount: number;
   disabled?: boolean;
   children: ReactNode;
   className?: string;
   dragHandleLabel?: string;
+  enableRowDrag: boolean;
+  showReorderButtons: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -67,30 +153,73 @@ function SortableOrderingCard({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  const dragZoneClass = `touch-none select-none ${
+    disabled ? 'opacity-60' : 'cursor-grab active:cursor-grabbing'
+  }`;
 
   return (
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex min-w-0 max-w-full items-stretch gap-1.5 rounded-2xl border p-1.5 shadow-sm transition-shadow sm:gap-2 sm:p-2 ${
-        isDragging ? 'z-10 scale-[1.02] border-quiz-accent bg-quiz-accent/15 shadow-xl' : ''
+      className={`flex min-w-0 max-w-full items-stretch gap-1 rounded-2xl border p-1 shadow-sm transition-shadow sm:gap-1.5 sm:p-1.5 ${
+        isDragging ? 'z-10 border-quiz-accent bg-quiz-accent/15 shadow-xl opacity-90' : ''
       } ${className ?? 'border-quiz-border bg-quiz-surface-elevated/70'}`}
     >
-      <button
-        type="button"
-        className="flex min-h-[3rem] w-9 shrink-0 touch-none select-none flex-col items-center justify-center rounded-lg border border-quiz-border bg-quiz-bg/80 px-0.5 text-quiz-muted active:scale-95 disabled:opacity-60 sm:min-h-[52px] sm:w-10"
-        aria-label={`${dragHandleLabel}: ${item.text || `element ${index + 1}`}`}
-        disabled={disabled}
-        {...attributes}
-        {...listeners}
-      >
-        <span className="text-xs font-black text-quiz-accent">{index + 1}</span>
-        <span className="text-lg leading-none" aria-hidden>
-          ↕
-        </span>
-      </button>
-      <div className="min-w-0 flex-1">{children}</div>
+      {enableRowDrag ? (
+        <div
+          className={`flex min-w-0 flex-1 items-stretch gap-1.5 sm:gap-2 ${dragZoneClass}`}
+          aria-label={`${dragHandleLabel}: ${item.text || `element ${index + 1}`}`}
+          {...attributes}
+          {...listeners}
+        >
+          <OrderingDragHandle index={index} />
+          <div className="ordering-sortable-content min-w-0 flex-1">{children}</div>
+        </div>
+      ) : (
+        <>
+          <div
+            className={`flex shrink-0 flex-col items-stretch ${dragZoneClass}`}
+            aria-label={`${dragHandleLabel}: ${item.text || `element ${index + 1}`}`}
+            {...attributes}
+            {...listeners}
+          >
+            <OrderingDragHandle index={index} className="h-full min-h-[3rem] sm:min-h-[52px]" />
+          </div>
+          <div className="ordering-sortable-content min-w-0 flex-1">{children}</div>
+        </>
+      )}
+      {showReorderButtons && (
+        <ReorderButtons
+          item={item}
+          index={index}
+          itemCount={itemCount}
+          disabled={disabled}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
+        />
+      )}
     </li>
+  );
+}
+
+function OrderingCardPreview({
+  index,
+  children,
+  className,
+}: {
+  index: number;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex min-w-0 max-w-full items-stretch gap-1.5 rounded-2xl border p-1.5 shadow-xl sm:gap-2 sm:p-2 ${
+        className ?? 'border-quiz-accent bg-quiz-accent/15'
+      }`}
+    >
+      <OrderingDragHandle index={index} />
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
   );
 }
 
@@ -104,21 +233,45 @@ export function SortableOrderingList({
   getItemContent,
   getItemClassName,
   dragHandleLabel,
+  enableRowDrag = true,
+  showReorderButtons = true,
 }: SortableOrderingListProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 10 },
+    }),
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 6 },
+    }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const sortedItems = orderedItems(items, order);
   const ids = sortedItems.map((item) => item.id);
+  const activeItem = activeId ? sortedItems.find((item) => item.id === activeId) : undefined;
+  const activeIndex = activeItem ? sortedItems.indexOf(activeItem) : -1;
+
+  const applyMove = (fromIndex: number, direction: -1 | 1) => {
+    const next = moveOrderingIds(ids, fromIndex, direction);
+    if (next) onOrderChange(next);
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = ids.indexOf(String(active.id));
     const newIndex = ids.indexOf(String(over.id));
     if (oldIndex === -1 || newIndex === -1) return;
     onOrderChange(arrayMove(ids, oldIndex, newIndex));
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
   };
 
   return (
@@ -129,17 +282,28 @@ export function SortableOrderingList({
         </span>
         <span className="h-px min-w-4 flex-1 bg-quiz-accent/30" aria-hidden />
       </div>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-          <ol className="space-y-2">
+          <ol className="ordering-sortable-list touch-none space-y-2">
             {sortedItems.map((item, index) => (
               <SortableOrderingCard
                 key={item.id}
                 item={item}
                 index={index}
+                itemCount={sortedItems.length}
                 disabled={disabled}
                 className={getItemClassName?.(item, index)}
                 dragHandleLabel={dragHandleLabel}
+                enableRowDrag={enableRowDrag}
+                showReorderButtons={showReorderButtons}
+                onMoveUp={() => applyMove(index, -1)}
+                onMoveDown={() => applyMove(index, 1)}
               >
                 {getItemContent ? (
                   getItemContent(item, index)
@@ -152,6 +316,22 @@ export function SortableOrderingList({
             ))}
           </ol>
         </SortableContext>
+        <DragOverlay dropAnimation={null}>
+          {activeItem && activeIndex >= 0 ? (
+            <OrderingCardPreview
+              index={activeIndex}
+              className={getItemClassName?.(activeItem, activeIndex)}
+            >
+              {getItemContent ? (
+                getItemContent(activeItem, activeIndex)
+              ) : (
+                <div className="flex min-h-[52px] items-center rounded-xl bg-quiz-bg/50 px-3 py-2 text-base font-bold text-quiz-text">
+                  <span className="break-words [overflow-wrap:anywhere]">{activeItem.text}</span>
+                </div>
+              )}
+            </OrderingCardPreview>
+          ) : null}
+        </DragOverlay>
       </DndContext>
       <div className="mt-2 flex min-w-0 items-center gap-2 text-xs font-bold text-quiz-muted">
         <span className="h-px min-w-4 flex-1 bg-quiz-border" aria-hidden />
@@ -159,6 +339,13 @@ export function SortableOrderingList({
           {bottomLabel || 'Nederst'}
         </span>
       </div>
+      {showReorderButtons && !disabled && (
+        <p className="mt-2 text-center text-[11px] text-quiz-muted leading-snug">
+          {enableRowDrag
+            ? 'Dra hele kortet, eller bruk ↑ ↓ til høyre'
+            : 'Dra ↕-feltet, eller bruk ↑ ↓ til høyre'}
+        </p>
+      )}
     </div>
   );
 }

@@ -1544,6 +1544,7 @@ function OrderingQuestionEditor({
         items={items}
         order={order}
         onOrderChange={(nextOrder) => onChange({ ...question, orderingCorrectOrder: nextOrder })}
+        enableRowDrag={false}
         topLabel={question.orderingDirectionTop || 'Øverst'}
         bottomLabel={question.orderingDirectionBottom || 'Nederst'}
         dragHandleLabel="Dra fasit-element"
