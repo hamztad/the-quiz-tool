@@ -20,6 +20,8 @@ export interface RegneraceRaceResult {
 }
 
 interface MathExpressionGameProps {
+  /** Bytter spiller til en annen oppgave — nullstiller lokal spilltilstand. */
+  questionId: string;
   title: string;
   config: MathExpressionConfig;
   latestSingleAnswer: string | null;
@@ -39,6 +41,7 @@ function formatCountdownMs(ms: number): string {
 }
 
 export function MathExpressionGame({
+  questionId,
   title,
   config,
   latestSingleAnswer,
@@ -52,6 +55,8 @@ export function MathExpressionGame({
   if (config.mode === 'race') {
     return (
       <MathRaceView
+        key={questionId}
+        questionId={questionId}
         title={title}
         config={config}
         result={raceResult}
@@ -65,6 +70,7 @@ export function MathExpressionGame({
 
   return (
     <MathSingleView
+      key={questionId}
       title={title}
       config={config}
       latestAnswer={latestSingleAnswer}
@@ -151,6 +157,7 @@ function raceResultsEqual(a: RegneraceRaceResult, b: RegneraceRaceResult): boole
 }
 
 function MathRaceView({
+  questionId,
   title,
   config,
   result,
@@ -159,6 +166,7 @@ function MathRaceView({
   disabled,
   onComplete,
 }: {
+  questionId: string;
   title: string;
   config: Extract<MathExpressionConfig, { mode: 'race' }>;
   result: RegneraceRaceResult | null;
@@ -167,6 +175,7 @@ function MathRaceView({
   disabled: boolean;
   onComplete: (payload: Omit<MathExpressionRaceSubmissionPayload, 'gameId' | 'mode'>) => void;
 }) {
+  const instanceKey = problemSeed ?? questionId;
   const timeLimitMs = config.timeLimitMs;
   const enabledOperations = useMemo(
     () => normalizeRegneraceOperations(config.enabledOperations),
@@ -261,7 +270,7 @@ function MathRaceView({
 
   useEffect(() => () => clearTimer(), [clearTimer]);
 
-  const resetForNewAttempt = () => {
+  const resetForNewAttempt = useCallback(() => {
     clearTimer();
     submittedRef.current = false;
     setStarted(false);
@@ -275,7 +284,13 @@ function MathRaceView({
     onUnsolvedProblemRef.current = false;
     setWrongAttempts(0);
     setRemainingMs(timeLimitMs);
-  };
+  }, [clearTimer, timeLimitMs]);
+
+  useEffect(() => {
+    resetForNewAttempt();
+    setRetrying(false);
+    setAttemptIndex(0);
+  }, [instanceKey, resetForNewAttempt]);
 
   const retry = () => {
     if (disabled || !result) return;

@@ -39,6 +39,22 @@ const themes: Record<Question['type'], QuestionTypeTheme> = {
   },
 };
 
+const HOST_ADD_LABELS: Record<'open' | 'mc' | 'ordering' | 'game', { full: string; short: string }> = {
+  open: { full: 'Åpent spørsmål', short: 'Åpent spørsmål' },
+  mc: { full: 'Flervalg (MC)', short: 'Flervalg' },
+  ordering: { full: 'Rekkefølge', short: 'Rekkefølge' },
+  game: { full: 'Spill', short: 'Spill' },
+};
+
+export function getHostAddQuestionLabel(
+  type: 'open' | 'mc' | 'ordering' | 'game',
+  variant: 'full' | 'short' = 'full',
+): { emoji: string; text: string } {
+  const theme = themes[type];
+  const emoji = type === 'game' ? '🎮' : theme.emoji;
+  return { emoji, text: HOST_ADD_LABELS[type][variant] };
+}
+
 export function getQuestionTypeTheme(
   question: Pick<Question, 'type'> & { game?: Question['game'] | null },
 ): QuestionTypeTheme {

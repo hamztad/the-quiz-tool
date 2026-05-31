@@ -1,3 +1,4 @@
+import type { GameId } from '../games/types.js';
 import type { Question, QuestionType } from '../types/room.js';
 
 const TYPE_DECOR_EMOJI: Record<QuestionType, string> = {
@@ -24,6 +25,17 @@ export function questionHasDecorImage(
   question: Pick<Question, 'media'>,
 ): boolean {
   return (question.media ?? []).some((item) => item.type === 'image' && item.url.trim().length > 0);
+}
+
+/** Emoji for spill i velger/lister (Regnerace race = 🏃). */
+export function getGameDecorEmoji(
+  gameId: GameId,
+  options?: { mathMode?: 'race' | 'single' },
+): string {
+  if (gameId === 'mathExpression') {
+    return options?.mathMode === 'single' ? GAME_DECOR_EMOJI.mathExpression! : MATH_RACE_DECOR_EMOJI;
+  }
+  return GAME_DECOR_EMOJI[gameId] ?? TYPE_DECOR_EMOJI.game;
 }
 
 /** Default emoji by question type (and game when relevant). */

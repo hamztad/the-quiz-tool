@@ -441,6 +441,8 @@ function MathExpressionTeamView({ room, question, teamId }: TeamGameViewProps) {
 
   return (
     <MathExpressionGame
+      key={question.id}
+      questionId={question.id}
       title={question.lines[0]?.text ?? (config.mode === 'race' ? 'Regnerace' : 'Løs regnestykket')}
       config={config}
       latestSingleAnswer={latestSingleAnswer}
