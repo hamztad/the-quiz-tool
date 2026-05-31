@@ -1,27 +1,27 @@
-/** Brukerrettet norsk — «deltaker», ikke «lag». */
+/** Brukerrettet norsk — «spiller» (én spiller per økt inntil lag støttes). */
 export const NB = {
-  participant: 'deltaker',
-  participants: 'deltakere',
-  participantName: 'deltakernavn',
-  participantPortal: 'Deltakerportal',
-  testParticipantName: 'Testdeltaker',
+  participant: 'spiller',
+  participants: 'spillere',
+  participantName: 'spillernavn',
+  participantPortal: 'Spillerportal',
+  testParticipantName: 'Testspiller',
 
-  participantNameRequired: 'Skriv inn et deltakernavn.',
-  participantNameTooLong: (max: number) => `Deltakernavnet er for langt (maks ${max} tegn).`,
-  participantNameTaken: 'Dette deltakernavnet er allerede i bruk i rommet. Velg et annet navn.',
+  participantNameRequired: 'Skriv inn et spillernavn.',
+  participantNameTooLong: (max: number) => `Spillernavnet er for langt (maks ${max} tegn).`,
+  participantNameTaken: 'Dette spillernavnet er allerede i bruk i rommet. Velg et annet navn.',
   reservedTestName:
-    'Dette navnet er reservert for testmodus. Velg et annet deltakernavn.',
-  maxParticipantsReached: 'Maks antall deltakere er nådd.',
-  participantNotFound: 'Deltakeren finnes ikke.',
-  participantRemoved: 'Gruizmaster har fjernet deltakeren fra Gruizen.',
+    'Dette navnet er reservert for testmodus. Velg et annet spillernavn.',
+  maxParticipantsReached: 'Maks antall spillere er nådd.',
+  participantNotFound: 'Spilleren finnes ikke.',
+  participantRemoved: 'Gruizmaster har fjernet spilleren fra Gruizen.',
   sessionInvalid:
-    'Kunne ikke koble til deltakeren igjen. Bli med på nytt med romkode og deltakernavn.',
-  joinLocked: 'Gruizmaster har stengt for nye deltakere.',
-  onlyParticipantRole: 'Kun deltakeren kan utføre denne handlingen.',
-  cannotGradeThisParticipant: 'Du kan ikke rette denne deltakeren.',
+    'Kunne ikke koble til spilleren igjen. Bli med på nytt med romkode og spillernavn.',
+  joinLocked: 'Gruizmaster har stengt for nye spillere.',
+  onlyParticipantRole: 'Kun spilleren kan utføre denne handlingen.',
+  cannotGradeThisParticipant: 'Du kan ikke rette denne spilleren.',
 
   peerGradingMinParticipants:
-    'Retterunde krever minst to deltakere. Med én deltaker er peer-retting deaktivert.',
+    'Retterunde krever minst to spillere. Med én spiller er peer-retting deaktivert.',
 } as const;
 
 export const RESERVED_TEST_PARTICIPANT_NAME = NB.testParticipantName;

@@ -32,7 +32,7 @@ export function ImageOnlyOptionsSetting({
       <span className="min-w-0 space-y-1">
         <span className="block text-sm font-semibold text-violet-950">Bruk kun bildene</span>
         <span className="block text-xs leading-relaxed text-violet-900/90">
-          Skjul tekst for deltakerne, men behold teksten som fasit/etikett.
+          Skjul tekst for spillerne, men behold teksten som fasit/etikett.
         </span>
       </span>
     </label>

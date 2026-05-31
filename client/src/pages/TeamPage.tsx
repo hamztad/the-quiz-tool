@@ -298,14 +298,14 @@ export function TeamPage() {
 
   if (reconnectFailed) {
     return (
-      <PageShell showBrand="compact" title="Deltaker" subtitle="Kunne ikke koble til igjen">
+      <PageShell showBrand="compact" title="Spiller" subtitle="Kunne ikke koble til igjen">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt Gruizmaster.
+            Vi fant ikke spillerøkten din. Bli med på nytt eller kontakt Gruizmaster.
           </p>
           <Link to="/join">
             <Button size="lg" className="w-full max-w-xs">
-              Gå til deltakerportalen
+              Gå til spillerportalen
             </Button>
           </Link>
         </div>
@@ -319,14 +319,14 @@ export function TeamPage() {
 
   if (noSession) {
     return (
-      <PageShell showBrand="compact" title="Deltaker" subtitle="Ingen deltakerøkt funnet">
+      <PageShell showBrand="compact" title="Spiller" subtitle="Ingen spillerøkt funnet">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt Gruizmaster.
+            Vi fant ikke spillerøkten din. Bli med på nytt eller kontakt Gruizmaster.
           </p>
           <Link to="/join">
             <Button size="lg" className="w-full max-w-xs">
-              Gå til deltakerportalen
+              Gå til spillerportalen
             </Button>
           </Link>
         </div>
@@ -338,13 +338,13 @@ export function TeamPage() {
     return (
       <PageShell
         showBrand="compact"
-        title="Deltaker"
-        subtitle={connected ? 'Kobler til deltakeren igjen…' : 'Kobler til server…'}
+        title="Spiller"
+        subtitle={connected ? 'Kobler til spilleren igjen…' : 'Kobler til server…'}
       >
         <div className="py-12 text-center space-y-3 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
             {connected
-              ? 'Henter quiz og deltakerdata. Innsendte svar ligger trygt på serveren.'
+              ? 'Henter quiz og spillerdata. Innsendte svar ligger trygt på serveren.'
               : 'Venter på nettverkstilkobling…'}
           </p>
           {operationalError && (
@@ -442,7 +442,7 @@ export function TeamPage() {
       <TeamResultsReviewView
         room={room}
         teamId={teamId}
-        teamName={myTeam?.name ?? 'Deltaker'}
+        teamName={myTeam?.name ?? 'Spiller'}
         onBack={closeOwnReview}
         backLabel={
           room.phase === 'grading' && assignment
@@ -457,7 +457,7 @@ export function TeamPage() {
     return (
       <TeamAnswerKeyView
         room={room}
-        teamName={myTeam?.name ?? 'Deltaker'}
+        teamName={myTeam?.name ?? 'Spiller'}
         onBack={() => {
           setSearchParams((current) => {
             const next = new URLSearchParams(current);
@@ -480,7 +480,7 @@ export function TeamPage() {
 
   if (intervalActive) {
     return (
-      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Intervall-quiz">
+      <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle="Intervall-quiz">
         <TeamIntervalQuiz
           room={room}
           teamId={teamId}
@@ -497,7 +497,7 @@ export function TeamPage() {
     return (
       <PageShell
         showBrand="compact"
-        title={myTeam?.name ?? 'Deltaker'}
+        title={myTeam?.name ?? 'Spiller'}
         subtitle={room.settings.teamsLockedOut ? 'Selvgående quiz · avsluttet' : 'Selvgående quiz'}
       >
         <TeamSelfPacedQuiz
@@ -514,7 +514,7 @@ export function TeamPage() {
 
   if (room.phase === 'post_quiz') {
     return (
-      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Gruizen er avsluttet">
+      <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle="Gruizen er avsluttet">
         {finalResultContent}
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
@@ -535,13 +535,13 @@ export function TeamPage() {
 
   if (room.phase === 'grading' && !assignment) {
     return (
-      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Retterunde">
+      <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle="Retterunde">
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Retterunde krever minst to deltakere. Gruizmaster må ha minst to deltakere og åpne
+            Retterunde krever minst to spillere. Gruizmaster må ha minst to spillere og åpne
             oppgaver for at peer-retting skal starte.
           </p>
         </Card>
@@ -555,7 +555,7 @@ export function TeamPage() {
         room={room}
         assignment={assignment}
         graderTeamId={teamId!}
-        teamName={myTeam?.name ?? 'Deltaker'}
+        teamName={myTeam?.name ?? 'Spiller'}
         error={operationalError}
         reviewHref={canReviewOwn ? reviewHref : undefined}
         answerKeyHref={canSeeAnswerKey ? answerKeyHref : undefined}
@@ -565,7 +565,7 @@ export function TeamPage() {
 
   if (room.phase === 'leaderboard' || room.settings.showLeaderboard) {
     return (
-      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Leaderboard">
+      <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle="Leaderboard">
         {!connected && (
           <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
             Kobler til igjen… Dine innsendte svar er lagret på serveren.
@@ -573,7 +573,7 @@ export function TeamPage() {
         )}
         {showRestoredMessage && (
           <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-900">
-            Du er koblet tilbake til deltakeren din.
+            Du er koblet tilbake til spilleren din.
           </div>
         )}
         {operationalError && (
@@ -593,7 +593,7 @@ export function TeamPage() {
   }
 
   return (
-    <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle={`Fase: ${room.phase}`}>
+    <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle={`Fase: ${room.phase}`}>
       {room.settings.testMode && roomId && (
         <TestModeParticipantBar
           editHref={`/host/${roomId}/edit`}
@@ -620,7 +620,7 @@ export function TeamPage() {
       )}
         {showRestoredMessage && (
           <div className="mb-4 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-900">
-            Du er koblet tilbake til deltakeren din.
+            Du er koblet tilbake til spilleren din.
           </div>
         )}
       {operationalError && (
@@ -818,7 +818,7 @@ export function TeamPage() {
                                   <span className="shrink-0 font-bold">#{result.rank}</span>
                                 )}
                                 <span className="min-w-0 flex-1 break-words">
-                                  {team?.name ?? 'Deltaker'}
+                                  {team?.name ?? 'Spiller'}
                                 </span>
                                 <span className="shrink-0 text-quiz-muted">
                                   {result.displayValue}

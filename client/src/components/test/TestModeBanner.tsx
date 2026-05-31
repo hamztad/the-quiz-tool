@@ -16,8 +16,8 @@ export function TestModeBanner({ hostDashboardHref, showHostLink = true }: TestM
     <div className={`mb-4 ${testModeAlertPanelClass}`}>
       <p className={testModeAlertTitleClass}>Testmodus</p>
       <p className={testModeAlertBodyClass}>
-        Du prøver Gruizen som testdeltaker. Poeng og svar tilhører testøkten — avslutt testmodus fra
-        Gruizmaster-panelet før ekte deltakere blir med.
+        Du prøver Gruizen som testspiller. Poeng og svar tilhører testøkten — avslutt testmodus fra
+        Gruizmaster-panelet før ekte spillere blir med.
       </p>
       {showHostLink && (
         <p className={testModeAlertBodyClass}>

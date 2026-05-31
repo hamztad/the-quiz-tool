@@ -37,7 +37,7 @@ export function HostOpenAnswerGradingPanel({ room }: HostOpenAnswerGradingPanelP
           Retting av åpne svar
         </p>
         <p className="mt-1 text-sm text-quiz-muted leading-relaxed">
-          Velg om åpne svar rettes av deltakerne (retterunde) eller av KI mot fasit. Du kan alltid
+          Velg om åpne svar rettes av spillerne (retterunde) eller av KI mot fasit. Du kan alltid
           overstyre poeng og behandle protester.
         </p>
       </div>
@@ -53,7 +53,7 @@ export function HostOpenAnswerGradingPanel({ room }: HostOpenAnswerGradingPanelP
               : 'border-indigo-200/70 bg-white text-quiz-muted'
           }`}
         >
-          Deltaker-retterunde
+          Spiller-retterunde
         </button>
         <button
           type="button"
@@ -90,7 +90,7 @@ export function HostOpenAnswerGradingPanel({ room }: HostOpenAnswerGradingPanelP
           )}
           {aiDone && (
             <p className="text-sm font-semibold text-green-800">
-              KI-retting fullført. Åpne gjennomgang for deltakere når du er klar.
+              KI-retting fullført. Åpne gjennomgang for spillere når du er klar.
             </p>
           )}
           {aiError && (
@@ -112,7 +112,7 @@ export function HostOpenAnswerGradingPanel({ room }: HostOpenAnswerGradingPanelP
           )}
           {aiDone && room.aiGrades.length > 0 && (
             <p className="text-xs text-cyan-900">
-              {room.aiGrades.length} vurderinger lagret — se begrunnelse under hver deltaker.
+              {room.aiGrades.length} vurderinger lagret — se begrunnelse under hver spiller.
             </p>
           )}
         </div>

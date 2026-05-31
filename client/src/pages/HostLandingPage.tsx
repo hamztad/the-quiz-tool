@@ -45,7 +45,7 @@ export function HostLandingPage() {
       <div className="w-full min-w-0 max-w-full space-y-4">
         <p className="rounded-2xl border border-violet-200/50 bg-violet-50/60 px-4 py-3 text-sm sm:text-base text-quiz-muted leading-relaxed break-words">
           Velg hvordan du vil bygge Gruizen. QR-kode og romkode vises når du er klar til å invitere
-          deltakerne.
+          spillerne.
         </p>
 
         <HostSetupCard
@@ -93,14 +93,14 @@ export function HostLandingPage() {
         <HostActiveSessionsPanel connected={connected} />
 
         <p className="text-center text-sm text-quiz-muted pt-2">
-          Skal du delta som deltaker?{' '}
+          Skal du delta som spiller?{' '}
           <Link
             to="/join"
             target="_blank"
             rel="noopener noreferrer"
             className="font-bold text-cyan-700 hover:text-cyan-900 underline-offset-2 hover:underline"
           >
-            👥 Deltakerportal (ny fane)
+            👥 Spillerportal (ny fane)
           </Link>
         </p>
 

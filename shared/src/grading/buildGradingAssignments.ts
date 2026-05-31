@@ -111,7 +111,7 @@ export function canStartPeerGrading(
     return {
       ok: false,
       message:
-        'Retterunde krever minst to deltakere. Med én deltaker er peer-retting deaktivert.',
+        'Retterunde krever minst to spillere. Med én spiller er peer-retting deaktivert.',
     };
   }
   if (openQuestionCount === 0) {

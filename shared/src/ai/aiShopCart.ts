@@ -10,6 +10,9 @@ import {
 } from './aiQuizTypes.js';
 import type { AiShopSlot } from './aiQuizTypes.js';
 
+/** Én Regnerace-oppgave — spill genererer regnestykker underveis. */
+export const REGNERACE_ONLY_SLOTS: AiShopSlot[] = [{ type: 'game', gameId: 'mathExpression' }];
+
 /** Forhåndsdefinert kurv tilsvarende tidligere «quizpakke» (5 oppgaver). */
 export const QUIZ_PACKAGE_PRESET_SLOTS: AiShopSlot[] = [
   { type: 'open' },

@@ -1,4 +1,4 @@
-import { ROOM_ERROR_CODES, type ServerErrorPayload } from '@quiz-tool/shared';
+import { NB, ROOM_ERROR_CODES, type ServerErrorPayload } from '@quiz-tool/shared';
 
 export type RoomUnavailableReason = 'not_found' | 'ended' | 'expired' | 'removed';
 
@@ -27,8 +27,8 @@ const ROOM_UNAVAILABLE_COPY: Record<RoomUnavailableReason, RoomUnavailableConten
     icon: 'unavailable',
   },
   removed: {
-    title: 'Deltakeren er fjernet',
-    description: 'Gruizmaster har fjernet deltakeren fra Gruizen.',
+    title: 'Spilleren er fjernet',
+    description: NB.participantRemoved,
     icon: 'unavailable',
   },
 };

@@ -736,7 +736,7 @@ export function HostEditPage() {
         <p className="mb-4 rounded-xl border border-violet-300/60 bg-violet-50 px-4 py-3 text-sm text-violet-950 break-words">
           Gruizen kjører. Du kan rette feil i <strong>lukkede</strong> spørsmål — åpne spørsmål må
           lukkes først. Etter endring: bruk knappen nedenfor, gå tilbake og åpne spørsmålet på nytt
-          for deltakerne.
+          for spillerne.
         </p>
       )}
 

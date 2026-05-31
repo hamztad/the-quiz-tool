@@ -240,7 +240,7 @@ export function HostQuestionEditorCard({
         <div className="px-3 pb-3 pt-1 space-y-3 border-t border-quiz-border/80 bg-quiz-bg/40 min-w-0 max-w-full overflow-x-hidden">
           {readOnly && (
             <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
-              Dette spørsmålet er åpent for deltakerne og kan ikke redigeres. Lukk det først — deretter
+              Dette spørsmålet er åpent for spillerne og kan ikke redigeres. Lukk det først — deretter
               kan du rette og åpne på nytt.
             </p>
           )}
@@ -739,7 +739,7 @@ function GameQuestionEditor({
         <div>
           <p className="text-xs font-semibold text-fuchsia-200">Spill: Rainbow Puzzle</p>
           <p className="mt-1 text-xs text-quiz-muted">
-            Lagene spiller et fargerikt 5x5-brett. Høyeste poengsum vinner.
+            Spillerne spiller et fargerikt 5x5-brett. Høyeste poengsum vinner.
           </p>
         </div>
         {showRankedBands ? (
@@ -793,7 +793,7 @@ function GameQuestionEditor({
         <div>
           <p className="text-xs font-semibold text-sky-200">Spill: Emoji-jakt</p>
           <p className="mt-1 text-xs text-quiz-muted">
-            Lagene finner målemojier raskest mulig. Laveste tid vinner.
+            Spillerne finner målemojier raskest mulig. Laveste tid vinner.
           </p>
           {performanceScoring && config.targetCount < 3 ? (
             <p className="mt-2 text-xs font-medium text-amber-900">
@@ -894,7 +894,7 @@ function GameQuestionEditor({
         <div>
           <p className="text-xs font-semibold text-emerald-200">Spill: Drop the Ball</p>
           <p className="mt-1 text-xs text-quiz-muted">
-            Lagene fjerner hindre og samler mynter. Høyeste totalscore vinner.
+            Spillerne fjerner hindre og samler mynter. Høyeste totalscore vinner.
           </p>
         </div>
         <label className="block min-w-0">
@@ -957,7 +957,7 @@ function GameQuestionEditor({
       <div className="rounded-lg border border-amber-500/40 bg-amber-500/15 p-3 space-y-2 min-w-0 max-w-full">
         <p className="text-xs font-semibold text-amber-950">Legacy: Anagram (støttes ikke lenger)</p>
         <p className="text-xs text-amber-900 leading-relaxed">
-          Slett oppgaven og legg til et annet spill. Deltakere ser en melding om at typen er
+          Slett oppgaven og legg til et annet spill. Spillere ser en melding om at typen er
           avviklet.
         </p>
         {config.scrambledText ? (
@@ -1083,7 +1083,7 @@ function GameQuestionEditor({
       <div>
         <p className="text-xs font-semibold text-blue-200">Spill: Stopp klokka</p>
         <p className="mt-1 text-xs text-quiz-muted">
-          Lagene stopper klokka nærmest mulig måltiden. Nærmest vinner når spørsmålet låses.
+          Spillerne stopper klokka nærmest mulig måltiden. Nærmest vinner når spørsmålet låses.
         </p>
       </div>
 

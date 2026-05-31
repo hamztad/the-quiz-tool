@@ -84,7 +84,7 @@ export function PeerGradingView({
           className="mb-4 block w-full rounded-2xl border-2 border-quiz-accent/50 bg-quiz-accent/10 p-4 text-left transition-colors hover:bg-quiz-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-quiz-accent"
         >
           <p className="text-sm font-semibold text-quiz-text mb-2">
-            Gruizmaster har åpnet gjennomgang for deltakere.
+            Gruizmaster har åpnet gjennomgang for spillere.
           </p>
           <span className="box-border inline-flex min-h-[40px] w-full max-w-full min-w-0 items-center justify-center rounded-xl bg-quiz-accent px-3 py-2 text-center text-sm font-medium text-white sm:w-auto">
             Se egne svar og poeng
@@ -139,7 +139,7 @@ export function PeerGradingView({
       </div>
 
       <p className="text-sm text-quiz-muted mb-5 leading-relaxed">
-        Sammenlign deltakerens svar med godkjente svar, og trykk poengknappen som passer. MC rettes
+        Sammenlign spillerens svar med godkjente svar, og trykk poengknappen som passer. MC rettes
         automatisk.
       </p>
 

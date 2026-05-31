@@ -53,7 +53,7 @@ function acceptedAnswersText(question: Question): string {
 function buildGradePrompt(question: Question, participantAnswer: string, maxPoints: number): string {
   const prompt = questionPromptText(question);
   const hint = question.hint?.trim();
-  return `Du er en rettferdig quizdommer for et live quiz-show (Gruiz). Vurder deltakerens åpne svar.
+  return `Du er en rettferdig quizdommer for et live quiz-show (Gruiz). Vurder spillerens åpne svar.
 
 VIKTIG:
 - Sammenlign mening og innhold med godkjente svar og oppgaven — IKKE bare bokstav-for-bokstav.
@@ -72,7 +72,7 @@ ${acceptedAnswersText(question)}
 
 Maks poeng: ${maxPoints}
 
-Deltakerens svar:
+Spillerens svar:
 ${participantAnswer}`;
 }
 

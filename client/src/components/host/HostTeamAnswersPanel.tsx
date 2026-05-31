@@ -193,7 +193,7 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                   <section className="rounded-xl border border-quiz-border/80 bg-quiz-bg/40 overflow-hidden min-w-0">
                     <div className="border-b border-quiz-border/80 px-3 py-2">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
-                        Lagets svar
+                        Spillerens svar
                       </h3>
                     </div>
                     <p className="px-3 py-3 text-base font-medium text-quiz-text quiz-user-text break-words [overflow-wrap:anywhere]">
@@ -230,7 +230,7 @@ export function HostTeamAnswersPanel({ room, teamId, onClose }: HostTeamAnswersP
                         Protest
                       </p>
                       <p className="text-sm text-quiz-text mt-1 break-words [overflow-wrap:anywhere]">
-                        {protest.message?.trim() || 'Deltaker har sendt protest på denne oppgaven.'}
+                        {protest.message?.trim() || 'Spiller har sendt protest på denne oppgaven.'}
                       </p>
                     </section>
                   )}

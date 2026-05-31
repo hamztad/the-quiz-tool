@@ -21,7 +21,7 @@ import {
 } from '../services/imageProviders/index.js';
 
 const DIFFICULTIES = new Set<AiQuizDifficulty>(['easy', 'medium', 'hard']);
-const MODES = new Set<AiShopMode>(['instant', 'cart']);
+const MODES = new Set<AiShopMode>(['instant', 'cart', 'regnerace']);
 const BUILTIN_GAME_IDS = new Set(builtInGames.map((g) => g.id));
 const SLOT_TYPES = new Set(['open', 'mc', 'ordering', 'game']);
 

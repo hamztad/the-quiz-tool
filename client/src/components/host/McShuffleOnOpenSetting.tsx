@@ -34,7 +34,7 @@ export function McShuffleOnOpenSetting({
           Bland alternativer ved hver åpning
         </span>
         <span className="block text-xs leading-relaxed text-emerald-900/90">
-          Deltakerne får ny tilfeldig rekkefølge hver gang du åpner spørsmålet. Fasit og
+          Spillerne får ny tilfeldig rekkefølge hver gang du åpner spørsmålet. Fasit og
           Gruizmaster-rekkefølge i editoren endres ikke.
         </span>
       </span>

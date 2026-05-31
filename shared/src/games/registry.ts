@@ -47,7 +47,7 @@ export const builtInGames: BuiltInGameDefinition[] = [
   {
     id: 'timerChallenge',
     label: 'Stopp klokka',
-    description: 'Lagene stopper en klokke så nær en måltid som mulig.',
+    description: 'Spillerne stopper en klokke så nær en måltid som mulig.',
     createDefaultConfig: createDefaultTimerChallengeConfig,
   },
 ];

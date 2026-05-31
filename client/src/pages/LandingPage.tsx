@@ -16,7 +16,7 @@ export function LandingPage() {
   return (
     <PageShell
       showBrand="hero"
-      subtitle="Live show med oppgaver og spill — for Gruizmaster og deltakere"
+      subtitle="Live show med oppgaver og spill — for Gruizmaster og spillere"
       wide
     >
       <div className="w-full min-w-0 max-w-full space-y-5 sm:space-y-6">
@@ -40,13 +40,13 @@ export function LandingPage() {
             </span>
             <p className="quiz-display text-2xl font-bold text-quiz-text sm:text-3xl">Gruizmaster</p>
             <p className="mt-2 text-base text-quiz-muted leading-relaxed">
-              Lag Gruizen, inviter deltakere og kjør live — som en ekte gameshow-vert.
+              Lag Gruizen, inviter spillere og kjør live — som en ekte gameshow-vert.
             </p>
             <span className="mt-5 inline-flex items-center gap-2 text-base font-bold text-violet-700 group-hover:gap-3 transition-all">
               Åpne kontrollrom
               <span aria-hidden>→</span>
             </span>
-            <p className="mt-2 text-xs text-quiz-muted">Åpnes i ny fane — du kan bli her som deltaker</p>
+            <p className="mt-2 text-xs text-quiz-muted">Åpnes i ny fane — du kan bli her som spiller</p>
           </a>
 
           <div
@@ -59,7 +59,7 @@ export function LandingPage() {
             >
               👥
             </span>
-            <p className="quiz-display text-2xl font-bold text-quiz-text sm:text-3xl">Deltaker</p>
+            <p className="quiz-display text-2xl font-bold text-quiz-text sm:text-3xl">Spiller</p>
             <p className="mt-2 text-base text-quiz-muted leading-relaxed">
               Skann QR-koden eller skriv romkode og navn — så er du med i Gruizen.
             </p>
@@ -92,7 +92,7 @@ export function LandingPage() {
               to="/join"
               className="mt-3 block text-center text-sm font-semibold text-cyan-700 hover:text-cyan-900 underline-offset-2 hover:underline"
             >
-              Eller gå til deltakerportalen →
+              Eller gå til spillerportalen →
             </Link>
           </div>
         </div>

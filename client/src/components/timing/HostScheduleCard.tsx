@@ -384,13 +384,13 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
             </div>
             {deliveryMode === 'self_paced' && (
               <p className="mt-2 text-xs text-cyan-900/90 rounded-lg bg-cyan-50 border border-cyan-200/60 px-3 py-2">
-                Krever sluttid. Spill er åpne til frist; andre oppgaver låses for hver deltaker ved
-                innsending. Deltakere ser midlertidig leaderboard underveis.
+                Krever sluttid. Spill er åpne til frist; andre oppgaver låses for hver spiller ved
+                innsending. Spillere ser midlertidig leaderboard underveis.
               </p>
             )}
             {deliveryMode === 'interval' && (
               <p className="mt-2 text-xs text-indigo-900/90 rounded-lg bg-indigo-50 border border-indigo-200/60 px-3 py-2">
-                Krever sluttid. Hver oppgave får et tidsvindu; deltakere ser ÅPEN / STENGT og
+                Krever sluttid. Hver oppgave får et tidsvindu; spillere ser ÅPEN / STENGT og
                 nedtelling. Varsler kan slås på ved oppgaveåpning.
               </p>
             )}

@@ -86,7 +86,7 @@ export function startTeamGame(
     throw new Error('Endelig resultat er låst.');
   }
   if (room.settings.teamsLockedOut) {
-    throw new Error('Gruizen er avsluttet for deltakere.');
+    throw new Error('Gruizen er avsluttet for spillere.');
   }
 
   if (!isSelfPacedQuiz(room.schedule) && room.questionStatus[questionId] !== 'open') {
@@ -130,7 +130,7 @@ export function submitGameResult(
     throw new Error('Endelig resultat er låst.');
   }
   if (room.settings.teamsLockedOut) {
-    throw new Error('Gruizen er avsluttet for deltakere.');
+    throw new Error('Gruizen er avsluttet for spillere.');
   }
 
   if (!isSelfPacedQuiz(room.schedule) && room.questionStatus[questionId] !== 'open') {

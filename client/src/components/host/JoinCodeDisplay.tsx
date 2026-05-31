@@ -21,7 +21,7 @@ export function JoinCodeDisplay({ joinCode, joinUrl }: JoinCodeDisplayProps) {
       <div className="flex flex-col w-full min-w-0">
         <section
           className="flex flex-col items-center rounded-xl border border-quiz-border/70 bg-quiz-bg/70 px-5 py-8 sm:py-10"
-          aria-label="QR-kode for deltakere"
+          aria-label="QR-kode for spillere"
         >
           <p className="text-xs font-semibold uppercase tracking-widest text-quiz-muted mb-5">
             Skann for å bli med
@@ -53,11 +53,11 @@ export function JoinCodeDisplay({ joinCode, joinUrl }: JoinCodeDisplayProps) {
           aria-label="Romkode"
         >
           <GruizMark size="sm" tagline={false} className="mb-2 items-center [&_.gruiz-mark-dot]:hidden [&_.gruiz-mark-sparkle]:hidden" />
-          <p className="text-sm text-quiz-muted mb-2">Romkode for deltakere</p>
+          <p className="text-sm text-quiz-muted mb-2">Romkode for spillere</p>
           <p className="text-2xl sm:text-3xl font-bold tracking-wide text-quiz-accent break-words [overflow-wrap:anywhere] px-1">
             {joinCode}
           </p>
-          <p className="text-xs text-quiz-muted mt-3">Skriv inn på deltakerportalen hvis dere ikke bruker QR</p>
+          <p className="text-xs text-quiz-muted mt-3">Skriv inn på spillerportalen hvis dere ikke bruker QR</p>
         </section>
 
         <div className="mt-6 flex flex-col items-center gap-2">

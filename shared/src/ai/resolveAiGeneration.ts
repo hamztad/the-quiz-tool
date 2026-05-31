@@ -1,5 +1,5 @@
 import { buildInstantSlots, pickInstantTopic, AI_SHOP_INSTANT_QUESTION_COUNT } from './aiShopInstantPlan.js';
-import { validateCartSlots } from './aiShopCart.js';
+import { REGNERACE_ONLY_SLOTS, validateCartSlots } from './aiShopCart.js';
 import type { AiGenerateQuizRequest, AiShopSlot } from './aiQuizTypes.js';
 import { clampAiQuestionCount } from './parseAiQuizJson.js';
 
@@ -14,6 +14,19 @@ export function resolveAiGeneration(
   request: AiGenerateQuizRequest,
   random: () => number = Math.random,
 ): { ok: true; resolved: ResolvedAiGeneration } | { ok: false; errors: string[] } {
+  if (request.mode === 'regnerace') {
+    const topic = request.topic.trim() || pickInstantTopic(random);
+    return {
+      ok: true,
+      resolved: {
+        mode: 'cart',
+        topic,
+        questionCount: 1,
+        slots: REGNERACE_ONLY_SLOTS,
+      },
+    };
+  }
+
   if (request.mode === 'instant') {
     const topic = request.topic.trim() || pickInstantTopic(random);
     return {

@@ -47,7 +47,7 @@ export function submitOrUpdateAnswer(
     throw new Error('Endelig resultat er låst.');
   }
   if (room.settings.teamsLockedOut) {
-    throw new Error('Gruizen er avsluttet for deltakere.');
+    throw new Error('Gruizen er avsluttet for spillere.');
   }
 
   const selfPaced = isSelfPacedQuiz(room.schedule);

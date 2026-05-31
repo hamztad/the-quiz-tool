@@ -16,17 +16,17 @@ export function HostTeamList({
   onSelectTeam,
   selectedTeamId = null,
   showAnswerStats = false,
-  emptyHint = 'Venter på deltakere…',
+  emptyHint = 'Venter på spillere…',
 }: HostTeamListProps) {
   const canOpenTeam = Boolean(onSelectTeam);
 
   return (
     <Card className="min-w-0">
-      <h2 className="font-semibold">Deltakere ({room.teams.length})</h2>
+      <h2 className="font-semibold">Spillere ({room.teams.length})</h2>
       <p className="text-xs text-quiz-muted mt-1 mb-3">
         {canOpenTeam
-          ? 'Trykk på deltakernavn for besvarelser og poeng. × kaster ut deltakere som har forlatt.'
-          : 'Trykk × for å kaste ut en deltaker som har forlatt eller ikke skal være med.'}
+          ? 'Trykk på spillernavn for besvarelser og poeng. × kaster ut spillere som har forlatt.'
+          : 'Trykk × for å kaste ut en spiller som har forlatt eller ikke skal være med.'}
       </p>
       <ul className="space-y-2">
         {room.teams.map((team) => {

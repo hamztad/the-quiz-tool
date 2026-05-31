@@ -24,7 +24,7 @@ export const hostStatusLabels: Record<HostQuestionDisplayStatus, string> = {
 };
 
 export const hostStatusDescriptions: Record<HostQuestionDisplayStatus, string> = {
-  draft: 'Ikke synlig for deltakere ennå — fyll ut og bruk endringene',
-  active: 'Deltakere kan svare nå',
-  locked: 'Låst for deltakere — du styrer når den åpnes',
+  draft: 'Ikke synlig for spillere ennå — fyll ut og bruk endringene',
+  active: 'Spillere kan svare nå',
+  locked: 'Låst for spillere — du styrer når den åpnes',
 };

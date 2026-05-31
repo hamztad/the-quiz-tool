@@ -75,7 +75,7 @@ export function PeerGradingQuestionCard({
         <section className="rounded-xl border-2 border-quiz-border/80 bg-quiz-surface-elevated/80 overflow-hidden min-w-0 max-w-full">
           <div className="border-b border-quiz-border/80 bg-quiz-bg/50 px-4 py-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-quiz-muted">
-              Lagets svar
+              Spillerens svar
             </h3>
           </div>
           <p className="px-4 py-4 text-lg sm:text-xl font-semibold text-quiz-text leading-snug quiz-user-text">

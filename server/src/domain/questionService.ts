@@ -11,7 +11,7 @@ export interface OpenQuestionOptions {
 function assertCanOpenQuestion(room: RoomRecord, options?: OpenQuestionOptions): void {
   if (room.settings.teamsLockedOut && !options?.allowWhenTeamsLockedOut) {
     throw new Error(
-      'Gruizen er avsluttet for deltakere. Bruk «Tving åpne» for å åpne spørsmål igjen.',
+      'Gruizen er avsluttet for spillere. Bruk «Tving åpne» for å åpne spørsmål igjen.',
     );
   }
   if (room.settings.finalResultLocked) {

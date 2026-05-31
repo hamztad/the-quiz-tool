@@ -37,14 +37,14 @@ export function HostTestModeControls({
         <div>
           <p className={testModeAlertTitleClass}>Testmodus er aktiv</p>
           <p className={`mt-1 ${testModeAlertBodyClass}`}>
-            Alle oppgaver er åpne. Styr Gruizen her eller svar i deltakervisningen — der finner du
+            Alle oppgaver er åpne. Styr Gruizen her eller svar i spillervisningen — der finner du
             knapper tilbake til redigering og for å avslutte test.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Link to={teamPageHref} className="w-full sm:w-auto">
             <Button type="button" variant="secondary" className="w-full">
-              Åpne deltakervisning
+              Åpne spillervisning
             </Button>
           </Link>
           <Button
@@ -66,8 +66,8 @@ export function HostTestModeControls({
       <div>
         <p className="text-sm font-semibold text-quiz-text">Prøv Gruizen</p>
         <p className="mt-1 text-xs text-quiz-muted leading-relaxed">
-          Oppretter én testdeltaker, setter Gruizen i gang og åpner alle oppgaver automatisk, slik at du
-          kan prøve hele opplegget uten ekte deltakere.
+          Oppretter én testspiller, setter Gruizen i gang og åpner alle oppgaver automatisk, slik at du
+          kan prøve hele opplegget uten ekte spillere.
         </p>
       </div>
       <Button

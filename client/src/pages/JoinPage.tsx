@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   CLIENT_EVENTS,
+  NB,
   ROOM_ERROR_CODES,
   SERVER_EVENTS,
   validateTeamName,
@@ -111,12 +112,10 @@ export function JoinPage() {
         return;
       }
       if (e.code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {
-        setError(
-          'Gruizmaster har stengt for nye deltakere. Hvis du allerede er med, bruk Fortsett-knappen.',
-        );
+        setError(`${NB.joinLocked} Hvis du allerede er med, bruk Fortsett-knappen.`);
         return;
       }
-      setError('Kunne ikke bli med. Sjekk romkoden og deltakernavnet, eller be om en ny invitasjon.');
+      setError(`Kunne ikke bli med. Sjekk romkoden og ${NB.participantName.toLowerCase()}, eller be om en ny invitasjon.`);
     });
 
     socket.emit(
@@ -140,7 +139,7 @@ export function JoinPage() {
         if (res && 'ok' in res && res.ok === false) {
           setLoading(false);
           if (res.code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {
-            setError('Gruizmaster har stengt for nye deltakere.');
+            setError(NB.joinLocked);
           }
           return;
         }
@@ -155,8 +154,8 @@ export function JoinPage() {
       emoji="👥"
       subtitle={
         hasPresetCode
-          ? 'Skriv deltakernavn — du er koblet til riktig rom'
-          : 'Skriv romkode og deltakernavn for å bli med'
+          ? `Skriv ${NB.participantName.toLowerCase()} — du er koblet til riktig rom`
+          : `Skriv romkode og ${NB.participantName.toLowerCase()} for å bli med`
       }
     >
       <div className="flex w-full min-w-0 max-w-full flex-col items-center space-y-6 quiz-animate-in">
@@ -180,15 +179,15 @@ export function JoinPage() {
           <div className="w-full rounded-3xl border-2 border-violet-300/60 bg-gradient-to-br from-violet-50 to-fuchsia-50/80 p-6 text-center shadow-lg">
             <p className="text-sm font-semibold text-quiz-muted">Du er allerede med i denne Gruizen som</p>
             <p className="mt-2 text-2xl font-black text-quiz-text break-words [overflow-wrap:anywhere]">
-              {storedTeamSession?.teamName ?? 'deltakeren din'}
+              {storedTeamSession?.teamName ?? 'spilleren din'}
             </p>
             <p className="mt-3 text-sm text-quiz-muted leading-relaxed">
-              Fortsett her for å unngå dobbelt deltaker. Svar, poeng og spillforsøk blir hentet
+              Fortsett her for å unngå dobbelt spiller. Svar, poeng og spillforsøk blir hentet
               tilbake.
             </p>
             <div className="mt-5 space-y-2">
               <Button type="button" size="lg" className="w-full min-h-[52px]" onClick={continueExistingTeam}>
-                Fortsett som eksisterende deltaker
+                Fortsett som eksisterende spiller
               </Button>
               <Button
                 type="button"
@@ -199,7 +198,7 @@ export function JoinPage() {
                   setForceNewTeam(false);
                 }}
               >
-                Bytt deltaker
+                Bytt spiller
               </Button>
               <Button
                 type="button"
@@ -210,7 +209,7 @@ export function JoinPage() {
                   setForceNewTeam(true);
                 }}
               >
-                Opprett ny deltaker likevel
+                Opprett ny spiller likevel
               </Button>
             </div>
           </div>
@@ -218,14 +217,14 @@ export function JoinPage() {
           <>
         {storedTeamSession && storedSessionMatchesRoom && overrideExistingSession && (
           <div className="w-full rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
-            Denne enheten deltar allerede i Gruizen. Fortsett eksisterende deltaker hvis du ikke
-            bevisst lager en ekstra deltaker.
+            Denne enheten deltar allerede i Gruizen. Fortsett eksisterende spiller hvis du ikke
+            bevisst lager en ekstra spiller.
           </div>
         )}
 
         <div className="w-full space-y-2">
           <label htmlFor="team-name" className="text-sm font-semibold text-quiz-text block text-center sm:text-left">
-            Deltakernavn
+            {NB.participantName}
           </label>
           <div className="flex w-full min-w-0 gap-2 items-stretch">
             <Input
@@ -246,8 +245,8 @@ export function JoinPage() {
               variant="secondary"
               className="shrink-0 min-h-[52px] min-w-[52px] px-3 text-xl"
               onClick={() => setTeamName(suggestParticipantName())}
-              title="Foreslå et tilfeldig deltakernavn"
-              aria-label="Foreslå et tilfeldig deltakernavn"
+              title={`Foreslå et tilfeldig ${NB.participantName.toLowerCase()}`}
+              aria-label={`Foreslå et tilfeldig ${NB.participantName.toLowerCase()}`}
             >
               🎲
             </Button>
@@ -281,7 +280,7 @@ export function JoinPage() {
         )}
 
         <Button size="lg" variant="success" className="w-full min-h-[56px] text-lg" onClick={join} disabled={!connected || loading}>
-          {loading ? 'Kobler til…' : forceNewTeam ? '✨ Opprett ny deltaker' : '🎮 Bli med i quiz'}
+          {loading ? 'Kobler til…' : forceNewTeam ? '✨ Opprett ny spiller' : '🎮 Bli med i quiz'}
         </Button>
           </>
         )}

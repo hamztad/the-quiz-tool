@@ -361,7 +361,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       disconnectRemovedTeam(io, roomId, payload.teamId);
       publishRoomState(io, roomId);
     } catch (e) {
-      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke fjerne deltaker');
+      emitError(socket, e instanceof Error ? e.message : 'Kunne ikke fjerne spiller');
     }
   });
 

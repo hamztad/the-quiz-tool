@@ -186,7 +186,7 @@ export function HostDashboardPage() {
   const endQuizForTeams = () => {
     if (
       !window.confirm(
-        'Avslutte Gruizen for deltakerne? Du kan fortsatt se resultater, fasit og eksportere etterpå.',
+        'Avslutte Gruizen for spillerne? Du kan fortsatt se resultater, fasit og eksportere etterpå.',
       )
     ) {
       return;
@@ -198,7 +198,7 @@ export function HostDashboardPage() {
     requestLeave(() => {
       if (
         !window.confirm(
-          'Lukke Gruizmaster-økten helt? Rommet forsvinner og deltakere kan ikke koble til igjen.',
+          'Lukke Gruizmaster-økten helt? Rommet forsvinner og spillere kan ikke koble til igjen.',
         )
       ) {
         return;
@@ -216,7 +216,7 @@ export function HostDashboardPage() {
         : '';
     if (
       !window.confirm(
-        `Kaste ut «${teamName}»?${gradingNote}\n\nLagets svar og poeng fjernes.`,
+        `Kaste ut «${teamName}»?${gradingNote}\n\nSpillerens svar og poeng fjernes.`,
       )
     ) {
       return;
@@ -283,14 +283,14 @@ export function HostDashboardPage() {
 
       {room.settings.teamsLockedOut && (
         <p className="mb-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Gruizen er avsluttet for deltakere. Bruk «Tving åpne» på et spørsmål for å åpne igjen
+          Gruizen er avsluttet for spillere. Bruk «Tving åpne» på et spørsmål for å åpne igjen
           manuelt.
         </p>
       )}
 
       {isPostQuiz && (
         <p className="mb-4 rounded-xl border border-quiz-border bg-quiz-surface/60 px-4 py-3 text-sm text-quiz-muted break-words">
-          Gruizen er avsluttet for deltakerne. Du kan fortsatt se resultater, fasit og eksportere
+          Gruizen er avsluttet for spillerne. Du kan fortsatt se resultater, fasit og eksportere
           Gruizen.
         </p>
       )}
@@ -383,7 +383,7 @@ export function HostDashboardPage() {
                     })
                   }
                 >
-                  {room.settings.teamReviewOpen ? 'Lukk gjennomgang' : 'Åpne gjennomgang for deltakere'}
+                  {room.settings.teamReviewOpen ? 'Lukk gjennomgang' : 'Åpne gjennomgang for spillere'}
                 </Button>
               )}
               <Button
@@ -396,20 +396,20 @@ export function HostDashboardPage() {
                   })
                 }
               >
-                {room.settings.answerKeyOpen ? 'Skjul fasit for deltakere' : 'Vis fasit for deltakere'}
+                {room.settings.answerKeyOpen ? 'Skjul fasit for spillere' : 'Vis fasit for spillere'}
               </Button>
             </div>
           )}
 
           {room.settings.teamReviewOpen && (
             <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-900">
-              Deltakerne kan nå se egne svar og poeng.
+              Spillerne kan nå se egne svar og poeng.
             </p>
           )}
 
           {room.settings.answerKeyOpen && (
             <p className="rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-900">
-              Lagene kan nå se fasit.
+              Spillerne kan nå se fasit.
             </p>
           )}
 
@@ -493,13 +493,13 @@ export function HostDashboardPage() {
                 })
               }
             >
-              {room.settings.allowNewTeams ? 'Steng for nye deltakere' : 'Åpne for nye deltakere'}
+              {room.settings.allowNewTeams ? 'Steng for nye spillere' : 'Åpne for nye spillere'}
             </Button>
           </div>
 
           {!room.settings.allowNewTeams && (
             <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
-              Nye deltakere er stengt. Eksisterende deltakere kan fortsatt koble til igjen.
+              Nye spillere er stengt. Eksisterende spillere kan fortsatt koble til igjen.
             </p>
           )}
 
@@ -515,7 +515,7 @@ export function HostDashboardPage() {
 
           {isPerformanceScoringMode(room.settings) ? (
             <p className="rounded-xl border border-amber-300/60 bg-amber-50/90 px-4 py-2.5 text-sm font-semibold text-amber-950">
-              Poengmodus: Prestasjonspoeng — leaderboard viser prestasjonssum per lag.
+              Poengmodus: Prestasjonspoeng — leaderboard viser prestasjonssum per spiller.
             </p>
           ) : (
             <p className="rounded-xl border border-violet-200/60 bg-violet-50/80 px-4 py-2.5 text-sm font-semibold text-violet-950">
@@ -536,8 +536,8 @@ export function HostDashboardPage() {
 
           {!teamsSeeLeaderboard && room.phase === 'live' && (
             <p className="text-xs text-quiz-muted break-words">
-              Deltakerne ser ikke leaderboard ennå — trykk «Vis leaderboard» når du vil vise
-              poengstillingen til deltakerne.
+              Spillerne ser ikke leaderboard ennå — trykk «Vis leaderboard» når du vil vise
+              poengstillingen til spillerne.
             </p>
           )}
 
@@ -557,7 +557,7 @@ export function HostDashboardPage() {
                 Lås sluttresultat?
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-quiz-muted">
-                Dette låser sluttresultatet. Lagene får se endelig plassering, og vinneren får en
+                Dette låser sluttresultatet. Spillerne får se endelig plassering, og vinneren får en
                 vinnerplakat.
               </p>
               <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -645,7 +645,7 @@ export function HostDashboardPage() {
                           </p>
                         )}
                         <p className="text-xs text-quiz-muted mt-3 mb-2">
-                          {answeredCount}/{room.teams.length} deltakere har svart
+                          {answeredCount}/{room.teams.length} spillere har svart
                         </p>
                         {q.type === 'game' && <HostGameResults room={room} question={q} />}
                         {room.phase === 'live' && (() => {

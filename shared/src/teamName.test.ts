@@ -13,17 +13,17 @@ describe('validateTeamName', () => {
   });
 
   it('rejects empty names after trim', () => {
-    expect(validateTeamName('   ')).toEqual({ ok: false, message: 'Skriv inn et deltakernavn.' });
+    expect(validateTeamName('   ')).toEqual({ ok: false, message: 'Skriv inn et spillernavn.' });
   });
 
-  it('reserves Testdeltaker for test mode', () => {
-    expect(validateTeamName('Testdeltaker')).toEqual({
+  it('reserves Testspiller for test mode', () => {
+    expect(validateTeamName('Testspiller')).toEqual({
       ok: false,
-      message: 'Dette navnet er reservert for testmodus. Velg et annet deltakernavn.',
+      message: 'Dette navnet er reservert for testmodus. Velg et annet spillernavn.',
     });
-    expect(validateTeamName('Testdeltaker', { allowReservedTestName: true })).toEqual({
+    expect(validateTeamName('Testspiller', { allowReservedTestName: true })).toEqual({
       ok: true,
-      name: 'Testdeltaker',
+      name: 'Testspiller',
     });
   });
 

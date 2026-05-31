@@ -138,7 +138,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
         Spillstatus
       </p>
       <p className="mt-1 text-xs text-quiz-muted">
-        {submittedTeamCount}/{room.teams.length} deltakere har sendt inn
+        {submittedTeamCount}/{room.teams.length} spillere har sendt inn
         {submissions.length > submittedTeamCount ? ` · ${submissions.length} forsøk` : ''}.
       </p>
       {results.length > 0 && (
@@ -153,7 +153,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
                 {result.rank > 0 && (
                   <span className="shrink-0 font-bold tabular-nums">#{result.rank}</span>
                 )}
-                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Deltaker'}</span>
+                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Spiller'}</span>
                 <span className="shrink-0 text-quiz-muted">{result.displayValue}</span>
                 {isPerformanceScoringMode(room.settings) ? (
                   <span className="shrink-0 font-semibold text-amber-900">
@@ -179,7 +179,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
                 className="flex min-w-0 items-center gap-2 rounded-lg border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-2 text-sm"
               >
                 <span className="shrink-0 font-bold tabular-nums">#{entry.rank}</span>
-                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Deltaker'}</span>
+                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Spiller'}</span>
                 <span className="shrink-0 font-semibold text-fuchsia-900">
                   {entry.score} poeng
                 </span>
@@ -198,7 +198,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
                 className="flex min-w-0 items-center gap-2 rounded-lg border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm"
               >
                 <span className="shrink-0 font-bold tabular-nums">#{entry.rank}</span>
-                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Deltaker'}</span>
+                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Spiller'}</span>
                 <span className="shrink-0 font-semibold text-sky-900">
                   {formatEmojiHuntMs(entry.totalMs)}
                 </span>
@@ -217,7 +217,7 @@ export function HostGameResults({ room, question }: HostGameResultsProps) {
                 className="flex min-w-0 items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm"
               >
                 <span className="shrink-0 font-bold tabular-nums">#{entry.rank}</span>
-                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Deltaker'}</span>
+                <span className="min-w-0 flex-1 break-words">{team?.name ?? 'Spiller'}</span>
                 <span className="shrink-0 font-semibold text-emerald-900">
                   {formatDropBallScore(entry.score)}
                 </span>

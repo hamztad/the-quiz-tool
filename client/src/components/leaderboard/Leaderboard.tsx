@@ -66,7 +66,7 @@ export function Leaderboard(props: LeaderboardProps) {
       </div>
       {hostInteractive && (
         <p className="text-sm text-quiz-muted mt-2 mb-4 break-words">
-          Trykk på deltakernavn for besvarelser og poeng. × kaster ut deltakere som har forlatt.
+          Trykk på spillernavn for besvarelser og poeng. × kaster ut spillere som har forlatt.
         </p>
       )}
       {!hostInteractive && <div className="mb-4" />}
@@ -166,7 +166,7 @@ export function Leaderboard(props: LeaderboardProps) {
           );
         })}
         {entries.length === 0 && (
-          <p className="text-quiz-muted text-sm text-center py-6">Ingen deltakere ennå — inviter noen! 👥</p>
+          <p className="text-quiz-muted text-sm text-center py-6">Ingen spillere ennå — inviter noen! 👥</p>
         )}
       </ol>
     </Card>

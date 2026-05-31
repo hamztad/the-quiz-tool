@@ -137,7 +137,7 @@ export function HostLobbyPage() {
   const endQuizNow = () => {
     if (
       !window.confirm(
-        'Avslutte Gruizen for deltakerne nå? Gruizmaster kan fortsatt se resultater og administrere etterpå.',
+        'Avslutte Gruizen for spillerne nå? Gruizmaster kan fortsatt se resultater og administrere etterpå.',
       )
     ) {
       return;
@@ -157,7 +157,7 @@ export function HostLobbyPage() {
   const removeTeamFromQuiz = (teamId: string, teamName: string) => {
     if (
       !window.confirm(
-        `Kaste ut «${teamName}»?\n\nDeltakerens svar og poeng fjernes hvis Gruizen allerede er i gang.`,
+        `Kaste ut «${teamName}»?\n\nSpillerens svar og poeng fjernes hvis Gruizen allerede er i gang.`,
       )
     ) {
       return;
@@ -168,13 +168,13 @@ export function HostLobbyPage() {
   return (
     <PageShell
       showBrand="compact"
-      title={inviteOnly ? 'Invitasjon til deltakere' : 'Presenter Gruiz'}
+      title={inviteOnly ? 'Invitasjon til spillere' : 'Presenter Gruiz'}
       emoji="🎤"
       wide
       subtitle={
         inviteOnly
-          ? 'QR-kode og romkode for deltakere som skal bli med'
-          : 'Inviter deltakere med QR-kode eller romkode — start når alle er klare'
+          ? 'QR-kode og romkode for spillere som skal bli med'
+          : 'Inviter spillere med QR-kode eller romkode — start når alle er klare'
       }
     >
       <HostPhaseIndicator
@@ -243,9 +243,9 @@ export function HostLobbyPage() {
         <div className="rounded-2xl border border-quiz-border bg-quiz-surface-elevated/40 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-bold text-quiz-text">Tillat nye deltakere</p>
+              <p className="text-sm font-bold text-quiz-text">Tillat nye spillere</p>
               <p className="mt-1 text-xs text-quiz-muted">
-                Reconnect til eksisterende deltakere fungerer fortsatt når nye deltakere er stengt.
+                Reconnect til eksisterende spillere fungerer fortsatt når nye spillere er stengt.
               </p>
             </div>
             <Button
@@ -257,12 +257,12 @@ export function HostLobbyPage() {
                 })
               }
             >
-              {room.settings.allowNewTeams ? 'Steng for nye deltakere' : 'Åpne for nye deltakere'}
+              {room.settings.allowNewTeams ? 'Steng for nye spillere' : 'Åpne for nye spillere'}
             </Button>
           </div>
           {!room.settings.allowNewTeams && (
             <p className="mt-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-900">
-              Nye deltakere er stengt. Deltakere som allerede er med kan koble til igjen.
+              Nye spillere er stengt. Spillere som allerede er med kan koble til igjen.
             </p>
           )}
         </div>
@@ -270,7 +270,7 @@ export function HostLobbyPage() {
         <HostTeamList
           room={room}
           onRemoveTeam={removeTeamFromQuiz}
-          emptyHint="Venter på deltakere — del QR-koden eller romkoden."
+          emptyHint="Venter på spillere — del QR-koden eller romkoden."
         />
 
         <div className="w-full min-w-0 space-y-3">

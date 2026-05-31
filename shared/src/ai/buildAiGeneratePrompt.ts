@@ -5,7 +5,7 @@ import { buildAiQuizVarietyHints, formatVarietyBlock } from './aiQuizVariety.js'
 import { resolveAiGeneration } from './resolveAiGeneration.js';
 
 const DIFFICULTY_NO: Record<AiGenerateQuizRequest['difficulty'], string> = {
-  easy: 'lett (de fleste deltakere bør klare det)',
+  easy: 'lett (de fleste spillere bør klare det)',
   medium: 'middels',
   hard: 'vanskelig (krever god kunnskap, men fortsatt rettferdig)',
 };
@@ -24,6 +24,9 @@ function slotTypeLabel(slot: AiShopSlot): string {
   }
   const game = slot.gameId ? getBuiltInGame(slot.gameId) : undefined;
   const label = game?.label ?? slot.gameId ?? 'spill';
+  if (slot.gameId === 'mathExpression') {
+    return `type "game" med gameId "mathExpression" (Regnerace — tittel f.eks. «Regnerace», IKKE enkeltregnestykke; oppgaver genereres under spillet)${topicHint}`;
+  }
   return `type "game" med gameId "${slot.gameId}" (tittel: ${label}) — ikke inkluder spillconfig`;
 }
 
@@ -50,7 +53,12 @@ export function buildAiGeneratePrompt(params: AiGenerateQuizRequest): string {
   const headlineTopic = primaryTopicFromSlots(slots, fallbackTopic);
   const varietyHints = buildAiQuizVarietyHints(headlineTopic, questionCount, params.varietySeed);
   const varietyBlock = formatVarietyBlock(varietyHints);
-  const modeLabel = params.mode === 'instant' ? 'AI-shop (automatisk miks)' : 'AI-shop (valgt kurv)';
+  const modeLabel =
+    params.mode === 'regnerace'
+      ? 'AI-shop (kun Regnerace)'
+      : params.mode === 'instant'
+        ? 'AI-shop (automatisk miks)'
+        : 'AI-shop (valgt kurv)';
 
   const topicNote =
     slots.some((s) => s.topic?.trim()) && params.mode === 'cart'
@@ -74,6 +82,8 @@ Generelle krav:
 - Unngå tvetydige formuleringer og feil fasit
 - Unngå opphavsrettsbeskyttede sangtekster eller lange sitater
 - Ikke inkluder maxPoints i JSON
+- Aldri lag frittstående regnestykker i type "open" eller "mc" (ingen 2+2, 12*3 osv. som åpne/MC)
+- gameId "mathExpression" er alltid Regnerace: bare spill-tittel, ingen expression eller regneoppgaver i JSON
 
 Svar KUN med gyldig JSON (ingen markdown, ingen forklaring):
 {

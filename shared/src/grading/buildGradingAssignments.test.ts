@@ -122,7 +122,7 @@ describe('canStartPeerGrading', () => {
     expect(canStartPeerGrading(1, 1)).toEqual({
       ok: false,
       message:
-        'Retterunde krever minst to deltakere. Med én deltaker er peer-retting deaktivert.',
+        'Retterunde krever minst to spillere. Med én spiller er peer-retting deaktivert.',
     });
   });
 

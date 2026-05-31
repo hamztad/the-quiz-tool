@@ -69,7 +69,7 @@ export function getHostSessionStatusLabel(
   }
 
   if (summary.phase === 'post_quiz') return 'Avsluttet';
-  if (summary.phase === 'lobby') return 'Venter på deltakere';
+  if (summary.phase === 'lobby') return 'Venter på spillere';
   if (summary.phase === 'live') return 'Pågår';
   if (summary.phase === 'grading') return 'Retterunde';
   if (summary.phase === 'leaderboard') return 'Leaderboard';

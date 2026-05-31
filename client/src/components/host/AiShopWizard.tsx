@@ -146,7 +146,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
     setOrderingItemCount((prev) => clampOrderingItemCount(prev + delta));
   };
 
-  const runGenerate = async (mode: 'instant' | 'cart', withTypeThemes: boolean) => {
+  const runGenerate = async (mode: 'instant' | 'cart' | 'regnerace', withTypeThemes: boolean) => {
     setError(null);
     const session = getHostSession(roomId);
     if (!session) {
@@ -154,7 +154,12 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
       return;
     }
 
-    const questionCount = mode === 'instant' ? AI_SHOP_INSTANT_QUESTION_COUNT : total;
+    const questionCount =
+      mode === 'instant'
+        ? AI_SHOP_INSTANT_QUESTION_COUNT
+        : mode === 'regnerace'
+          ? 1
+          : total;
 
     if (mode === 'cart' && total < AI_GENERATE_QUESTION_MIN) {
       setError(`Kurven må ha minst ${AI_GENERATE_QUESTION_MIN} oppgaver.`);
@@ -187,7 +192,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
 
       const result = await requestAiQuizGeneration(session, {
         mode,
-        topic: mode === 'instant' ? '' : fallbackTopic,
+        topic: mode === 'instant' || mode === 'regnerace' ? '' : fallbackTopic,
         questionCount,
         difficulty,
         slots,
@@ -201,7 +206,13 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
       setOrderingItemCount(AI_SHOP_ORDERING_DEFAULT_ITEMS);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunne ikke generere Gruiz.');
-      setStep(mode === 'instant' ? 'choosePath' : withTypeThemes ? 'theme' : 'cartReady');
+      setStep(
+        mode === 'instant' || mode === 'regnerace'
+          ? 'choosePath'
+          : withTypeThemes
+            ? 'theme'
+            : 'cartReady',
+      );
     } finally {
       setLoading(false);
     }
@@ -512,6 +523,18 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
           </Button>
           <p className="text-xs text-center text-quiz-muted">
             10 varierte oppgaver — tema velges automatisk
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            disabled={loading}
+            onClick={() => void runGenerate('regnerace', false)}
+          >
+            Lag Regnerace
+          </Button>
+          <p className="text-xs text-center text-quiz-muted">
+            Én Regnerace-oppgave — regnestykkene genereres under spillet
           </p>
           <Button
             type="button"

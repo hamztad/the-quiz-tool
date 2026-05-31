@@ -349,6 +349,29 @@ function questionMatchesSlot(question: ParsedAiQuizQuestion, slot: AiShopSlot): 
   return false;
 }
 
+function questionTextLooksLikeArithmetic(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 120) return false;
+  if (!/\d/.test(trimmed) || !/[+\-*/:xX]/.test(trimmed)) return false;
+  return /^[\d\s+\-*/:xX.,=?()]+$/.test(trimmed);
+}
+
+/** Tving Regnerace-spillconfig — KI skal ikke levere enkeltregnestykker. */
+function normalizeRegneraceGameQuestions(
+  questions: ParsedAiQuizQuestion[],
+): ParsedAiQuizQuestion[] {
+  return questions.map((q) => {
+    if (q.type !== 'game' || q.game?.gameId !== 'mathExpression') return q;
+    return {
+      ...q,
+      lines: withCanonicalTitle(q.lines, 'Regnerace'),
+      gameType: 'mathExpression',
+      game: createDefaultMathGameConfig(),
+      maxPoints: 5,
+    };
+  });
+}
+
 /** Valider at genererte oppgaver matcher forventede slots (AI-shop). */
 export function validateAiShopSlots(
   questions: ParsedAiQuizQuestion[],
@@ -370,6 +393,23 @@ export function validateAiShopSlots(
       const expected =
         slot.type === 'game' ? `spill ${slot.gameId}` : slot.type;
       errors.push(`Oppgave ${i + 1} skulle være ${expected}, fikk ${q.type}.`);
+    }
+    if (
+      slot.type === 'open' &&
+      q.type === 'open' &&
+      questionTextLooksLikeArithmetic(q.lines[0]?.text ?? '')
+    ) {
+      errors.push(
+        `Oppgave ${i + 1}: regnestykker hører til Regnerace (spill), ikke åpne spørsmål.`,
+      );
+    }
+    if (slot.type === 'mc' && q.type === 'mc') {
+      const title = q.lines[0]?.text ?? '';
+      if (questionTextLooksLikeArithmetic(title)) {
+        errors.push(
+          `Oppgave ${i + 1}: regnestykker hører til Regnerace (spill), ikke flervalg.`,
+        );
+      }
     }
     if (slot.type === 'ordering' && slot.orderingItemCount !== undefined) {
       const itemLen = q.orderingItems?.length ?? 0;
@@ -437,7 +477,8 @@ export function parseAiQuizJson(
     return { questions: [], errors };
   }
 
-  return { questions: shuffleAiGeneratedMcOptions(questions), errors: [] };
+  const normalized = normalizeRegneraceGameQuestions(shuffleAiGeneratedMcOptions(questions));
+  return { questions: normalized, errors: [] };
 }
 
 export function clampAiQuestionCount(count: number): number {

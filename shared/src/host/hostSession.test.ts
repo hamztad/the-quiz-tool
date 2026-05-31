@@ -20,7 +20,7 @@ describe('hostSession', () => {
   });
 
   it('labels lobby as waiting for participants', () => {
-    expect(getHostSessionStatusLabel({ phase: 'lobby' })).toBe('Venter på deltakere');
+    expect(getHostSessionStatusLabel({ phase: 'lobby' })).toBe('Venter på spillere');
   });
 
   it('labels armed self-paced schedule as selvgående while live', () => {
