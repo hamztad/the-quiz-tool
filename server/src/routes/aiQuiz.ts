@@ -6,6 +6,7 @@ import {
   type AiQuizDifficulty,
   type AiShopMode,
   type AiShopSlot,
+  type GameId,
   type ParsedAiQuizQuestion,
   builtInGames,
 } from '@quiz-tool/shared';
@@ -29,7 +30,7 @@ function isValidSlot(raw: unknown): raw is AiShopSlot {
   const s = raw as Record<string, unknown>;
   if (!SLOT_TYPES.has(s.type as string)) return false;
   if (s.type === 'game') {
-    return typeof s.gameId === 'string' && BUILTIN_GAME_IDS.has(s.gameId as AiShopSlot['gameId']!);
+    return typeof s.gameId === 'string' && BUILTIN_GAME_IDS.has(s.gameId as GameId);
   }
   return s.gameId === undefined;
 }
