@@ -48,12 +48,10 @@ export function buildRegneraceConfigFromSlotAndAi(
   slot: AiShopSlot | undefined,
   raw?: Record<string, unknown>,
 ): MathExpressionRaceConfig | null {
+  const base = createDefaultMathGameConfig();
   const userMode = slot?.regnerace?.answerMode;
   const aiMode = raw ? parseRegneraceAnswerModeFromAi(raw) : undefined;
-  const answerMode = userMode ?? aiMode;
-  if (!answerMode) return null;
-
-  const base = createDefaultMathGameConfig();
+  const answerMode = userMode ?? aiMode ?? base.answerMode;
   const userOps = slot?.regnerace?.enabledOperations;
   const aiOps = raw ? parseRegneraceOperationsFromAi(raw) : undefined;
   const enabledOperations =

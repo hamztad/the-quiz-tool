@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildInstantSlots } from './aiShopInstantPlan.js';
 import { parseAiQuizJson } from './parseAiQuizJson.js';
 
 const validOpen = {
@@ -237,6 +238,52 @@ describe('parseAiQuizJson', () => {
 
     expect(result.questions).toHaveLength(0);
     expect(result.errors).toContain('Spørsmål 4 har ugyldig format.');
+  });
+
+  it('parses instant mix with minimal Regnerace JSON (no regneraceAnswerMode in response)', () => {
+    const slots = buildInstantSlots(() => 0);
+    const questions = slots.map((slot, i) => {
+      if (slot.type === 'open') {
+        return { type: 'open', text: `Åpen ${i + 1}`, body: null, acceptedAnswers: ['svar'] };
+      }
+      if (slot.type === 'mc') {
+        return {
+          type: 'mc',
+          text: `MC ${i + 1}`,
+          body: null,
+          options: [
+            { text: 'A', correct: true },
+            { text: 'B', correct: false },
+            { text: 'C', correct: false },
+            { text: 'D', correct: false },
+          ],
+        };
+      }
+      if (slot.type === 'ordering') {
+        return {
+          type: 'ordering',
+          text: 'Sorter',
+          body: null,
+          directionLabel: 'Størst → Minst',
+          directionLabelTop: 'Størst',
+          directionLabelBottom: 'Minst',
+          items: ['A', 'B', 'C', 'D'],
+          correctOrder: ['A', 'B', 'C', 'D'],
+        };
+      }
+      return {
+        type: 'game',
+        gameId: slot.gameId,
+        text: slot.gameId === 'mathExpression' ? 'Regnerace' : 'Spill',
+        body: null,
+      };
+    });
+
+    const result = parseAiQuizJson(JSON.stringify({ questions }), undefined, slots);
+    expect(result.errors).toEqual([]);
+    expect(result.questions).toHaveLength(10);
+    const regnerace = result.questions.find((q) => q.game?.gameId === 'mathExpression');
+    expect(regnerace?.game?.answerMode).toBe('input');
   });
 
   it('uses canonical game names even if AI returns wrong labels', () => {

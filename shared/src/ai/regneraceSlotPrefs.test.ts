@@ -23,8 +23,10 @@ describe('regneraceSlotPrefs', () => {
     expect(game?.answerMode).toBe('input');
   });
 
-  it('returns null without user or AI answerMode', () => {
-    expect(buildRegneraceConfigFromSlotAndAi({ type: 'game', gameId: 'mathExpression' }, {})).toBeNull();
+  it('defaults answerMode when user and AI omit it (instant / structured JSON)', () => {
+    const game = buildRegneraceConfigFromSlotAndAi({ type: 'game', gameId: 'mathExpression' }, {});
+    expect(game?.answerMode).toBe('input');
+    expect(game?.mode).toBe('race');
   });
 
   it('parses regneraceOperations from AI', () => {
