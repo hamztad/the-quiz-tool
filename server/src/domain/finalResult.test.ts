@@ -26,6 +26,7 @@ function createScoredRoom() {
   room = {
     ...startQuiz(room),
     phase: 'post_quiz',
+    settings: { ...room.settings, scoringMode: 'ranking' },
     scores: [
       { teamId: first.teamId, questionId: 'q1', points: 2, source: 'auto' },
       { teamId: second.teamId, questionId: 'q1', points: 1, source: 'auto' },

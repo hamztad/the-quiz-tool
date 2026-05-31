@@ -1,4 +1,10 @@
-import { CLIENT_EVENTS, canChangeScoringMode, type PublicRoomState, type QuizScoringMode } from '@quiz-tool/shared';
+import {
+  CLIENT_EVENTS,
+  canChangeScoringMode,
+  resolveScoringMode,
+  type PublicRoomState,
+  type QuizScoringMode,
+} from '@quiz-tool/shared';
 import { useSocket } from '../../hooks/useSocket';
 
 interface HostScoringModePanelProps {
@@ -7,7 +13,7 @@ interface HostScoringModePanelProps {
 
 export function HostScoringModePanel({ room }: HostScoringModePanelProps) {
   const { socket } = useSocket();
-  const mode = room.settings.scoringMode ?? 'ranking';
+  const mode = resolveScoringMode(room.settings);
   const changeCheck = canChangeScoringMode(room);
   const locked = !changeCheck.ok;
 

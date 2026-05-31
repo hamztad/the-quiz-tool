@@ -5,7 +5,7 @@ export const PERFORMANCE_TARGET_POINTS = 10_000;
 export function resolveScoringMode(
   settings: Pick<RoomSettings, 'scoringMode'> | undefined,
 ): QuizScoringMode {
-  return settings?.scoringMode === 'performance' ? 'performance' : 'ranking';
+  return settings?.scoringMode === 'ranking' ? 'ranking' : 'performance';
 }
 
 export function isPerformanceScoringMode(settings: Pick<RoomSettings, 'scoringMode'>): boolean {

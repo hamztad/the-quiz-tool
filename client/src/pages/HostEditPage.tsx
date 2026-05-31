@@ -35,6 +35,10 @@ import {
   stampImportedQuestions,
 } from '../lib/questionFactory';
 import { initialEditModeForEntry, parseBuildEntry, setHostPresenting } from '../lib/hostFlow';
+import {
+  confirmSwitchToRankingForNonGameQuiz,
+  shouldOfferRankingForNonGameQuiz,
+} from '../lib/hostPresentFlow';
 import { getHostQuestionDisplayStatus } from '../lib/questionDisplayStatus';
 import {
   markHostDraftExported,
@@ -669,9 +673,9 @@ export function HostEditPage() {
     ? roomId
       ? { live: `/host/${roomId}`, present: `/host/${roomId}/present?invite=1` }
       : undefined
-    : roomId && draftQuestions.length > 0
-      ? { present: `/host/${roomId}/present` }
-      : undefined;
+    : undefined;
+  const phaseActions =
+    !isLiveEdit && roomId && canPresent ? { present: goToPresent } : undefined;
   const showEditFooter = draftQuestions.length > 0;
 
   return (
@@ -683,7 +687,7 @@ export function HostEditPage() {
       wide
     >
       {!focusEntry && (
-        <HostPhaseIndicator active="build" links={phaseLinks} />
+        <HostPhaseIndicator active="build" links={phaseLinks} onPhaseAction={phaseActions} />
       )}
 
       <HostReconnectBanner
@@ -746,7 +750,7 @@ export function HostEditPage() {
           {mainEditorContent}
 
           <HostEditSecondary>
-            <HostPhaseIndicator active="build" links={phaseLinks} />
+            <HostPhaseIndicator active="build" links={phaseLinks} onPhaseAction={phaseActions} />
             {syncStatusBanner}
             {buildEntry !== 'import' && backupPanel}
           </HostEditSecondary>

@@ -6,6 +6,8 @@ interface HostPhaseIndicatorProps {
   active: HostUiPhase;
   /** Safe navigation targets only — omit steps that are not clickable. */
   links?: Partial<Record<HostUiPhase, string>>;
+  /** Overrides link navigation (e.g. present with validation before navigate). */
+  onPhaseAction?: Partial<Record<HostUiPhase, () => void>>;
 }
 
 const steps: { id: HostUiPhase; label: string; emoji: string }[] = [
@@ -96,7 +98,7 @@ function HostLivePhaseNav({
   );
 }
 
-export function HostPhaseIndicator({ active, links }: HostPhaseIndicatorProps) {
+export function HostPhaseIndicator({ active, links, onPhaseAction }: HostPhaseIndicatorProps) {
   if (active === 'live') {
     return <HostLivePhaseNav presentHref={links?.present} buildHref={links?.build} />;
   }
@@ -113,11 +115,21 @@ export function HostPhaseIndicator({ active, links }: HostPhaseIndicatorProps) {
           const done = index < activeIndex;
           const current = step.id === active;
           const href = links?.[step.id];
-          const isLink = Boolean(href) && !current;
+          const phaseAction = onPhaseAction?.[step.id];
+          const isLink = Boolean(href) && !current && !phaseAction;
+          const isAction = Boolean(phaseAction) && !current;
 
           return (
             <li key={step.id} className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-              {isLink ? (
+              {isAction ? (
+                <button
+                  type="button"
+                  onClick={phaseAction}
+                  className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2 rounded-xl p-1 quiz-hover-lift text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500"
+                >
+                  <StepContent step={step} current={current} done={done} />
+                </button>
+              ) : isLink ? (
                 <Link
                   to={href!}
                   className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2 rounded-xl p-1 quiz-hover-lift focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500"

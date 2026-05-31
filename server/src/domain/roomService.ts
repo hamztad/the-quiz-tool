@@ -66,7 +66,7 @@ export function createRoom(title?: string): RoomRecord {
       testMode: false,
       teamsLockedOut: false,
       openAnswerGradingMode: 'peer',
-      scoringMode: 'ranking',
+      scoringMode: 'performance',
     },
     hostToken,
     teamTokens: {},

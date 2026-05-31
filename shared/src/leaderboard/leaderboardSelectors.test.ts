@@ -94,6 +94,7 @@ describe('computeLeaderboardFromScores', () => {
         allowNewTeams: true,
         finalResultLocked: false,
         testMode: false,
+        scoringMode: 'ranking' as const,
       },
       finalLeaderboardSnapshot: buildFinalLeaderboardSnapshot(teams, [{ teamId: 'team-b', points: 9 }]),
     };
