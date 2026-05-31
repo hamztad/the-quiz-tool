@@ -63,6 +63,8 @@ export interface Question {
   orderingDirectionBottom?: string;
   /** MC/ordering: hide option labels from participants while answering; labels stay in data. */
   imageOnlyOptions?: boolean;
+  /** MC: ny tilfeldig rekkefølge for deltakere hver gang spørsmålet åpnes. */
+  shuffleMcOptionsOnOpen?: boolean;
   gameType?: GameId;
   game?: GameQuestionConfig;
   media?: MediaAttachment[];
@@ -213,6 +215,8 @@ export interface RoomState {
   schedule?: QuizSchedule;
   liveStartedAt?: number;
   activeQuestionTimers: Record<string, ActiveQuestionTimer>;
+  /** MC: deltaker-rekkefølge per spørsmål for gjeldende åpning (kun når shuffleMcOptionsOnOpen). */
+  mcDisplayOptionOrder?: Record<string, string[]>;
   /** Server clock hint for client countdown skew correction (updated on state emit). */
   serverNow?: number;
   /** Avslør bildet: per-lag fremdrift (ruter, valg) — synkroniseres fra server. */

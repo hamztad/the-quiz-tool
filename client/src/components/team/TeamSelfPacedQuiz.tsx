@@ -4,6 +4,7 @@ import {
   canTeamWorkOnQuestion,
   isProvisionalLeaderboardVisible,
   isTeamQuestionLocked,
+  getParticipantMcOptions,
   parseOrderingAnswer,
   serializeOrderingAnswer,
   type PublicRoomState,
@@ -308,7 +309,8 @@ export function TeamSelfPacedQuiz({
                 </div>
               ) : (
                 <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {activeQuestion.options?.map((opt, optIndex) => (
+                  {getParticipantMcOptions(activeQuestion, room.mcDisplayOptionOrder).map(
+                    (opt, optIndex) => (
                     <button
                       key={opt.id}
                       type="button"

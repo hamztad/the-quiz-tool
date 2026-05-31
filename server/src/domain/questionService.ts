@@ -1,5 +1,5 @@
 import type { RoomRecord } from '../store/roomStoreTypes.js';
-import { isRevealImageAnswerCorrect } from '@quiz-tool/shared';
+import { buildMcDisplayOptionOrder, isRevealImageAnswerCorrect } from '@quiz-tool/shared';
 import { calculateGameQuestionResults, calculateGameResultsForQuestions, startGameRound } from './gameService.js';
 import { clearRevealImageProgressForQuestion } from './revealImageService.js';
 import { armQuestionTimer, clearQuestionTimer } from './timing/questionTimerService.js';
@@ -66,6 +66,21 @@ export function openQuestion(
     questionStatus: { ...baseRoom.questionStatus, [questionId]: 'open' as const },
     questionsActivated: { ...baseRoom.questionsActivated, [questionId]: true },
   };
+
+  if (
+    question.type === 'mc' &&
+    question.shuffleMcOptionsOnOpen === true &&
+    question.options?.length
+  ) {
+    opened = {
+      ...opened,
+      mcDisplayOptionOrder: {
+        ...opened.mcDisplayOptionOrder,
+        [questionId]: buildMcDisplayOptionOrder(question.options),
+      },
+    };
+  }
+
   opened = startGameRound(opened, questionId);
   opened = armQuestionTimer(opened, question);
   return opened;
@@ -79,6 +94,13 @@ export function lockQuestion(room: RoomRecord, questionId: string): RoomRecord {
     ...room,
     questionStatus: { ...room.questionStatus, [questionId]: 'locked' as const },
   };
+  if (locked.mcDisplayOptionOrder?.[questionId]) {
+    const { [questionId]: _removed, ...rest } = locked.mcDisplayOptionOrder;
+    locked = {
+      ...locked,
+      mcDisplayOptionOrder: Object.keys(rest).length > 0 ? rest : undefined,
+    };
+  }
   locked = clearQuestionTimer(locked, questionId);
   return calculateGameQuestionResults(locked, questionId);
 }

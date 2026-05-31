@@ -249,6 +249,8 @@ export function normalizeQuestionsForSave(questions: Question[]): Question[] {
           ? true
           : undefined
         : undefined,
+    shuffleMcOptionsOnOpen:
+      q.type === 'mc' ? (q.shuffleMcOptionsOnOpen === true ? true : undefined) : undefined,
     options:
       q.type === 'mc'
         ? q.options?.map((o) => ({

@@ -29,8 +29,10 @@ import {
   validateOrderingChoiceItems,
   questionHasDecorImage,
   resolveQuestionDecorEmoji,
+  moveMcOptionIds,
 } from '@quiz-tool/shared';
 import { ImageOnlyOptionsSetting } from './ImageOnlyOptionsSetting';
+import { McShuffleOnOpenSetting } from './McShuffleOnOpenSetting';
 import { HostQuestionStatusBadge } from './HostQuestionStatusBadge';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -1391,13 +1393,26 @@ function McOptionsEditor({
     });
   };
 
+  const moveOption = (index: number, direction: -1 | 1) => {
+    const ids = options.map((option) => option.id);
+    const nextIds = moveMcOptionIds(ids, index, direction);
+    if (!nextIds) return;
+    const byId = new Map(options.map((option) => [option.id, option]));
+    onChange({
+      ...question,
+      options: nextIds
+        .map((id) => byId.get(id))
+        .filter((option): option is McOption => Boolean(option)),
+    });
+  };
+
   const choiceErrors = validateMcChoices(options, question.imageOnlyOptions);
 
   return (
     <AnswerZoneCard>
       <EditorZoneLabel tone="emerald">Alternativer</EditorZoneLabel>
       <p className="text-xs text-emerald-900/80 -mt-1">
-        Trykk bokstav for riktig svar. Tekst er fasit — bilder via 📷.
+        Trykk bokstav for riktig svar. Bruk ↑ ↓ for å bytte plass. Tekst er fasit — bilder via 📷.
       </p>
       {choiceErrors.map((message) => (
         <p key={message} className="text-xs font-medium text-amber-900">
@@ -1434,6 +1449,26 @@ function McOptionsEditor({
             media={opt.media}
             onMediaChange={(media) => setOptionMedia(opt.id, media)}
           />
+          <div className="flex shrink-0 flex-col justify-center gap-0.5">
+            <button
+              type="button"
+              className="flex min-h-[2.25rem] min-w-[2.25rem] items-center justify-center rounded-lg border border-emerald-200/80 bg-white text-sm font-black text-emerald-800 disabled:opacity-35"
+              disabled={i === 0}
+              aria-label={`Flytt alternativ ${mcOptionLetter(i)} opp`}
+              onClick={() => moveOption(i, -1)}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              className="flex min-h-[2.25rem] min-w-[2.25rem] items-center justify-center rounded-lg border border-emerald-200/80 bg-white text-sm font-black text-emerald-800 disabled:opacity-35"
+              disabled={i >= options.length - 1}
+              aria-label={`Flytt alternativ ${mcOptionLetter(i)} ned`}
+              onClick={() => moveOption(i, 1)}
+            >
+              ↓
+            </button>
+          </div>
           <Button
             type="button"
             variant="ghost"
@@ -1447,6 +1482,7 @@ function McOptionsEditor({
           </Button>
         </div>
       ))}
+      <McShuffleOnOpenSetting question={question} onChange={onChange} />
       <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={addOption}>
         + Alternativ
       </Button>

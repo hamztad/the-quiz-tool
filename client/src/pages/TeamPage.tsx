@@ -6,6 +6,7 @@ import {
   isQuestionRevealedToTeam,
   isIntervalQuiz,
   isSelfPacedQuiz,
+  getParticipantMcOptions,
   parseOrderingAnswer,
   serializeOrderingAnswer,
   type Question,
@@ -717,7 +718,8 @@ export function TeamPage() {
                     </div>
                   ) : (
                     <div className="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-2 sm:grid-cols-2">
-                      {activeQuestion.options?.map((opt, optIndex) => (
+                      {getParticipantMcOptions(activeQuestion, room.mcDisplayOptionOrder).map(
+                        (opt, optIndex) => (
                         <button
                           key={opt.id}
                           type="button"
@@ -740,7 +742,8 @@ export function TeamPage() {
                             mediaCreditsMode={PARTICIPANT_ACTIVE_MEDIA_CREDITS}
                           />
                         </button>
-                      ))}
+                      ),
+                      )}
                     </div>
                   )}
                   {activeQuestion.type !== 'game' && (

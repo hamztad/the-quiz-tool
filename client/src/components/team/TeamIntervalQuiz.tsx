@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   CLIENT_EVENTS,
   isQuestionRevealedToTeam,
+  getParticipantMcOptions,
   parseOrderingAnswer,
   serializeOrderingAnswer,
   type PublicRoomState,
@@ -227,7 +228,8 @@ export function TeamIntervalQuiz({
                 />
               ) : (
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  {activeQuestion.options?.map((opt, optIndex) => (
+                  {getParticipantMcOptions(activeQuestion, room.mcDisplayOptionOrder).map(
+                    (opt, optIndex) => (
                     <button
                       key={opt.id}
                       type="button"
