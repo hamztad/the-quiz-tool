@@ -5,13 +5,17 @@ import {
   AI_QUIZ_CUSTOM_THEME,
   AI_QUIZ_THEME_PRESETS,
   AI_SHOP_INSTANT_QUESTION_COUNT,
+  AI_SHOP_ORDERING_DEFAULT_ITEMS,
+  AI_SHOP_ORDERING_MAX_ITEMS,
+  AI_SHOP_ORDERING_MIN_ITEMS,
   builtInGames,
   cartSlotsFromCounts,
+  clampOrderingItemCount,
   getBuiltInGame,
   QUIZ_PACKAGE_PRESET_SLOTS,
   type AiImageProvider,
   type AiQuizDifficulty,
-  type AiShopSlot,
+  type AiShopTypeThemes,
   type GameId,
   type Question,
 } from '@quiz-tool/shared';
@@ -21,6 +25,10 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
 type WizardStep = 'choosePath' | 'buildCart' | 'cartReady' | 'theme' | 'generating';
+
+type CartKey = 'open' | 'mc' | 'ordering';
+
+type TypeThemeField = { preset: string; custom: string };
 
 const DIFFICULTY_OPTIONS: { value: AiQuizDifficulty; label: string }[] = [
   { value: 'easy', label: 'Lett' },
@@ -36,6 +44,17 @@ const LOADING_STEPS = [
 ];
 
 const CART_GAMES = builtInGames.filter((g) => g.id !== 'revealImage');
+
+const TYPE_META: Record<CartKey, { emoji: string; label: string }> = {
+  open: { emoji: '✍️', label: 'Åpne' },
+  mc: { emoji: '🔘', label: 'Flervalg' },
+  ordering: { emoji: '↕️', label: 'Rekkefølge' },
+};
+
+const DEFAULT_TYPE_THEME: TypeThemeField = {
+  preset: AI_QUIZ_THEME_PRESETS[0],
+  custom: '',
+};
 
 const selectClassName =
   'box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-sm text-quiz-text focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-inset focus:ring-quiz-accent min-h-[44px]';
@@ -53,24 +72,22 @@ function cartTotal(counts: CartCounts): number {
   return counts.open + counts.mc + counts.ordering + counts.gameIds.length;
 }
 
-function slotsFromCounts(counts: CartCounts): AiShopSlot[] {
-  return cartSlotsFromCounts({
-    open: counts.open,
-    mc: counts.mc,
-    ordering: counts.ordering,
-    games: counts.gameIds.map((gameId) => ({ gameId })),
-  });
+function resolveThemeField(field: TypeThemeField): string {
+  if (field.preset === AI_QUIZ_CUSTOM_THEME) {
+    return field.custom.trim() || AI_QUIZ_THEME_PRESETS[0];
+  }
+  return field.preset;
 }
 
-function countsFromPreset(slots: AiShopSlot[]): CartCounts {
-  return {
-    open: slots.filter((s) => s.type === 'open').length,
-    mc: slots.filter((s) => s.type === 'mc').length,
-    ordering: slots.filter((s) => s.type === 'ordering').length,
-    gameIds: slots
-      .filter((s) => s.type === 'game' && s.gameId)
-      .map((s) => s.gameId!),
-  };
+function buildTypeThemes(
+  cart: CartCounts,
+  fields: Record<CartKey, TypeThemeField>,
+): AiShopTypeThemes {
+  const themes: AiShopTypeThemes = {};
+  if (cart.open > 0) themes.open = resolveThemeField(fields.open);
+  if (cart.mc > 0) themes.mc = resolveThemeField(fields.mc);
+  if (cart.ordering > 0) themes.ordering = resolveThemeField(fields.ordering);
+  return themes;
 }
 
 interface AiShopWizardProps {
@@ -81,8 +98,12 @@ interface AiShopWizardProps {
 export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
   const [step, setStep] = useState<WizardStep>('choosePath');
   const [cart, setCart] = useState<CartCounts>(EMPTY_CART);
-  const [themePreset, setThemePreset] = useState<string>(AI_QUIZ_THEME_PRESETS[0]);
-  const [customTopic, setCustomTopic] = useState('');
+  const [typeThemes, setTypeThemes] = useState<Record<CartKey, TypeThemeField>>({
+    open: { ...DEFAULT_TYPE_THEME },
+    mc: { ...DEFAULT_TYPE_THEME },
+    ordering: { ...DEFAULT_TYPE_THEME },
+  });
+  const [orderingItemCount, setOrderingItemCount] = useState(AI_SHOP_ORDERING_DEFAULT_ITEMS);
   const [difficulty, setDifficulty] = useState<AiQuizDifficulty>('medium');
   const [includePixabayImages, setIncludePixabayImages] = useState(false);
   const [imageProvider, setImageProvider] = useState<AiImageProvider>('pixabay');
@@ -91,15 +112,13 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
   const [gamePickerOpen, setGamePickerOpen] = useState(false);
 
   const total = cartTotal(cart);
-  const isCustomTheme = themePreset === AI_QUIZ_CUSTOM_THEME;
-  const topic = isCustomTheme ? customTopic.trim() : themePreset;
 
   const gameSlotsInCart = useMemo(
     () => cart.gameIds.map((id) => getBuiltInGame(id)).filter(Boolean),
     [cart.gameIds],
   );
 
-  const adjust = (key: 'open' | 'mc' | 'ordering', delta: number) => {
+  const adjust = (key: CartKey, delta: number) => {
     setCart((prev) => {
       const next = { ...prev, [key]: Math.max(0, prev[key] + delta) };
       if (cartTotal(next) > AI_GENERATE_QUESTION_MAX) return prev;
@@ -122,7 +141,11 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
     }));
   };
 
-  const runGenerate = async (mode: 'instant' | 'cart', cartTopic: string) => {
+  const adjustOrderingItems = (delta: number) => {
+    setOrderingItemCount((prev) => clampOrderingItemCount(prev + delta));
+  };
+
+  const runGenerate = async (mode: 'instant' | 'cart', withTypeThemes: boolean) => {
     setError(null);
     const session = getHostSession(roomId);
     if (!session) {
@@ -130,17 +153,28 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
       return;
     }
 
-    const slots = mode === 'cart' ? slotsFromCounts(cart) : undefined;
     const questionCount = mode === 'instant' ? AI_SHOP_INSTANT_QUESTION_COUNT : total;
 
-    if (mode === 'cart' && (total < AI_GENERATE_QUESTION_MIN || !cartTopic)) {
-      setError(
-        !cartTopic
-          ? 'Velg tema eller bruk «Lag Gruiz» uten tema-steg (bruker Allmennkunnskap).'
-          : `Kurven må ha minst ${AI_GENERATE_QUESTION_MIN} oppgaver.`,
-      );
+    if (mode === 'cart' && total < AI_GENERATE_QUESTION_MIN) {
+      setError(`Kurven må ha minst ${AI_GENERATE_QUESTION_MIN} oppgaver.`);
       return;
     }
+
+    const themes = withTypeThemes ? buildTypeThemes(cart, typeThemes) : undefined;
+    const slots =
+      mode === 'cart'
+        ? cartSlotsFromCounts({
+            open: cart.open,
+            mc: cart.mc,
+            ordering: cart.ordering,
+            games: cart.gameIds.map((gameId) => ({ gameId })),
+            themes,
+            orderingItemCount: cart.ordering > 0 ? orderingItemCount : undefined,
+          })
+        : undefined;
+
+    const fallbackTopic =
+      themes?.open ?? themes?.mc ?? themes?.ordering ?? AI_QUIZ_THEME_PRESETS[0];
 
     setStep('generating');
     setLoading(true);
@@ -152,7 +186,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
 
       const result = await requestAiQuizGeneration(session, {
         mode,
-        topic: mode === 'instant' ? '' : cartTopic,
+        topic: mode === 'instant' ? '' : fallbackTopic,
         questionCount,
         difficulty,
         slots,
@@ -163,12 +197,57 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
       onGenerated(result.questions);
       setStep('choosePath');
       setCart(EMPTY_CART);
+      setOrderingItemCount(AI_SHOP_ORDERING_DEFAULT_ITEMS);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunne ikke generere Gruiz.');
-      setStep(mode === 'instant' ? 'choosePath' : 'cartReady');
+      setStep(mode === 'instant' ? 'choosePath' : withTypeThemes ? 'theme' : 'cartReady');
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateTypeTheme = (key: CartKey, patch: Partial<TypeThemeField>) => {
+    setTypeThemes((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+  };
+
+  const typeThemeEditor = (key: CartKey) => {
+    const field = typeThemes[key];
+    const meta = TYPE_META[key];
+    const isCustom = field.preset === AI_QUIZ_CUSTOM_THEME;
+    return (
+      <div key={key} className="rounded-xl border border-quiz-border/60 bg-quiz-bg/40 p-3 space-y-2">
+        <p className="text-sm font-semibold text-quiz-text">
+          <span className="mr-1.5" aria-hidden>
+            {meta.emoji}
+          </span>
+          {meta.label}
+          {cart[key] > 1 && (
+            <span className="text-quiz-muted font-normal"> ({cart[key]} oppgaver)</span>
+          )}
+        </p>
+        <select
+          value={field.preset}
+          onChange={(e) => updateTypeTheme(key, { preset: e.target.value })}
+          className={selectClassName}
+          disabled={loading}
+        >
+          {AI_QUIZ_THEME_PRESETS.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+          <option value={AI_QUIZ_CUSTOM_THEME}>{AI_QUIZ_CUSTOM_THEME}</option>
+        </select>
+        {isCustom && (
+          <Input
+            value={field.custom}
+            onChange={(e) => updateTypeTheme(key, { custom: e.target.value })}
+            placeholder="Skriv eget tema"
+            disabled={loading}
+          />
+        )}
+      </div>
+    );
   };
 
   const cartBlock = (
@@ -181,49 +260,63 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => setCart(countsFromPreset(QUIZ_PACKAGE_PRESET_SLOTS))}
+          onClick={() => {
+            setCart(countsFromPreset());
+            setOrderingItemCount(AI_SHOP_ORDERING_DEFAULT_ITEMS);
+          }}
           disabled={loading}
         >
           Standardpakke (5)
         </Button>
       </div>
 
-      {(['open', 'mc', 'ordering'] as const).map((key) => (
-        <div key={key} className="flex items-center justify-between gap-3">
-          <span className="text-sm text-quiz-text capitalize">
-            {key === 'open' ? 'Åpne' : key === 'mc' ? 'Flervalg' : 'Rekkefølge'}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="min-w-[2.5rem]"
-              onClick={() => adjust(key, -1)}
-              disabled={cart[key] === 0 || loading}
-              aria-label={`Fjern ${key}`}
-            >
-              −
-            </Button>
-            <span className="w-8 text-center font-bold tabular-nums">{cart[key]}</span>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="min-w-[2.5rem]"
-              onClick={() => adjust(key, 1)}
-              disabled={total >= AI_GENERATE_QUESTION_MAX || loading}
-              aria-label={`Legg til ${key}`}
-            >
-              +
-            </Button>
+      {(['open', 'mc', 'ordering'] as const).map((key) => {
+        const meta = TYPE_META[key];
+        return (
+          <div key={key} className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium text-quiz-text">
+              <span className="mr-1.5" aria-hidden>
+                {meta.emoji}
+              </span>
+              {meta.label}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="min-w-[2.5rem]"
+                onClick={() => adjust(key, -1)}
+                disabled={cart[key] === 0 || loading}
+                aria-label={`Fjern ${meta.label}`}
+              >
+                −
+              </Button>
+              <span className="w-8 text-center font-bold tabular-nums">{cart[key]}</span>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="min-w-[2.5rem]"
+                onClick={() => adjust(key, 1)}
+                disabled={total >= AI_GENERATE_QUESTION_MAX || loading}
+                aria-label={`Legg til ${meta.label}`}
+              >
+                +
+              </Button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       <div className="space-y-2 border-t border-quiz-border/40 pt-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-medium text-quiz-text">Spill</span>
+          <span className="text-sm font-medium text-quiz-text">
+            <span className="mr-1.5" aria-hidden>
+              🎮
+            </span>
+            Spill
+          </span>
           <Button
             type="button"
             variant="secondary"
@@ -243,7 +336,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
                 onClick={() => addGame(game.id)}
                 className="rounded-xl border border-quiz-border bg-quiz-surface-elevated px-3 py-2 text-left text-sm hover:border-quiz-accent"
               >
-                <span className="font-bold text-quiz-text">{game.label}</span>
+                <span className="font-bold text-quiz-text">🎮 {game.label}</span>
               </button>
             ))}
           </div>
@@ -255,7 +348,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
               key={`${id}-${index}`}
               className="flex items-center justify-between rounded-lg border border-quiz-border/50 px-3 py-2 text-sm"
             >
-              <span>{label}</span>
+              <span>🎮 {label}</span>
               <button
                 type="button"
                 className="text-quiz-muted hover:text-red-500"
@@ -276,38 +369,71 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
     </div>
   );
 
+  function countsFromPreset(): CartCounts {
+    const slots = QUIZ_PACKAGE_PRESET_SLOTS;
+    return {
+      open: slots.filter((s) => s.type === 'open').length,
+      mc: slots.filter((s) => s.type === 'mc').length,
+      ordering: slots.filter((s) => s.type === 'ordering').length,
+      gameIds: slots
+        .filter((s) => s.type === 'game' && s.gameId)
+        .map((s) => s.gameId!),
+    };
+  }
+
   const themeBlock = (
     <div className="space-y-4 min-w-0">
-      <div className="min-w-0">
-        <label htmlFor="ai-shop-theme" className="text-xs text-quiz-muted mb-1 block">
-          Tema for alle oppgaver
-        </label>
-        <select
-          id="ai-shop-theme"
-          value={themePreset}
-          onChange={(e) => setThemePreset(e.target.value)}
-          className={selectClassName}
-          disabled={loading}
-        >
-          {AI_QUIZ_THEME_PRESETS.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-          <option value={AI_QUIZ_CUSTOM_THEME}>{AI_QUIZ_CUSTOM_THEME}</option>
-        </select>
-      </div>
-      {isCustomTheme && (
-        <Input
-          value={customTopic}
-          onChange={(e) => setCustomTopic(e.target.value)}
-          placeholder="F.eks. Norsk geografi"
-          disabled={loading}
-        />
+      <p className="text-sm text-quiz-muted">
+        Velg tema per oppgavetype. Spill bruker standardoppsett og påvirkes ikke av tema her.
+      </p>
+      {cart.open > 0 && typeThemeEditor('open')}
+      {cart.mc > 0 && typeThemeEditor('mc')}
+      {cart.ordering > 0 && (
+        <>
+          {typeThemeEditor('ordering')}
+          <div className="rounded-xl border border-quiz-border/60 bg-quiz-bg/40 p-3">
+            <p className="text-sm font-semibold text-quiz-text mb-2">
+              <span className="mr-1.5" aria-hidden>
+                ↕️
+              </span>
+              Elementer per rekkefølge-oppgave
+            </p>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs text-quiz-muted">
+                {AI_SHOP_ORDERING_MIN_ITEMS}–{AI_SHOP_ORDERING_MAX_ITEMS} elementer
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="min-w-[2.5rem]"
+                  onClick={() => adjustOrderingItems(-1)}
+                  disabled={orderingItemCount <= AI_SHOP_ORDERING_MIN_ITEMS || loading}
+                  aria-label="Færre elementer"
+                >
+                  −
+                </Button>
+                <span className="w-8 text-center font-bold tabular-nums">{orderingItemCount}</span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="min-w-[2.5rem]"
+                  onClick={() => adjustOrderingItems(1)}
+                  disabled={orderingItemCount >= AI_SHOP_ORDERING_MAX_ITEMS || loading}
+                  aria-label="Flere elementer"
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
       <div className="min-w-0">
         <label htmlFor="ai-shop-difficulty" className="text-xs text-quiz-muted mb-1 block">
-          Vanskelighetsgrad
+          Vanskelighetsgrad (alle oppgaver)
         </label>
         <select
           id="ai-shop-difficulty"
@@ -325,8 +451,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
       </div>
       {gameSlotsInCart.length > 0 && (
         <p className="text-xs text-quiz-muted rounded-lg border border-quiz-border/50 bg-quiz-bg/50 p-3">
-          Spill i kurven får standardoppsett. Juster gjerne spillinnstillinger i editoren etter
-          generering.
+          Spill i kurven får standardoppsett. Juster gjerne i editoren etter generering.
         </p>
       )}
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-quiz-border bg-quiz-surface-elevated/60 p-3">
@@ -337,7 +462,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
           disabled={loading}
           className="mt-1 h-5 w-5 accent-quiz-accent"
         />
-        <span className="text-sm text-quiz-muted">Finn relevante bilder automatisk (åpent/MC)</span>
+        <span className="text-sm text-quiz-muted">Finn bilder til åpne og flervalg (valgfritt)</span>
       </label>
       {includePixabayImages && (
         <div className="flex flex-wrap gap-2 text-xs">
@@ -380,7 +505,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
             type="button"
             className="w-full"
             disabled={loading}
-            onClick={() => void runGenerate('instant', '')}
+            onClick={() => void runGenerate('instant', false)}
           >
             Lag Gruiz
           </Button>
@@ -428,7 +553,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
               type="button"
               className="flex-1"
               disabled={loading}
-              onClick={() => void runGenerate('cart', 'Allmennkunnskap')}
+              onClick={() => void runGenerate('cart', false)}
             >
               Lag Gruiz
             </Button>
@@ -441,6 +566,10 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
               Velg tema
             </Button>
           </div>
+          <p className="text-xs text-quiz-muted">
+            «Lag Gruiz» uten tema bruker Allmennkunnskap for alle typer. «Velg tema» lar deg styre
+            åpne, flervalg og rekkefølge hver for seg.
+          </p>
           <Button type="button" variant="ghost" size="sm" onClick={() => setStep('buildCart')}>
             Tilbake
           </Button>
@@ -453,8 +582,8 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
           <Button
             type="button"
             className="w-full"
-            disabled={loading || !topic}
-            onClick={() => void runGenerate('cart', topic)}
+            disabled={loading}
+            onClick={() => void runGenerate('cart', true)}
           >
             Lag Gruiz
           </Button>

@@ -30,9 +30,24 @@ export type AiShopMode = 'instant' | 'cart';
 
 export type AiShopSlotType = 'open' | 'mc' | 'ordering' | 'game';
 
+/** Rekkefølge i AI-shop: standard 4 elementer, minst 2. */
+export const AI_SHOP_ORDERING_MIN_ITEMS = 2;
+export const AI_SHOP_ORDERING_DEFAULT_ITEMS = 4;
+export const AI_SHOP_ORDERING_MAX_ITEMS = 5;
+
+export interface AiShopTypeThemes {
+  open?: string;
+  mc?: string;
+  ordering?: string;
+}
+
 export interface AiShopSlot {
   type: AiShopSlotType;
   gameId?: GameId;
+  /** Tema for denne oppgaven (åpen / MC / rekkefølge). */
+  topic?: string;
+  /** Antall elementer i rekkefølge-oppgave (2–5, standard 4). */
+  orderingItemCount?: number;
 }
 
 export interface AiGenerateQuizRequest {

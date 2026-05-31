@@ -1,4 +1,5 @@
 import type { AiGenerateQuizRequest, AiShopSlot } from './aiQuizTypes.js';
+import { AI_SHOP_ORDERING_DEFAULT_ITEMS } from './aiQuizTypes.js';
 import { getBuiltInGame } from '../games/registry.js';
 import { buildAiQuizVarietyHints, formatVarietyBlock } from './aiQuizVariety.js';
 import { resolveAiGeneration } from './resolveAiGeneration.js';
@@ -10,10 +11,16 @@ const DIFFICULTY_NO: Record<AiGenerateQuizRequest['difficulty'], string> = {
 };
 
 function slotTypeLabel(slot: AiShopSlot): string {
-  if (slot.type === 'open') return 'type "open" (åpent tekstsvar med acceptedAnswers)';
-  if (slot.type === 'mc') return 'type "mc" eller "multipleChoice" (nøyaktig 4 options, én correct: true)';
+  const topicHint = slot.topic?.trim() ? ` — tema: «${slot.topic.trim()}»` : '';
+  if (slot.type === 'open') {
+    return `type "open" (åpent tekstsvar med acceptedAnswers)${topicHint}`;
+  }
+  if (slot.type === 'mc') {
+    return `type "mc" eller "multipleChoice" (nøyaktig 4 options, én correct: true)${topicHint}`;
+  }
   if (slot.type === 'ordering') {
-    return 'type "ordering" (3-5 items, correctOrder i riktig rekkefølge, directionLabel med tydelig topp→bunn)';
+    const n = slot.orderingItemCount ?? AI_SHOP_ORDERING_DEFAULT_ITEMS;
+    return `type "ordering" (nøyaktig ${n} items og ${n} correctOrder-tekster, directionLabel topp→bunn)${topicHint}`;
   }
   const game = slot.gameId ? getBuiltInGame(slot.gameId) : undefined;
   const label = game?.label ?? slot.gameId ?? 'spill';
@@ -25,8 +32,13 @@ export function buildAiShopSlotsBlock(slots: AiShopSlot[]): string {
   return `OPPGAVER (strengt — nøyaktig ${slots.length} oppgaver i denne rekkefølgen):
 ${lines.join('\n')}
 
-Rekkefølge: Sjekk at correctOrder faktisk matcher den objektive rekkefølgen (størst→minst, eldste→nyeste, osv.).
-Spill: Bruk kanonisk tittel fra spillnavn. Ikke bruk puzzleType med mindre slot krever regnerace som eget spill — bruk gameId fra listen over.`;
+Rekkefølge: Bruk nøyaktig antall elementer som angitt per oppgave. correctOrder må være objektivt korrekt.
+Spill: Bruk kanonisk tittel fra spillnavn. Ikke bruk puzzleType — bruk gameId fra listen over.`;
+}
+
+function primaryTopicFromSlots(slots: AiShopSlot[], fallback: string): string {
+  const first = slots.find((s) => s.topic?.trim())?.topic?.trim();
+  return first ?? fallback;
 }
 
 export function buildAiGeneratePrompt(params: AiGenerateQuizRequest): string {
@@ -34,13 +46,20 @@ export function buildAiGeneratePrompt(params: AiGenerateQuizRequest): string {
   if (!resolved.ok) {
     throw new Error(resolved.errors.join(' '));
   }
-  const { topic, questionCount, slots } = resolved.resolved;
-  const varietyHints = buildAiQuizVarietyHints(topic, questionCount, params.varietySeed);
+  const { topic: fallbackTopic, questionCount, slots } = resolved.resolved;
+  const headlineTopic = primaryTopicFromSlots(slots, fallbackTopic);
+  const varietyHints = buildAiQuizVarietyHints(headlineTopic, questionCount, params.varietySeed);
   const varietyBlock = formatVarietyBlock(varietyHints);
   const modeLabel = params.mode === 'instant' ? 'AI-shop (automatisk miks)' : 'AI-shop (valgt kurv)';
 
-  return `Lag en norsk Gruiz med nøyaktig ${questionCount} oppgaver om temaet: «${topic}».
+  const topicNote =
+    slots.some((s) => s.topic?.trim()) && params.mode === 'cart'
+      ? 'Hvert spørsmål kan ha eget tema (se oppgavelisten). Varier vinkler innen det temaet.'
+      : `Overordnet tema: «${headlineTopic}».`;
+
+  return `Lag en norsk Gruiz med nøyaktig ${questionCount} oppgaver.
 Modus: ${modeLabel}.
+${topicNote}
 
 Vanskelighetsgrad: ${DIFFICULTY_NO[params.difficulty]}.
 

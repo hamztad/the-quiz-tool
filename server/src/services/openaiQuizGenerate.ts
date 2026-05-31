@@ -100,13 +100,13 @@ const orderingQuestionSchema = {
     directionLabelBottom: { type: 'string', minLength: 1, maxLength: 80 },
     items: {
       type: 'array',
-      minItems: 3,
+      minItems: 2,
       maxItems: 5,
       items: { type: 'string', minLength: 1, maxLength: 80 },
     },
     correctOrder: {
       type: 'array',
-      minItems: 3,
+      minItems: 2,
       maxItems: 5,
       items: { type: 'string', minLength: 1, maxLength: 80 },
     },

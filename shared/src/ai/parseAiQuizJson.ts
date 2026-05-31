@@ -10,7 +10,8 @@ import {
 } from '../games/modules/mathExpression.js';
 import { createDefaultRainbowPuzzleConfig } from '../games/modules/rainbowPuzzle.js';
 import type { GameId, MathExpressionRaceConfig } from '../games/types.js';
-import { validateOrderingQuestion } from '../ordering/orderingQuestion.js';
+import { validateOrderingAfterAiParse } from '../ordering/orderingQuestionAiShop.js';
+import { AI_SHOP_ORDERING_DEFAULT_ITEMS } from './aiQuizTypes.js';
 import {
   AI_GENERATE_QUESTION_MAX,
   AI_GENERATE_QUESTION_MIN,
@@ -96,10 +97,14 @@ function parseAnagramEvidence(raw: Record<string, unknown>): { ok: true } | { ok
   return { ok: true };
 }
 
-function parseOrderingQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQuestion['lines']): ParsedAiQuizQuestion | null {
+function parseOrderingQuestion(
+  raw: Record<string, unknown>,
+  lines: ParsedAiQuizQuestion['lines'],
+  expectedItemCount?: number,
+): ParsedAiQuizQuestion | null {
   const items = parseStringArray(raw.items, 5, MAX_ORDERING_ITEM_TEXT);
   const correctOrder = parseStringArray(raw.correctOrder, 5, MAX_ORDERING_ITEM_TEXT);
-  if (!items || !correctOrder || items.length < 3 || correctOrder.length !== items.length) return null;
+  if (!items || !correctOrder || items.length < 2 || correctOrder.length !== items.length) return null;
   const normalizedItems = items.map((text, index) => ({ id: `ai-order-${index}`, text }));
   const idByText = new Map(normalizedItems.map((item) => [item.text, item.id]));
   const orderingCorrectOrder = correctOrder.map((text) => idByText.get(text)).filter((id): id is string => Boolean(id));
@@ -120,7 +125,8 @@ function parseOrderingQuestion(raw: Record<string, unknown>, lines: ParsedAiQuiz
     maxPoints: 2,
   };
 
-  return validateOrderingQuestion(question).length === 0 ? question : null;
+  const expected = expectedItemCount ?? AI_SHOP_ORDERING_DEFAULT_ITEMS;
+  return validateOrderingAfterAiParse(question, expected).length === 0 ? question : null;
 }
 
 function parsePuzzleQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQuestion['lines']): ParsedAiQuizQuestion | null {
@@ -202,7 +208,7 @@ function parseLegacyPackageGameQuestion(
   };
 }
 
-function parseQuestion(raw: unknown, index: number): ParsedAiQuizQuestion | null {
+function parseQuestion(raw: unknown, index: number, slot?: AiShopSlot): ParsedAiQuizQuestion | null {
   if (!isRecord(raw)) return null;
   const type = raw.type === 'multipleChoice' ? 'mc' : raw.type;
   const text = asNonEmptyString(raw.text, 'text', MAX_QUESTION_TEXT);
@@ -258,7 +264,7 @@ function parseQuestion(raw: unknown, index: number): ParsedAiQuizQuestion | null
   }
 
   if (type === 'ordering') {
-    return parseOrderingQuestion(raw, lines);
+    return parseOrderingQuestion(raw, lines, slot?.orderingItemCount);
   }
 
   if (type === 'puzzle') {
@@ -363,6 +369,14 @@ export function validateAiShopSlots(
         slot.type === 'game' ? `spill ${slot.gameId}` : slot.type;
       errors.push(`Oppgave ${i + 1} skulle være ${expected}, fikk ${q.type}.`);
     }
+    if (slot.type === 'ordering' && slot.orderingItemCount !== undefined) {
+      const itemLen = q.orderingItems?.length ?? 0;
+      if (itemLen !== slot.orderingItemCount) {
+        errors.push(
+          `Oppgave ${i + 1}: rekkefølge skulle ha ${slot.orderingItemCount} elementer, fikk ${itemLen}.`,
+        );
+      }
+    }
   }
   return errors;
 }
@@ -396,7 +410,7 @@ export function parseAiQuizJson(
 
   const questions: ParsedAiQuizQuestion[] = [];
   for (let i = 0; i < rawQuestions.length; i++) {
-    const q = parseQuestion(rawQuestions[i], i);
+    const q = parseQuestion(rawQuestions[i], i, slots?.[i]);
     if (!q) {
       errors.push(`Spørsmål ${i + 1} har ugyldig format.`);
       continue;

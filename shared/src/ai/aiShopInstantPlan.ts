@@ -1,4 +1,7 @@
-import { AI_QUIZ_THEME_PRESETS } from './aiQuizTypes.js';
+import {
+  AI_QUIZ_THEME_PRESETS,
+  AI_SHOP_ORDERING_DEFAULT_ITEMS,
+} from './aiQuizTypes.js';
 import type { AiShopSlot } from './aiQuizTypes.js';
 import type { GameId } from '../games/types.js';
 
@@ -35,7 +38,12 @@ export function buildInstantSlots(random: () => number = Math.random): AiShopSlo
   const slots: AiShopSlot[] = [];
   for (let i = 0; i < INSTANT_TYPE_COUNTS.open; i++) slots.push({ type: 'open' });
   for (let i = 0; i < INSTANT_TYPE_COUNTS.mc; i++) slots.push({ type: 'mc' });
-  for (let i = 0; i < INSTANT_TYPE_COUNTS.ordering; i++) slots.push({ type: 'ordering' });
+  for (let i = 0; i < INSTANT_TYPE_COUNTS.ordering; i++) {
+    slots.push({
+      type: 'ordering',
+      orderingItemCount: AI_SHOP_ORDERING_DEFAULT_ITEMS,
+    });
+  }
   for (let i = 0; i < INSTANT_TYPE_COUNTS.game; i++) {
     slots.push({ type: 'game', gameId: pickGameId(random) });
   }

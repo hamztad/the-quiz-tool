@@ -32,6 +32,11 @@ function isValidSlot(raw: unknown): raw is AiShopSlot {
   if (s.type === 'game') {
     return typeof s.gameId === 'string' && BUILTIN_GAME_IDS.has(s.gameId as GameId);
   }
+  if (s.orderingItemCount !== undefined) {
+    const c = Number(s.orderingItemCount);
+    if (!Number.isInteger(c) || c < 2 || c > 5) return false;
+  }
+  if (s.topic !== undefined && typeof s.topic !== 'string') return false;
   return s.gameId === undefined;
 }
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';

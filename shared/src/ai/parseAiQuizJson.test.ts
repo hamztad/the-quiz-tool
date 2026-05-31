@@ -99,8 +99,8 @@ describe('parseAiQuizJson', () => {
             directionLabel: 'Nord øverst → Sør nederst',
             directionLabelTop: 'Nord',
             directionLabelBottom: 'Sør',
-            items: ['Norge', 'Tyskland', 'Italia'],
-            correctOrder: ['Norge', 'Tyskland', 'Italia'],
+            items: ['Norge', 'Tyskland', 'Italia', 'Spania'],
+            correctOrder: ['Norge', 'Tyskland', 'Italia', 'Spania'],
           },
           {
             type: 'puzzle',
@@ -170,8 +170,8 @@ describe('parseAiQuizJson', () => {
             directionLabel: 'Størst øverst → Minst nederst',
             directionLabelTop: 'Størst',
             directionLabelBottom: 'Minst',
-            items: ['Elefant', 'Hund', 'Mus'],
-            correctOrder: ['Elefant', 'Hund', 'Mus'],
+            items: ['Elefant', 'Hund', 'Mus', 'Ameise'],
+            correctOrder: ['Elefant', 'Hund', 'Mus', 'Ameise'],
           },
           {
             type: 'puzzle',
@@ -252,8 +252,8 @@ describe('parseAiQuizJson', () => {
             directionLabel: 'Nord øverst → Sør nederst',
             directionLabelTop: 'Nord',
             directionLabelBottom: 'Sør',
-            items: ['Norge', 'Tyskland', 'Italia'],
-            correctOrder: ['Norge', 'Tyskland', 'Italia'],
+            items: ['Norge', 'Tyskland', 'Italia', 'Spania'],
+            correctOrder: ['Norge', 'Tyskland', 'Italia', 'Spania'],
           },
           {
             type: 'puzzle',

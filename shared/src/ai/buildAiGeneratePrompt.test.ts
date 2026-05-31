@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildAiGeneratePrompt, buildAiShopSlotsBlock } from './buildAiGeneratePrompt.js';
 import { buildInstantSlots } from './aiShopInstantPlan.js';
-import { QUIZ_PACKAGE_PRESET_SLOTS } from './aiShopCart.js';
+import { cartSlotsFromCounts, QUIZ_PACKAGE_PRESET_SLOTS } from './aiShopCart.js';
 import { validateAiShopSlots } from './parseAiQuizJson.js';
 
 const base = {
@@ -31,6 +31,26 @@ describe('buildAiGeneratePrompt', () => {
     expect(prompt).toContain('nøyaktig 5 oppgaver');
     expect(prompt).toContain('valgt kurv');
     expect(prompt).toContain('gameId "emojiHunt"');
+    expect(prompt).toContain('nøyaktig 4 items');
+  });
+
+  it('cart mode includes per-slot topics in slot list', () => {
+    const slots = cartSlotsFromCounts({
+      open: 1,
+      mc: 1,
+      ordering: 0,
+      games: [],
+      themes: { open: 'Geografi', mc: 'Film' },
+    });
+    const prompt = buildAiGeneratePrompt({
+      ...base,
+      mode: 'cart',
+      questionCount: 2,
+      slots,
+    });
+    expect(prompt).toContain('tema: «Geografi»');
+    expect(prompt).toContain('tema: «Film»');
+    expect(prompt).toContain('eget tema');
   });
 });
 
