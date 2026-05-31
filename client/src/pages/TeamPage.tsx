@@ -314,6 +314,33 @@ export function TeamPage() {
     };
   }, [room, selfPacedLive, navigateToQuestionId]);
 
+  const gameNavQuestion =
+    room && teamId && activeQuestionId
+      ? room.questions.find((q) => q.id === activeQuestionId)
+      : undefined;
+  const showGameCompleteNav = Boolean(
+    room &&
+      teamId &&
+      gameNavQuestion &&
+      gameNavQuestion.type === 'game' &&
+      getParticipantQuestionViewState(room, teamId, gameNavQuestion) === 'available' &&
+      hasParticipantGameAttempt(room, teamId, gameNavQuestion),
+  );
+  const gameCompleteCanRetry =
+    showGameCompleteNav && room && teamId && gameNavQuestion
+      ? canParticipantRetryGame(room, teamId, gameNavQuestion)
+      : false;
+  const gameCompleteSubmissionCount =
+    room && teamId && gameNavQuestion
+      ? countParticipantGameSubmissions(room, teamId, gameNavQuestion.id)
+      : 0;
+  const { visible: gameCompleteNavVisible, dismissForRetry: dismissGameCompleteNav } =
+    useParticipantGameCompleteNav(
+      activeQuestionId ?? undefined,
+      gameCompleteSubmissionCount,
+      showGameCompleteNav,
+    );
+
   if (!roomId) return null;
 
   if (reconnectFailed) {
@@ -436,28 +463,6 @@ export function TeamPage() {
     activeQuestion && teamId
       ? shouldHideParticipantChoiceLabels(activeQuestion, hasAnswered(activeQuestion.id))
       : false;
-
-  const showGameCompleteNav = Boolean(
-    activeQuestion &&
-      teamId &&
-      activeQuestion.type === 'game' &&
-      activeQuestionViewState === 'available' &&
-      hasParticipantGameAttempt(room, teamId, activeQuestion),
-  );
-  const gameCompleteCanRetry =
-    showGameCompleteNav && teamId && activeQuestion
-      ? canParticipantRetryGame(room, teamId, activeQuestion)
-      : false;
-  const gameCompleteSubmissionCount =
-    teamId && activeQuestion
-      ? countParticipantGameSubmissions(room, teamId, activeQuestion.id)
-      : 0;
-  const { visible: gameCompleteNavVisible, dismissForRetry: dismissGameCompleteNav } =
-    useParticipantGameCompleteNav(
-      activeQuestion?.id,
-      gameCompleteSubmissionCount,
-      showGameCompleteNav,
-    );
 
   const canReviewOwn = room.settings.teamReviewOpen === true;
   const canSeeAnswerKey = room.settings.answerKeyOpen === true;
