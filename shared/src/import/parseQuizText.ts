@@ -221,13 +221,7 @@ export function parseQuizText(raw: string): ParseResult {
 
     const imageLine = parseTextImportImageLine(trimmed);
     if (imageLine.ok) {
-      if (current.type === 'game') {
-        errors.push(
-          `Linje ${i + 1}: ARP/RP (relevant bilde) brukes ikke på spill — fjern linjen eller bruk Q/MC/ORDER.`,
-        );
-      } else {
-        current.autoImageProvider = imageLine.provider;
-      }
+      current.autoImageProvider = imageLine.provider;
       continue;
     }
     if (/^(ARP|RP)(?:-|$)/i.test(trimmed)) {

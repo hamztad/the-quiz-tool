@@ -23,7 +23,8 @@ Retning: Nærmest solen → Lengst unna
 
 GAME Regnerace
 
-GAME Rainbow Puzzle`;
+GAME Rainbow Puzzle
+ARP-P`;
 
 /** Korte steg vist over tekstfeltet i editoren. */
 export const QUIZ_TEXT_IMPORT_STEPS = [
@@ -61,6 +62,6 @@ export const QUIZ_TEXT_IMPORT_SECTIONS: { title: string; body: string }[] = [
   {
     title: 'Relevant bilde (ARP / RP)',
     body:
-      'Egen linje ARP-P (Pixabay) eller ARP-W (Wikimedia) etter spørsmålsteksten markerer at oppgaven skal få bilde. ARP uten suffiks = Pixabay. Etter import: bruk «Legg til bilder på oppgaver» — eller hent kun for ARP-merkede med «Kun ARP-merkede».',
+      'Egen linje ARP-P (Pixabay) eller ARP-W (Wikimedia) etter spørsmålsteksten — også på spill (GAME). ARP uten suffiks = Pixabay. For Avslør bildet blir bildet spillmotivet; sjekk fasit i editoren etterpå. Etter import: «Legg til bilder på oppgaver».',
   },
 ];

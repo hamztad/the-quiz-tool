@@ -13,5 +13,6 @@ describe('QUIZ_TEXT_IMPORT_EXAMPLE', () => {
     expect(questions[2]?.autoImageProvider).toBe('pixabay');
     expect(questions[3]?.game?.gameId).toBe('mathExpression');
     expect(questions[4]?.game?.gameId).toBe('rainbowPuzzle');
+    expect(questions[4]?.autoImageProvider).toBe('pixabay');
   });
 });

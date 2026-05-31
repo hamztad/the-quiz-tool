@@ -28,4 +28,12 @@ Mars`);
     expect(questions[0]?.autoImageProvider).toBe('wikimedia');
     expect(questions[1]?.autoImageProvider).toBe('pixabay');
   });
+
+  it('sets autoImageProvider on game questions', () => {
+    const { questions, errors } = parseQuizText(`GAME Rainbow Puzzle
+ARP-W`);
+    expect(errors).toEqual([]);
+    expect(questions[0]?.type).toBe('game');
+    expect(questions[0]?.autoImageProvider).toBe('wikimedia');
+  });
 });

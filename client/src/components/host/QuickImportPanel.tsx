@@ -234,7 +234,7 @@ export function QuickImportPanel({
       onImageAttachMessage?.(
         onlyArpMarked
           ? 'Ingen ARP-merkede oppgaver uten bilde. Legg til ARP-P eller ARP-W i teksten.'
-          : 'Ingen oppgaver uten bilde å hente bilder til (spill hoppes over).',
+          : 'Ingen oppgaver uten bilde å hente bilder til.',
       );
       return;
     }
@@ -267,8 +267,8 @@ export function QuickImportPanel({
       <div>
         <p className="text-sm font-bold text-cyan-950">Legg til relevante bilder</p>
         <p className="mt-1 text-xs text-cyan-900 leading-relaxed">
-          Søker ut fra spørsmålstekst (og riktig svar på MC). Spill og oppgaver som allerede har bilde
-          hoppes over. ARP-P / ARP-W i teksten styrer kilde per oppgave.
+          Søker ut fra spørsmålstekst (og riktig svar på MC, eller spillnavn på GAME). Oppgaver som
+          allerede har bilde hoppes over. ARP-P / ARP-W i teksten styrer kilde per oppgave.
         </p>
       </div>
       <div className="flex flex-wrap gap-4 text-sm text-cyan-950">
