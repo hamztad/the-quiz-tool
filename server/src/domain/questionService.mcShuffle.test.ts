@@ -21,6 +21,7 @@ function mcQuestion(id: string, shuffle: boolean): Question {
 }
 
 function baseRoom(question: Question): RoomRecord {
+  const now = Date.now();
   return {
     id: 'room1',
     joinCode: 'ABCD',
@@ -56,9 +57,10 @@ function baseRoom(question: Question): RoomRecord {
     hostToken: 'h',
     teamTokens: {},
     teamBrowserTokens: {},
-    expiresAt: Date.now() + 60_000,
-    createdAt: Date.now(),
-    lastActiveAt: Date.now(),
+    expiresAt: now + 60_000,
+    createdAt: now,
+    lastActiveAt: now,
+    hostPresence: { connected: false, lastSeenAt: now },
   };
 }
 
