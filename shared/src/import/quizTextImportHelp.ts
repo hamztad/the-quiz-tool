@@ -2,16 +2,19 @@ import { listGameImportNames } from './resolveGameImport.js';
 
 /** Fullt eksempel for hurtigimport (Q, MC, ORDER, GAME) — skal parse uten feil. */
 export const QUIZ_TEXT_IMPORT_EXAMPLE = `Q Hva heter hovedstaden i Frankrike?
+ARP-W
 Hint: begynner med P
 A Paris
 
 MC Hvilken planet er størst i solsystemet?
+ARP-P
 *Jupiter
 Mars
 Venus
 Saturn
 
 ORDER Rangér disse planetene etter avstand fra solen
+ARP-P
 Retning: Nærmest solen → Lengst unna
 - Merkur
 - Venus
@@ -24,9 +27,9 @@ GAME Rainbow Puzzle`;
 
 /** Korte steg vist over tekstfeltet i editoren. */
 export const QUIZ_TEXT_IMPORT_STEPS = [
-  'Kopier eksemplet under (eller skriv i samme mønster).',
+  'Kopier eksemplet under (eller skriv i samme mønster). Valgfritt: ARP-P eller ARP-W for relevant bilde per oppgave.',
   'Lim inn i tekstfeltet. Ett spørsmål per blokk — tom linje mellom hvert spørsmål.',
-  'Trykk «Legg til». Oppgavene dukker opp i Editor, der du kan finpusse dem.',
+  'Trykk «Legg til», deretter «Legg til bilder på oppgaver» (Pixabay eller Wikimedia) hvis du vil.',
 ] as const;
 
 /** Korte seksjoner for hjelpepanelet i editoren. */
@@ -54,5 +57,10 @@ export const QUIZ_TEXT_IMPORT_SECTIONS: { title: string; body: string }[] = [
   {
     title: 'Spill (GAME)',
     body: `GAME etterfulgt av spillnavn oppretter standardoppsett for det spillet. Gyldige navn inkluderer: ${listGameImportNames().join(', ')}. Du kan også skrive GAME alene — da velger du spill i en dialog etter «Legg til».`,
+  },
+  {
+    title: 'Relevant bilde (ARP / RP)',
+    body:
+      'Egen linje ARP-P (Pixabay) eller ARP-W (Wikimedia) etter spørsmålsteksten markerer at oppgaven skal få bilde. ARP uten suffiks = Pixabay. Etter import: bruk «Legg til bilder på oppgaver» — eller hent kun for ARP-merkede med «Kun ARP-merkede».',
   },
 ];

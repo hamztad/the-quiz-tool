@@ -49,7 +49,7 @@ import {
 import { HostScoringModePanel } from '../components/host/HostScoringModePanel';
 import { HostTestModeControls } from '../components/host/HostTestModeControls';
 import { emitTestSessionEnd, emitTestSessionStart } from '../lib/testSession';
-import { clearTeamSession } from '../lib/tokens';
+import { clearTeamSession, getHostSession } from '../lib/tokens';
 
 const HIGHLIGHT_MS = 4500;
 const REPLACE_CONFIRM_WORD = 'ERSTAT';
@@ -654,8 +654,12 @@ export function HostEditPage() {
             importText={importText}
             onImportTextChange={setImportText}
             existingCount={draftQuestions.length}
+            draftQuestions={draftQuestions}
+            hostSession={roomId ? getHostSession(roomId) : null}
+            onDraftQuestionsChange={(next) => updateDraft(next)}
             onAppend={appendImportedQuestions}
             onReplaceAll={replaceAllQuestions}
+            onImageAttachMessage={setSaveMessage}
             autoFocus={focusEntry && buildEntry === 'tekst'}
             helpBelow={focusEntry && buildEntry === 'tekst'}
           />

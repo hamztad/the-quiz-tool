@@ -7,6 +7,7 @@ import { ORDERING_MAX_ITEMS, ORDERING_MIN_ITEMS, validateOrderingQuestion } from
 import { validateMcChoices } from '../choice/choiceValidation.js';
 import { getBuiltInGame } from '../games/registry.js';
 import { resolveGameImportToken } from './resolveGameImport.js';
+import { parseTextImportImageLine } from './parseTextImportImageLine.js';
 import type { GameId } from '../games/types.js';
 
 export interface GamePickRequest {
@@ -215,6 +216,22 @@ export function parseQuizText(raw: string): ParseResult {
 
     if (upper.startsWith('HINT:')) {
       current.hint = trimmed.slice(HINT_PREFIX_LEN).trimStart();
+      continue;
+    }
+
+    const imageLine = parseTextImportImageLine(trimmed);
+    if (imageLine.ok) {
+      if (current.type === 'game') {
+        errors.push(
+          `Linje ${i + 1}: ARP/RP (relevant bilde) brukes ikke på spill — fjern linjen eller bruk Q/MC/ORDER.`,
+        );
+      } else {
+        current.autoImageProvider = imageLine.provider;
+      }
+      continue;
+    }
+    if (/^(ARP|RP)(?:-|$)/i.test(trimmed)) {
+      errors.push(`Linje ${i + 1}: ${imageLine.error}`);
       continue;
     }
 

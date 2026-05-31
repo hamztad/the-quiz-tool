@@ -68,6 +68,11 @@ export interface Question {
   gameType?: GameId;
   game?: GameQuestionConfig;
   media?: MediaAttachment[];
+  /**
+   * Fra tekstimport (ARP-P / ARP-W): hent relevant bilde ved «Legg til bilder».
+   * Fjernes når bilde er lagt inn.
+   */
+  autoImageProvider?: 'pixabay' | 'wikimedia';
   /** Valgfri dekor-emoji (forstørres i UI). Ignoreres når spørsmålet har bilde. */
   decorEmoji?: string;
   maxPoints: number;

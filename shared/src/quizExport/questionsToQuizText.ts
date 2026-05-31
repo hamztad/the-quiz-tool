@@ -1,5 +1,6 @@
 import type { Question } from '../types/room.js';
 import { getBuiltInGame } from '../games/registry.js';
+import { formatTextImportImageLine } from '../import/parseTextImportImageLine.js';
 
 /** Serialize editor questions into quick-import text (Q / MC / A / * format). */
 export function questionsToQuizText(questions: Question[]): string {
@@ -15,6 +16,10 @@ export function questionsToQuizText(questions: Question[]): string {
 
     for (let i = 1; i < q.lines.length; i++) {
       lines.push(q.lines[i].text);
+    }
+
+    if (q.autoImageProvider) {
+      lines.push(formatTextImportImageLine(q.autoImageProvider));
     }
 
     if (q.hint?.trim()) {
