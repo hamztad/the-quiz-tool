@@ -222,26 +222,24 @@ export function TeamSelfPacedQuiz({
         </Card>
       )}
 
-      <Card className="border-2 border-cyan-200/70 bg-gradient-to-br from-cyan-50/90 to-white p-4 space-y-2">
-        <p className="text-sm font-bold text-cyan-950">Selvgående quiz</p>
-        <ul className="text-sm text-cyan-950 space-y-1.5 list-disc pl-5">
-          <li>
-            Alle oppgaver er tilgjengelige med én gang. Trykk på en oppgave for å svare eller spille.
-          </li>
-          <li>
-            <strong>Oppgaver (ikke spill) låses når du sender inn</strong> — da kan du ikke endre svaret.
-          </li>
-          <li>
-            <strong>Spill</strong> kan du spille på nytt fram til Gruizen avsluttes ved tidsfrist.
-          </li>
-        </ul>
-        {nonGameCount > 0 && (
-          <p className="text-xs font-semibold text-cyan-800 pt-1">
-            Sendt inn: {lockedNonGameCount}/{nonGameCount} oppgaver
-            {room.questions.some((q) => q.type === 'game') ? ' · spill teller ikke som låst' : ''}
-          </p>
-        )}
-      </Card>
+      <details className="rounded-lg border border-cyan-200/50 bg-cyan-50/30 text-xs text-cyan-950">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0 truncate">
+            <span className="font-semibold">Selvgående quiz</span>
+            {nonGameCount > 0 && (
+              <span className="font-normal text-cyan-800">
+                {' '}
+                · {lockedNonGameCount}/{nonGameCount} sendt inn
+              </span>
+            )}
+          </span>
+          <span className="shrink-0 text-cyan-600">Info</span>
+        </summary>
+        <div className="border-t border-cyan-200/40 px-3 pb-2.5 pt-1.5 space-y-1 leading-relaxed text-cyan-900">
+          <p>Alle oppgaver er åpne med én gang — trykk for å svare eller spille.</p>
+          <p>Oppgaver (ikke spill) låses når du sender inn. Spill kan spilles på nytt til tidsfrist.</p>
+        </div>
+      </details>
 
       {operationalError && (
         <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800 flex flex-col sm:flex-row sm:items-center gap-3">

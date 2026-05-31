@@ -177,16 +177,19 @@ export function TeamIntervalQuiz({
     <div className={`space-y-4 ${gameCompleteNavVisible ? 'pb-28' : ''}`}>
       <LiveQuizClock room={room} />
 
-      <Card className="border-2 border-indigo-200/70 bg-indigo-50/80 p-4 space-y-2">
-        <p className="text-sm font-bold text-indigo-950">Intervall-quiz</p>
-        <ul className="text-sm text-indigo-950 list-disc pl-5 space-y-1">
-          <li>Oppgaver åpnes én om gangen etter tidsplanen — følg med.</li>
-          <li>
-            <strong>ÅPEN</strong> = du kan svare nå. <strong>STENGT</strong> = vinduet er over.
-          </li>
-          <li>Slå på varsler nedenfor for beskjed når neste oppgave åpnes eller når Gruizen avsluttes.</li>
-        </ul>
-      </Card>
+      <details className="rounded-lg border border-indigo-200/50 bg-indigo-50/30 text-xs text-indigo-950">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 [&::-webkit-details-marker]:hidden">
+          <span className="font-semibold">Intervall-quiz</span>
+          <span className="shrink-0 text-indigo-600">Info</span>
+        </summary>
+        <div className="border-t border-indigo-200/40 px-3 pb-2.5 pt-1.5 space-y-1 leading-relaxed text-indigo-900">
+          <p>Oppgaver åpnes én om gangen etter tidsplanen.</p>
+          <p>
+            <strong>ÅPEN</strong> = svar nå. <strong>STENGT</strong> = vinduet er over. Varsler kan slås på
+            nedenfor.
+          </p>
+        </div>
+      </details>
 
       {operationalError && (
         <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-800 flex gap-3">
