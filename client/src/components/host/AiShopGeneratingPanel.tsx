@@ -11,7 +11,10 @@ interface AiShopGeneratingPanelProps {
   hint?: string;
 }
 
-const ORBIT_ICONS = ['✍️', '🔘', '↕️', '🎮', '✨', '🧠'];
+/** Sentralt: gameshow / Gruiz — quiz, grubling og spill uten å duplisere orbit-ikoner. */
+const GENERATING_CORE_EMOJI = '🎪';
+
+const ORBIT_ICONS = ['✍️', '🔘', '↕️', '🎮', '✨', '🏆'];
 
 export function AiShopGeneratingPanel({
   steps,
@@ -42,7 +45,7 @@ export function AiShopGeneratingPanel({
         <div className="ai-shop-generating__orbit relative mb-6 flex h-28 w-28 items-center justify-center sm:h-32 sm:w-32">
           {ORBIT_ICONS.map((icon, index) => (
             <span
-              key={icon}
+              key={`orbit-${index}`}
               className="ai-shop-generating__orbit-item absolute text-xl sm:text-2xl"
               style={
                 {
@@ -59,7 +62,7 @@ export function AiShopGeneratingPanel({
             className="ai-shop-generating__core relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-white/60 bg-gradient-to-br from-violet-500 to-fuchsia-500 text-3xl shadow-lg shadow-violet-500/30 sm:h-[4.5rem] sm:w-[4.5rem] sm:text-4xl"
             aria-hidden
           >
-            🧠
+            {GENERATING_CORE_EMOJI}
           </span>
         </div>
 

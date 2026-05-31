@@ -1263,8 +1263,8 @@ function MathRaceEditor({
         </div>
         <p className="text-xs text-quiz-muted leading-relaxed">
           Regnerace genererer heltallsoppgaver underveis. Gang 3–12, pluss 2–3 ledd (tosifret),
-          minus tosifret, divisjon med dividend maks 500 (divisor 12–150, aldri lik dividend). Tid:
-          30 sek, 1 min eller 2 min.
+          minus tosifret, divisjon med dividend maks 500 (divisor 12–150, aldri lik dividend). Feil
+          svar (skriv eller flervalgsalternativ) gir 10 sekunder straff. Tid: 30 sek, 1 min eller 2 min.
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">

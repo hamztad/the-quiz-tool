@@ -22,7 +22,8 @@ import { quizPointsForRank } from '../scoring.js';
 
 export const MATH_EXPRESSION_MIN_TERMS = 2;
 export const MATH_EXPRESSION_MAX_TERMS = 4;
-export const DEFAULT_MATH_RACE_WRONG_PENALTY_MS = 3_000;
+/** Tid som trekkes fra klokken ved hvert feilsvar (åpne svar og flervalgsalternativer). */
+export const DEFAULT_MATH_RACE_WRONG_PENALTY_MS = 10_000;
 export const DEFAULT_MATH_RACE_TIME_LIMIT_MS = 60_000;
 export const REGNERACE_RANK_TIME_SCALE = 1_000_000_000;
 export const REGNERACE_MAX_SPEED_BONUS = 2_000;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createRegneraceRandom,
+  DEFAULT_MATH_RACE_WRONG_PENALTY_MS,
   formatRegneraceResultLabel,
   generateMathOptions,
   generateRegneraceProblem,
@@ -177,6 +178,8 @@ function MathRaceView({
 }) {
   const instanceKey = problemSeed ?? questionId;
   const timeLimitMs = config.timeLimitMs;
+  const wrongPenaltyMs = config.wrongPenaltyMs ?? DEFAULT_MATH_RACE_WRONG_PENALTY_MS;
+  const wrongPenaltySeconds = Math.round(wrongPenaltyMs / 1000);
   const enabledOperations = useMemo(
     () => normalizeRegneraceOperations(config.enabledOperations),
     [config.enabledOperations],
@@ -329,14 +332,33 @@ function MathRaceView({
     }, 100);
   };
 
+  const applyWrongAnswerPenalty = useCallback(() => {
+    setWrongAttempts((current) => current + 1);
+    startedAtRef.current -= wrongPenaltyMs;
+    const elapsed = Math.round(performance.now() - startedAtRef.current);
+    const nextRemaining = Math.max(0, timeLimitMs - elapsed);
+    setRemainingMs(nextRemaining);
+    setMessage(`Feil svar — +${wrongPenaltySeconds} sek straff. Prøv igjen.`);
+    setAnswer('');
+    if (nextRemaining <= 0) {
+      finishChallenge(solvedCountRef.current, onUnsolvedProblemRef.current);
+      return true;
+    }
+    focusAnswerInput();
+    return false;
+  }, [
+    finishChallenge,
+    focusAnswerInput,
+    timeLimitMs,
+    wrongPenaltyMs,
+    wrongPenaltySeconds,
+  ]);
+
   const submitAnswer = (value: string) => {
     if (!started || completed || disabled || submittedRef.current || !expression) return;
     const correct = isMathAnswerCorrect(value, expression, { rounding: 'exact', decimals: 0 });
     if (!correct) {
-      setWrongAttempts((current) => current + 1);
-      setMessage('Prøv igjen på samme oppgave.');
-      setAnswer('');
-      focusAnswerInput();
+      applyWrongAnswerPenalty();
       return;
     }
 
@@ -366,8 +388,8 @@ function MathRaceView({
     <div className="mt-4 rounded-3xl border-2 border-indigo-300/40 bg-gradient-to-br from-indigo-500/20 via-sky-400/15 to-fuchsia-500/15 p-4 text-center shadow-[0_0_28px_rgba(129,140,248,0.14)]">
       <p className="text-2xl font-black text-quiz-text">{title || 'Regnerace'}</p>
       <p className="mt-2 text-sm text-quiz-muted">
-        Løs så mange Regnerace-oppgaver som mulig innen {formatCountdownMs(timeLimitMs)}. Nye
-        oppgaver genereres underveis.
+        Løs så mange Regnerace-oppgaver som mulig innen {formatCountdownMs(timeLimitMs)}. Feil svar
+        gir +{wrongPenaltySeconds} sek straff. Nye oppgaver genereres underveis.
       </p>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
