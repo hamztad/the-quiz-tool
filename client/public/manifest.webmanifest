@@ -1,0 +1,10 @@
+{
+  "name": "Gruiz",
+  "short_name": "Gruiz",
+  "description": "Live quiz for spillere og Gruizmaster",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#5b21b6",
+  "lang": "no"
+}

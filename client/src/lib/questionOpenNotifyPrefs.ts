@@ -25,7 +25,14 @@ export async function requestBrowserNotificationPermission(): Promise<Notificati
   if (!browserNotificationsSupported()) return 'denied';
   if (Notification.permission === 'granted') return 'granted';
   if (Notification.permission === 'denied') return 'denied';
-  return Notification.requestPermission();
+
+  const originalTitle = document.title;
+  document.title = 'Gruiz vil vise varsler';
+  try {
+    return await Notification.requestPermission();
+  } finally {
+    document.title = originalTitle;
+  }
 }
 
 export function readNotifyOnQuizEnd(): boolean {
