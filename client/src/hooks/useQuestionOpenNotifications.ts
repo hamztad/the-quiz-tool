@@ -8,7 +8,7 @@ import {
 import { formatOppgaveLabel } from '../lib/participantCopy';
 import {
   readNotifyOnQuestionOpen,
-  showBrowserQuestionOpenNotification,
+  showBrowserNotification,
   writeNotifyOnQuestionOpen,
 } from '../lib/questionOpenNotifyPrefs';
 
@@ -108,7 +108,7 @@ export function useQuestionOpenNotifications(
       const activate = () => navigateToQuestion(questionId);
 
       showToast(message, questionId);
-      showBrowserQuestionOpenNotification('Gruiz', `${label} er åpen`, activate);
+      showBrowserNotification('Gruiz', `${label} er åpen`, activate, 'gruiz-open');
     }
   }, [room, notifyEnabled, onNavigateToQuestion]);
 

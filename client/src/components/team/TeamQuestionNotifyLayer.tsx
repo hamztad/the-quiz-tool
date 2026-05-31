@@ -1,36 +1,36 @@
 import type { PublicRoomState } from '@quiz-tool/shared';
 import type { useQuestionOpenNotifications } from '../../hooks/useQuestionOpenNotifications';
+import type { useQuizEndNotifications } from '../../hooks/useQuizEndNotifications';
 import { QuestionOpenNotifyToggle } from './QuestionOpenNotifyToggle';
-import { QuestionOpenToast } from './QuestionOpenToast';
+import { QuizEndNotifyToggle } from './QuizEndNotifyToggle';
 
-type Notifications = ReturnType<typeof useQuestionOpenNotifications>;
+type QuestionNotifications = ReturnType<typeof useQuestionOpenNotifications>;
+type QuizEndNotifications = ReturnType<typeof useQuizEndNotifications>;
 
 interface TeamQuestionNotifyLayerProps {
   room: PublicRoomState;
-  notifications: Notifications;
+  questionNotifications: QuestionNotifications;
+  quizEndNotifications: QuizEndNotifications;
 }
 
-export function TeamQuestionNotifyLayer({ room, notifications }: TeamQuestionNotifyLayerProps) {
-  const { notifyEnabled, setNotifyEnabled, toast, dismissToast, navigateToQuestion } =
-    notifications;
-
+/** In-flow toggles for participant notifications (toasts render via ParticipantNotifyToasts). */
+export function TeamQuestionNotifyLayer({
+  room,
+  questionNotifications,
+  quizEndNotifications,
+}: TeamQuestionNotifyLayerProps) {
   return (
-    <>
+    <div className="space-y-3">
+      <QuizEndNotifyToggle
+        room={room}
+        enabled={quizEndNotifications.notifyEnabled}
+        onEnabledChange={quizEndNotifications.setNotifyEnabled}
+      />
       <QuestionOpenNotifyToggle
         room={room}
-        enabled={notifyEnabled}
-        onEnabledChange={setNotifyEnabled}
+        enabled={questionNotifications.notifyEnabled}
+        onEnabledChange={questionNotifications.setNotifyEnabled}
       />
-      {toast && (
-        <QuestionOpenToast
-          toast={toast}
-          onDismiss={dismissToast}
-          onActivate={() => {
-            navigateToQuestion(toast.questionId);
-            dismissToast();
-          }}
-        />
-      )}
-    </>
+    </div>
   );
 }

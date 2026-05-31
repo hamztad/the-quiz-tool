@@ -12,8 +12,10 @@ import {
   type Question,
 } from '@quiz-tool/shared';
 import { TeamSelfPacedQuiz } from '../components/team/TeamSelfPacedQuiz';
+import { ParticipantNotifyToasts } from '../components/team/ParticipantNotifyToasts';
 import { TeamQuestionNotifyLayer } from '../components/team/TeamQuestionNotifyLayer';
 import { useQuestionOpenNotifications } from '../hooks/useQuestionOpenNotifications';
+import { useQuizEndNotifications } from '../hooks/useQuizEndNotifications';
 import { GruizMark } from '../components/brand/GruizMark';
 import { Leaderboard } from '../components/leaderboard/Leaderboard';
 import { PeerGradingView } from '../components/grading/PeerGradingView';
@@ -262,6 +264,15 @@ export function TeamPage() {
     },
   });
 
+  const quizEndNotifications = useQuizEndNotifications(room);
+
+  const participantNotifyToasts = room ? (
+    <ParticipantNotifyToasts
+      questionNotifications={questionNotifications}
+      quizEndNotifications={quizEndNotifications}
+    />
+  ) : null;
+
   const showOwnReview = searchParams.get('review') === '1';
   const showAnswerKey = searchParams.get('fasit') === '1';
   const showRestoredMessage = sessionRestored || searchParams.get('restored') === '1';
@@ -456,6 +467,8 @@ export function TeamPage() {
 
   if (canReviewOwn && showOwnReview && teamId) {
     return (
+      <>
+        {participantNotifyToasts}
       <TeamResultsReviewView
         room={room}
         teamId={teamId}
@@ -467,11 +480,14 @@ export function TeamPage() {
             : PARTICIPANT_BACK_TO_QUIZ_LABEL
         }
       />
+      </>
     );
   }
 
   if (canSeeAnswerKey && showAnswerKey) {
     return (
+      <>
+        {participantNotifyToasts}
       <TeamAnswerKeyView
         room={room}
         teamName={myTeam?.name ?? 'Spiller'}
@@ -483,6 +499,7 @@ export function TeamPage() {
           });
         }}
       />
+      </>
     );
   }
 
@@ -498,6 +515,7 @@ export function TeamPage() {
   if (intervalActive) {
     return (
       <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle="Intervall-quiz">
+        {participantNotifyToasts}
         <TeamIntervalQuiz
           room={room}
           teamId={teamId}
@@ -505,7 +523,11 @@ export function TeamPage() {
           onRetryReconnect={retryReconnect}
           onBindQuestionNavigator={bindSelfPacedQuestionNav}
         />
-        <TeamQuestionNotifyLayer room={room} notifications={questionNotifications} />
+        <TeamQuestionNotifyLayer
+          room={room}
+          questionNotifications={questionNotifications}
+          quizEndNotifications={quizEndNotifications}
+        />
       </PageShell>
     );
   }
@@ -517,6 +539,7 @@ export function TeamPage() {
         title={myTeam?.name ?? 'Spiller'}
         subtitle={room.settings.teamsLockedOut ? 'Selvgående quiz · avsluttet' : 'Selvgående quiz'}
       >
+        {participantNotifyToasts}
         <TeamSelfPacedQuiz
           room={room}
           teamId={teamId}
@@ -524,7 +547,11 @@ export function TeamPage() {
           onRetryReconnect={retryReconnect}
           onBindQuestionNavigator={bindSelfPacedQuestionNav}
         />
-        <TeamQuestionNotifyLayer room={room} notifications={questionNotifications} />
+        <TeamQuestionNotifyLayer
+          room={room}
+          questionNotifications={questionNotifications}
+          quizEndNotifications={quizEndNotifications}
+        />
       </PageShell>
     );
   }
@@ -532,6 +559,7 @@ export function TeamPage() {
   if (room.phase === 'post_quiz') {
     return (
       <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle="Gruizen er avsluttet">
+        {participantNotifyToasts}
         {finalResultContent}
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
@@ -553,6 +581,12 @@ export function TeamPage() {
   if (room.phase === 'grading' && !assignment) {
     return (
       <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle="Retterunde">
+        {participantNotifyToasts}
+        <TeamQuestionNotifyLayer
+          room={room}
+          questionNotifications={questionNotifications}
+          quizEndNotifications={quizEndNotifications}
+        />
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
@@ -568,6 +602,13 @@ export function TeamPage() {
 
   if (room.phase === 'grading' && assignment) {
     return (
+      <>
+        {participantNotifyToasts}
+        <TeamQuestionNotifyLayer
+          room={room}
+          questionNotifications={questionNotifications}
+          quizEndNotifications={quizEndNotifications}
+        />
       <PeerGradingView
         room={room}
         assignment={assignment}
@@ -577,12 +618,19 @@ export function TeamPage() {
         reviewHref={canReviewOwn ? reviewHref : undefined}
         answerKeyHref={canSeeAnswerKey ? answerKeyHref : undefined}
       />
+      </>
     );
   }
 
   if (room.phase === 'leaderboard' || room.settings.showLeaderboard) {
     return (
       <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle="Leaderboard">
+        {participantNotifyToasts}
+        <TeamQuestionNotifyLayer
+          room={room}
+          questionNotifications={questionNotifications}
+          quizEndNotifications={quizEndNotifications}
+        />
         {!connected && (
           <div className="mb-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
             Kobler til igjen… Dine innsendte svar er lagret på serveren.
@@ -611,6 +659,7 @@ export function TeamPage() {
 
   return (
     <PageShell showBrand="compact" title={myTeam?.name ?? 'Spiller'} subtitle={`Fase: ${room.phase}`}>
+      {participantNotifyToasts}
       {room.settings.testMode && roomId && (
         <TestModeParticipantBar
           editHref={`/host/${roomId}/edit`}
@@ -653,7 +702,11 @@ export function TeamPage() {
 
       <LiveQuizClock room={room} />
 
-      <TeamQuestionNotifyLayer room={room} notifications={questionNotifications} />
+      <TeamQuestionNotifyLayer
+        room={room}
+        questionNotifications={questionNotifications}
+        quizEndNotifications={quizEndNotifications}
+      />
 
       <div className={`quiz-page-content space-y-4 ${showGameCompleteNav ? 'pb-28' : ''}`}>
           {activeQuestion ? (

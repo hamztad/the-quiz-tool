@@ -173,7 +173,7 @@ export function TeamIntervalQuiz({
           <li>
             <strong>ÅPEN</strong> = du kan svare nå. <strong>STENGT</strong> = vinduet er over.
           </li>
-          <li>Slå på varsler nedenfor for beskjed når neste oppgave åpnes.</li>
+          <li>Slå på varsler nedenfor for beskjed når neste oppgave åpnes eller når Gruizen avsluttes.</li>
         </ul>
       </Card>
 

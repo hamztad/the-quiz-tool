@@ -1,13 +1,23 @@
-import type { QuestionOpenToast as ToastState } from '../../hooks/useQuestionOpenNotifications';
 import { Button } from '../ui/Button';
 
-interface QuestionOpenToastProps {
-  toast: ToastState;
-  onDismiss: () => void;
-  onActivate: () => void;
+export interface InAppNotifyToast {
+  id: string;
+  message: string;
 }
 
-export function QuestionOpenToast({ toast, onDismiss, onActivate }: QuestionOpenToastProps) {
+interface QuestionOpenToastProps {
+  toast: InAppNotifyToast;
+  onDismiss: () => void;
+  onActivate: () => void;
+  activateLabel?: string;
+}
+
+export function QuestionOpenToast({
+  toast,
+  onDismiss,
+  onActivate,
+  activateLabel = 'Gå til oppgave',
+}: QuestionOpenToastProps) {
   return (
     <div
       className="fixed bottom-20 left-4 right-4 z-30 mx-auto max-w-md sm:left-auto sm:right-6 sm:bottom-6"
@@ -22,7 +32,7 @@ export function QuestionOpenToast({ toast, onDismiss, onActivate }: QuestionOpen
           <p className="text-sm font-bold text-quiz-text">{toast.message}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Button type="button" size="sm" variant="cta" onClick={onActivate}>
-              Gå til oppgave
+              {activateLabel}
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={onDismiss}>
               Lukk
