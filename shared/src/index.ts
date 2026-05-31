@@ -24,6 +24,8 @@ export * from './scoring/performanceGameResults.js';
 export * from './scoring/scoringModeGuard.js';
 export * from './constants/roomErrors.js';
 export * from './import/parseQuizText.js';
+export * from './import/finalizeParseResult.js';
+export * from './import/quizTextImportHelp.js';
 export * from './import/aiQuizPrompt.js';
 export * from './grading/buildGradingAssignments.js';
 export * from './grading/aiGrading.js';

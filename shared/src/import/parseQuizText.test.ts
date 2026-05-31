@@ -85,6 +85,50 @@ a svar`;
     expect(errors).toHaveLength(0);
     expect(questions[0].hint).toBe('tenk hardt');
   });
+
+  it('parses ordering question with direction and items', () => {
+    const text = `ORDER Planetene
+Retning: Nær solen → Langt unna
+- Merkur
+- Venus
+- Jorden`;
+
+    const { questions, errors, gamePickRequests } = parseQuizText(text);
+    expect(errors).toHaveLength(0);
+    expect(gamePickRequests).toHaveLength(0);
+    expect(questions).toHaveLength(1);
+    expect(questions[0].type).toBe('ordering');
+    expect(questions[0].orderingDirectionTop).toBe('Nær solen');
+    expect(questions[0].orderingDirectionBottom).toBe('Langt unna');
+    expect(questions[0].orderingItems).toHaveLength(3);
+    expect(questions[0].orderingCorrectOrder).toEqual(['ord-1', 'ord-2', 'ord-3']);
+  });
+
+  it('parses GAME with known label', () => {
+    const text = `GAME Regnestykke`;
+
+    const { questions, errors } = parseQuizText(text);
+    expect(errors).toHaveLength(0);
+    expect(questions[0].type).toBe('game');
+    expect(questions[0].game?.gameId).toBe('mathExpression');
+  });
+
+  it('requests game pick when GAME has no name', () => {
+    const text = `GAME
+Min quiz-runde`;
+
+    const { questions, gamePickRequests } = parseQuizText(text);
+    expect(questions).toHaveLength(0);
+    expect(gamePickRequests).toHaveLength(1);
+    expect(gamePickRequests[0].lines[0]?.text).toBe('Min quiz-runde');
+  });
+
+  it('reports too few ordering items', () => {
+    const { errors } = parseQuizText(`ORDER Kort
+- En
+- To`);
+    expect(errors.some((e) => e.includes('3-5 elementer'))).toBe(true);
+  });
 });
 
 describe('validateQuestionsForSave', () => {

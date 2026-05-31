@@ -1,4 +1,5 @@
 import type { Question } from '../types/room.js';
+import { getBuiltInGame } from '../games/registry.js';
 
 /** Serialize editor questions into quick-import text (Q / MC / A / * format). */
 export function questionsToQuizText(questions: Question[]): string {
@@ -38,13 +39,19 @@ export function questionsToQuizText(questions: Question[]): string {
           `Retning: ${q.orderingDirectionTop ?? 'Øverst'} → ${q.orderingDirectionBottom ?? 'Nederst'}`,
         );
       }
-      lines.push('[rekkefølge] Rediger fasit i editoren.');
-      for (const itemId of q.orderingCorrectOrder ?? []) {
+      const orderIds = q.orderingCorrectOrder ?? [];
+      if (orderIds.length === 0) {
+        lines.push('[rekkefølge] Legg til elementer i editoren.');
+      }
+      for (const itemId of orderIds) {
         const text = byId.get(itemId)?.text.trim();
         if (text) lines.push(`- ${text}`);
       }
-    } else {
-      lines.push(`[${q.game?.gameId ?? 'game'}] Rediger spillspørsmål i editoren.`);
+    } else if (q.type === 'game' && q.game?.gameId) {
+      const label = getBuiltInGame(q.game.gameId)?.label;
+      if (label && !title.trim()) {
+        lines[0] = `GAME ${label}`;
+      }
     }
 
     blocks.push(lines.join('\n'));
