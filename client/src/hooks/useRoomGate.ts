@@ -11,6 +11,7 @@ import {
   clearTeamSession,
   getHostSession,
   getTeamSession,
+  saveTeamSession,
   type HostSession,
   type TeamSession,
 } from '../lib/tokens';
@@ -19,12 +20,19 @@ import { useRoomState } from './useRoomState';
 
 type RoomGateMode = 'host' | 'team';
 
+interface UseRoomGateOptions {
+  /** Personlig lenke fra e-postvarsel (?epost=…) */
+  emailAccessToken?: string | null;
+}
+
 export function useRoomGate(
   roomId: string | undefined,
   mode: RoomGateMode,
   socket: AppSocket,
   connected: boolean,
+  options: UseRoomGateOptions = {},
 ) {
+  const { emailAccessToken } = options;
   const { room, roomError } = useRoomState(socket);
   const [reconnectAttempted, setReconnectAttempted] = useState(false);
   const [sessionInvalid, setSessionInvalid] = useState(false);
@@ -32,6 +40,8 @@ export function useRoomGate(
   const [hostReconnectNotice, setHostReconnectNotice] = useState(false);
   const [selfPacedReconnectNotice, setSelfPacedReconnectNotice] = useState(false);
   const [reconnectTick, setReconnectTick] = useState(0);
+
+  const [emailLinkAttempted, setEmailLinkAttempted] = useState(false);
 
   const session = useMemo(() => {
     if (!roomId) return null;
@@ -76,14 +86,53 @@ export function useRoomGate(
   }, [roomId, session, socket, mode]);
 
   useEffect(() => {
+    if (mode !== 'team' || !roomId || !connected || session || !emailAccessToken?.trim()) {
+      return;
+    }
+    setEmailLinkAttempted(false);
+    setSessionInvalid(false);
+    socket.emit(
+      CLIENT_EVENTS.ROOM_RECONNECT,
+      { roomId, resultAccessToken: emailAccessToken.trim() },
+      (res?: {
+        ok?: boolean;
+        code?: string;
+        teamId?: string;
+        teamToken?: string;
+        teamName?: string;
+        emailLink?: boolean;
+      }) => {
+        setEmailLinkAttempted(true);
+        if (res?.ok === false) {
+          if (res.code === ROOM_ERROR_CODES.SESSION_INVALID) {
+            setSessionInvalid(true);
+          }
+          return;
+        }
+        if (res?.ok && res.teamId && res.teamToken) {
+          saveTeamSession({
+            roomId,
+            teamId: res.teamId,
+            teamToken: res.teamToken,
+            teamName: res.teamName,
+            joinCode: room?.joinCode,
+          });
+          setSessionRestored(true);
+          setReconnectTick((n) => n + 1);
+        }
+      },
+    );
+  }, [mode, roomId, connected, session, emailAccessToken, socket, room?.joinCode]);
+
+  useEffect(() => {
     if (!roomId || !connected || !session) {
-      if (!session && roomId) {
+      if (!session && roomId && !emailAccessToken?.trim()) {
         setReconnectAttempted(true);
       }
       return;
     }
     emitReconnect();
-  }, [roomId, connected, session, emitReconnect, reconnectTick]);
+  }, [roomId, connected, session, emitReconnect, reconnectTick, emailAccessToken]);
 
   useEffect(() => {
     if (mode !== 'host' || !roomId || !room) return;
@@ -121,14 +170,24 @@ export function useRoomGate(
     }
   }, [unavailable, mode, roomId, roomError?.code]);
 
-  const reconnecting = Boolean(
-    roomId && session && connected && !room && !unavailable,
+  const waitingForEmailLink = Boolean(
+    roomId && emailAccessToken?.trim() && !session && connected && !emailLinkAttempted,
   );
 
-  const waitingForSession = Boolean(roomId && reconnectAttempted && !session);
+  const reconnecting = Boolean(
+    roomId && (session || emailAccessToken?.trim()) && connected && !room && !unavailable,
+  ) || waitingForEmailLink;
+
+  const waitingForSession = Boolean(
+    roomId &&
+      reconnectAttempted &&
+      !session &&
+      !emailAccessToken?.trim(),
+  );
 
   const reconnectFailed = Boolean(
     sessionInvalid ||
+    (emailAccessToken?.trim() && emailLinkAttempted && !session && !room) ||
     (session &&
       reconnectAttempted &&
       unavailable &&

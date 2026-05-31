@@ -1,5 +1,6 @@
 import { getNextRoomDeadline } from '@quiz-tool/shared';
 import type { Server } from 'socket.io';
+import { notifyTeamEmailTransitions } from '../teamEmailNotifyTransitions.js';
 import { emitRoomStateToAll } from '../../socket/emitRoomState.js';
 import { roomStore } from '../../store/activeRoomStore.js';
 import { applyDueDeadlines } from './applyTimerDeadline.js';
@@ -47,9 +48,13 @@ export class TimerCoordinator {
       return;
     }
 
+    const prev = room;
     let next = applyDueDeadlines(room, now);
-    if (next !== room) {
+    if (next !== prev) {
       roomStore.update(roomId, () => next);
+      if (this.io) {
+        notifyTeamEmailTransitions(roomStore, this.io, roomId, prev, next);
+      }
     }
 
     if (this.io) {

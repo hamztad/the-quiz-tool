@@ -246,6 +246,8 @@ export interface PublicRoomState extends RoomState {
   viewerTeamId?: string;
   viewerRole: SocketRole;
   leaderboard?: LeaderboardEntry[];
+  /** Eget lag: om e-postvarsler er registrert (aldri e-postadresse i klient). */
+  emailNotifyStatus?: import('../email/teamEmailNotify.js').ParticipantEmailNotifyStatus;
 }
 
 export interface LeaderboardEntry {

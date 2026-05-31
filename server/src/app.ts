@@ -7,6 +7,7 @@ import { aiQuizRouter } from './routes/aiQuiz.js';
 import { hostSessionRouter } from './routes/hostSession.js';
 import { gameImagesRouter } from './routes/gameImages.js';
 import { initUploadCleanup } from './services/imageProviders/index.js';
+import { isEmailDeliveryConfigured } from './services/teamResultEmail.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,10 @@ export function createApp() {
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, service: 'the-quiz-tool' });
+  });
+
+  app.get('/api/email-notify/status', (_req, res) => {
+    res.json({ enabled: isEmailDeliveryConfigured() });
   });
 
   app.use('/api/ai', aiQuizRouter);

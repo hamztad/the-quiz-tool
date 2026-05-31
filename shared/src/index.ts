@@ -55,3 +55,4 @@ export * from './quiz/liveQuizEdit.js';
 export * from './quiz/quizModes.js';
 export * from './quiz/intervalSchedule.js';
 export * from './question/questionDecor.js';
+export * from './email/teamEmailNotify.js';

@@ -1,6 +1,7 @@
 import type { PublicRoomState } from '@quiz-tool/shared';
 import type { useQuestionOpenNotifications } from '../../hooks/useQuestionOpenNotifications';
 import type { useQuizEndNotifications } from '../../hooks/useQuizEndNotifications';
+import { ParticipantEmailNotifyCard } from './ParticipantEmailNotifyCard';
 import { QuestionOpenNotifyToggle } from './QuestionOpenNotifyToggle';
 import { QuizEndNotifyToggle } from './QuizEndNotifyToggle';
 
@@ -21,6 +22,7 @@ export function TeamQuestionNotifyLayer({
 }: TeamQuestionNotifyLayerProps) {
   return (
     <div className="space-y-3">
+      <ParticipantEmailNotifyCard room={room} />
       <QuizEndNotifyToggle
         room={room}
         enabled={quizEndNotifications.notifyEnabled}

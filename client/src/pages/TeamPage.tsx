@@ -188,7 +188,9 @@ export function TeamPage() {
     teamSession,
     sessionRestored,
     retryReconnect,
-  } = useRoomGate(roomId, 'team', socket, connected);
+  } = useRoomGate(roomId, 'team', socket, connected, {
+    emailAccessToken: searchParams.get('epost'),
+  });
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});

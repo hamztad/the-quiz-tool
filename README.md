@@ -59,6 +59,18 @@ Saturn
 4. Start: `npm run start`
 5. Sett `NODE_ENV=production`
 
+### E-postvarsler (valgfritt, GDPR)
+
+For at spillere kan registrere e-post og få beskjed når Gruizen avsluttes:
+
+| Variabel | Beskrivelse |
+|----------|-------------|
+| `RESEND_API_KEY` | API-nøkkel fra [Resend](https://resend.com) |
+| `EMAIL_FROM` | Avsender, f.eks. `Gruiz <varsler@dittdomene.no>` (domene må verifiseres hos Resend) |
+| `PUBLIC_APP_URL` | Full URL til appen (brukes i e-postlenker), f.eks. `https://gruiz.example.com` |
+
+Uten `RESEND_API_KEY` skjules e-postregistrering for spillere. E-post lagres kun på serveren til rommet utløper; samtykke kan trekkes tilbake i spilleren.
+
 ## Manuell testplan
 
 - [ ] Opprett rom som host; join-kode og QR vises

@@ -43,6 +43,12 @@ import {
 } from '../../domain/questionService.js';
 import { cancelQuizSchedule, setQuizSchedule } from '../../domain/timing/scheduleService.js';
 import {
+  findTeamIdByResultAccessToken,
+  setTeamEmailNotify,
+  withdrawTeamEmailNotify,
+} from '../../domain/teamEmailNotifyService.js';
+import { isEmailDeliveryConfigured } from '../../services/teamResultEmail.js';
+import {
   createRoom,
   endQuizForTeams,
   findTeamIdByBrowserToken,
@@ -288,7 +294,15 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
   socket.on(
     CLIENT_EVENTS.ROOM_RECONNECT,
-    (payload: { roomId: string; hostToken?: string; teamToken?: string }, ack?: (res: unknown) => void) => {
+    (
+      payload: {
+        roomId: string;
+        hostToken?: string;
+        teamToken?: string;
+        resultAccessToken?: string;
+      },
+      ack?: (res: unknown) => void,
+    ) => {
       try {
         const room = roomStore.get(payload.roomId);
 
@@ -325,6 +339,30 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         }
 
         const activeRoom = access.room;
+
+        if (payload.resultAccessToken) {
+          const teamId = findTeamIdByResultAccessToken(activeRoom, payload.resultAccessToken);
+          const teamToken = teamId ? activeRoom.teamTokens[teamId] : undefined;
+          if (!teamId || !teamToken) {
+            emitRoomAccessError(socket, ROOM_ERROR_CODES.SESSION_INVALID);
+            ack?.({ ok: false, code: ROOM_ERROR_CODES.SESSION_INVALID });
+            return;
+          }
+          roomStore.update(activeRoom.id, (r) => markTeamSocketConnected(r, teamId));
+          attachSocket(socket, activeRoom.id, 'secretary', teamId);
+          emitRoomStateToSocket(socket, activeRoom.id);
+          ack?.({
+            ok: true,
+            role: 'secretary',
+            teamId,
+            teamToken,
+            teamName: activeRoom.teams.find((team) => team.id === teamId)?.name,
+            restored: true,
+            emailLink: true,
+          });
+          publishRoomState(io, activeRoom.id);
+          return;
+        }
 
         if (payload.teamToken) {
           const teamId = Object.entries(activeRoom.teamTokens).find(
@@ -1022,6 +1060,56 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       settings: { ...r.settings, answerKeyOpen: payload.open },
     }));
     publishRoomState(io, roomId);
+  });
+
+  socket.on(
+    CLIENT_EVENTS.TEAM_EMAIL_NOTIFY_SET,
+    (
+      payload: {
+        email: string;
+        consent: boolean;
+        notifyOnQuizEnd: boolean;
+        notifyOnFinalResult: boolean;
+      },
+      ack?: (res: unknown) => void,
+    ) => {
+      const roomId = socket.data.roomId as string;
+      const teamId = socket.data.teamId as string | undefined;
+      if (!requireSecretary(socket, roomId) || !teamId) return;
+      if (!isEmailDeliveryConfigured()) {
+        emitError(
+          socket,
+          'E-postvarsler er ikke aktivert på serveren (mangler RESEND_API_KEY / EMAIL_FROM).',
+        );
+        ack?.({ ok: false });
+        return;
+      }
+      try {
+        roomStore.update(roomId, (r) =>
+          setTeamEmailNotify(r, teamId, {
+            email: payload.email,
+            consent: payload.consent,
+            notifyOnQuizEnd: payload.notifyOnQuizEnd,
+            notifyOnFinalResult: payload.notifyOnFinalResult,
+          }),
+        );
+        publishRoomState(io, roomId);
+        ack?.({ ok: true });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Kunne ikke lagre e-postvarsel.';
+        emitError(socket, message);
+        ack?.({ ok: false, message });
+      }
+    },
+  );
+
+  socket.on(CLIENT_EVENTS.TEAM_EMAIL_NOTIFY_WITHDRAW, (ack?: (res: unknown) => void) => {
+    const roomId = socket.data.roomId as string;
+    const teamId = socket.data.teamId as string | undefined;
+    if (!requireSecretary(socket, roomId) || !teamId) return;
+    roomStore.update(roomId, (r) => withdrawTeamEmailNotify(r, teamId));
+    publishRoomState(io, roomId);
+    ack?.({ ok: true });
   });
 
   socket.on(CLIENT_EVENTS.TEAM_JOIN_TOGGLE, (payload: { allowNewTeams: boolean }) => {

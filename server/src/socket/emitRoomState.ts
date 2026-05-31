@@ -2,6 +2,7 @@ import type { Server, Socket } from 'socket.io';
 import { SERVER_EVENTS } from '@quiz-tool/shared';
 import { touchStoredRoom } from '../domain/roomCleanup.js';
 import { syncHostTitleFromQuestions } from '../domain/roomService.js';
+import { notifyTeamEmailTransitions } from '../domain/teamEmailNotifyTransitions.js';
 import { touchRoomActivity } from '@quiz-tool/shared';
 import { applyDueDeadlines } from '../domain/timing/applyTimerDeadline.js';
 import { timerCoordinator } from '../domain/timing/TimerCoordinator.js';
@@ -29,10 +30,16 @@ export function publishRoomState(io: Server, roomId: string): void {
   if (!room) return;
 
   const now = Date.now();
+  const before = room;
   roomStore.update(roomId, (current) => {
     const withDeadlines = applyDueDeadlines(current, now);
     return touchRoomActivity(syncHostTitleFromQuestions(withDeadlines), now);
   });
+
+  const after = roomStore.get(roomId);
+  if (before && after) {
+    notifyTeamEmailTransitions(roomStore, io, roomId, before, after);
+  }
 
   emitRoomStateToAll(io, roomId);
   timerCoordinator.arm(roomId);

@@ -1,8 +1,12 @@
-import type { PublicRoomState, Question, RoomState } from '@quiz-tool/shared';
 import {
+  deriveHostQuizTitle,
   isProvisionalLeaderboardVisible,
   isQuestionRevealedToTeam,
   redactQuestionForTeam,
+  toParticipantEmailNotifyStatus,
+  type PublicRoomState,
+  type Question,
+  type RoomState,
 } from '@quiz-tool/shared';
 import {
   assertLiveQuizQuestionUpdates,
@@ -18,7 +22,6 @@ import {
   computeRoomExpiresAt,
   createConnectedTeamPresence,
   DEFAULT_ROOM_TTL_MS,
-  deriveHostQuizTitle,
   markTeamConnected,
   markTeamDisconnected,
   type HostPresence,
@@ -304,6 +307,11 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
     (a) => a.graderTeamId !== teamId && a.targetTeamId !== teamId,
   );
 
+  const teamEmailNotify = room.teamEmailNotify ? { ...room.teamEmailNotify } : undefined;
+  if (teamEmailNotify) {
+    delete teamEmailNotify[teamId];
+  }
+
   return {
     ...room,
     teams,
@@ -319,6 +327,8 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
     protests,
     gradingAssignments,
     answeredByTeam: recomputeAnsweredByTeam(teams, answers, gameSubmissions),
+    teamEmailNotify:
+      teamEmailNotify && Object.keys(teamEmailNotify).length > 0 ? teamEmailNotify : undefined,
   };
 }
 
@@ -497,7 +507,7 @@ function redactRevealImageMediaUrl(question: Question, stripUrl: boolean): Quest
 }
 
 export function toPublicState(
-  room: RoomState,
+  room: RoomState | RoomRecord,
   role: 'host' | 'secretary',
   viewerTeamId?: string,
 ): PublicRoomState {
@@ -628,5 +638,11 @@ export function toPublicState(
     protests: visibleProtests,
     viewerRole: 'secretary',
     viewerTeamId: teamId,
+    emailNotifyStatus:
+      teamId && 'teamEmailNotify' in room
+        ? toParticipantEmailNotifyStatus(
+            (room as RoomRecord).teamEmailNotify?.[teamId],
+          )
+        : undefined,
   };
 }

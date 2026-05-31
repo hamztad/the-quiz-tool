@@ -37,6 +37,8 @@ export const CLIENT_EVENTS = {
   QUIZ_SCHEDULE_SET: 'quiz:schedule:set',
   QUIZ_SCHEDULE_CANCEL: 'quiz:schedule:cancel',
   QUESTION_FORCE_REOPEN: 'question:force-reopen',
+  TEAM_EMAIL_NOTIFY_SET: 'teamEmailNotify:set',
+  TEAM_EMAIL_NOTIFY_WITHDRAW: 'teamEmailNotify:withdraw',
 } as const;
 
 export const SERVER_EVENTS = {

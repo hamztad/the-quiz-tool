@@ -1,6 +1,17 @@
-import type { HostPresence, RoomState } from '@quiz-tool/shared';
+import type { HostPresence, RoomState, TeamEmailNotifyPreferences } from '@quiz-tool/shared';
+
+/** Server-only: e-postvarsler per lag (GDPR — slettes med rom/lag). */
+export interface TeamEmailNotifyRecord extends TeamEmailNotifyPreferences {
+  email: string;
+  consentedAt: number;
+  consentVersion: string;
+  resultAccessToken: string;
+  quizEndSentAt?: number;
+  finalResultSentAt?: number;
+}
 
 export interface RoomRecord extends RoomState {
+  teamEmailNotify?: Record<string, TeamEmailNotifyRecord>;
   hostToken: string;
   teamTokens: Record<string, string>;
   teamBrowserTokens: Record<string, string>;
