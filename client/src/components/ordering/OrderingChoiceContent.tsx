@@ -51,7 +51,7 @@ export function OrderingChoiceContent({
     hasMedia && mediaCreditsMode === 'deferred';
 
   return (
-    <div className="flex min-h-[3rem] w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-xl border border-cyan-100/80 bg-white/80 px-2 py-2 sm:gap-3 sm:px-3">
+    <div className="flex min-h-[3rem] w-full min-w-0 flex-1 items-center gap-2.5 overflow-hidden rounded-xl border border-cyan-100/80 bg-white/80 px-2 py-2 sm:min-h-[3.25rem] sm:gap-3 sm:px-3">
       {hasMedia && (
         <ChoiceMediaDisplay
           media={item.media!}

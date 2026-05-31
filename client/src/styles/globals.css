@@ -530,7 +530,13 @@ pre {
 
 /* Rekkefølge under spill: touch til drag-lag, ikke nettleserens bilde-drag */
 .ordering-sortable-list {
+  touch-action: pan-y;
+}
+
+.ordering-sortable-list [aria-label*='Dra'] {
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .ordering-sortable-content img {
