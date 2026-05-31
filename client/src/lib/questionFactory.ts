@@ -1,6 +1,5 @@
 import {
   validateMcChoices,
-  validateOrderingChoiceItems,
   createDefaultAnagramConfig,
   createDefaultDropBallConfig,
   createDefaultEmojiHuntConfig,
@@ -13,6 +12,7 @@ import {
   validateAnagramAnswerText,
   validateMathExpressionConfig,
   normalizeQuestionTimerConfig,
+  validateOrderingQuestion,
 } from '@quiz-tool/shared';
 import { generateId } from './id';
 
@@ -180,53 +180,73 @@ export function getQuestionTitleTrimmed(question: Question): string {
   return getQuestionTitle(question).trim();
 }
 
-export function isQuestionIncomplete(question: Question): boolean {
+/** Konkrete mangler for visning i editoren (tom liste = ferdig). */
+export function getQuestionIncompleteIssues(question: Question): string[] {
+  const issues: string[] = [];
   const title = getQuestionTitleTrimmed(question);
-  if (!title) return true;
+  if (!title) {
+    issues.push('Mangler spørsmålstittel');
+  }
 
   if (question.type === 'open') {
     const answers = question.acceptedAnswers?.map((a) => a.trim()).filter(Boolean) ?? [];
-    return answers.length === 0;
+    if (answers.length === 0) {
+      issues.push('Mangler minst ett godkjent svar');
+    }
+    return issues;
   }
 
   if (question.type === 'game') {
-    if (question.game?.gameId === 'anagram') {
-      return !validateAnagramAnswerText(question.game.answerText).ok;
+    if (!question.game) {
+      issues.push('Mangler spilloppsett');
+      return issues;
     }
-    if (question.game?.gameId === 'mathExpression') {
-      return !validateMathExpressionConfig(question.game).ok;
+    if (question.game.gameId === 'anagram') {
+      const result = validateAnagramAnswerText(question.game.answerText);
+      if (!result.ok) {
+        issues.push(result.errors[0] ?? 'Anagram mangler gyldig svar');
+      }
+      return issues;
     }
-    if (question.game?.gameId === 'revealImage') {
+    if (question.game.gameId === 'mathExpression') {
+      if (!validateMathExpressionConfig(question.game).ok) {
+        issues.push('Regnerace-innstillinger er ugyldige');
+      }
+      return issues;
+    }
+    if (question.game.gameId === 'revealImage') {
       const hasImage = Boolean(question.media?.some((m) => m.type === 'image' && m.url.trim()));
       const hasAnswer = Boolean(question.game.correctAnswer.trim());
-      return !hasImage || !hasAnswer;
+      if (!hasImage) issues.push('Mangler spillbilde');
+      if (!hasAnswer) issues.push('Mangler riktig svar (fasit)');
+      return issues;
     }
-    return !question.game;
+    return issues;
   }
 
   if (question.type === 'ordering') {
-    const items = question.orderingItems ?? [];
-    const correctOrder = question.orderingCorrectOrder ?? [];
-    const normalizedTexts = items
-      .map((item) => item.text.trim().toLocaleLowerCase('nb'))
-      .filter(Boolean);
-    const uniqueTexts = new Set(normalizedTexts);
-    if (validateOrderingChoiceItems(items, question.imageOnlyOptions).length > 0) return true;
-    return (
-      items.length < 3 ||
-      items.length > 5 ||
-      normalizedTexts.length !== items.length ||
-      uniqueTexts.size !== items.length ||
-      correctOrder.length !== items.length ||
-      !correctOrder.every((id) => items.some((item) => item.id === id))
-    );
+    const orderingErrors = validateOrderingQuestion(question);
+    for (const error of orderingErrors) {
+      issues.push(error.charAt(0).toUpperCase() + error.slice(1));
+    }
+    return issues;
   }
 
   const options = question.options ?? [];
-  if (options.length < 2) return true;
-  if (!options.some((o) => o.isCorrect)) return true;
-  if (validateMcChoices(options, question.imageOnlyOptions).length > 0) return true;
-  return false;
+  if (options.length < 2) {
+    issues.push('Trenger minst to svaralternativer');
+  }
+  if (!options.some((o) => o.isCorrect)) {
+    issues.push('Mangler markert riktig alternativ');
+  }
+  for (const error of validateMcChoices(options, question.imageOnlyOptions)) {
+    issues.push(error);
+  }
+  return issues;
+}
+
+export function isQuestionIncomplete(question: Question): boolean {
+  return getQuestionIncompleteIssues(question).length > 0;
 }
 
 export function normalizeQuestionsForSave(questions: Question[]): Question[] {

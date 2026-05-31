@@ -40,7 +40,7 @@ import { EditorTextArea, Input } from '../ui/Input';
 import {
   getQuestionTitle,
   getQuestionTitleTrimmed,
-  isQuestionIncomplete,
+  getQuestionIncompleteIssues,
 } from '../../lib/questionFactory';
 import type { HostQuestionDisplayStatus } from '../../lib/questionDisplayStatus';
 import { generateId } from '../../lib/id';
@@ -66,6 +66,8 @@ interface HostQuestionEditorCardProps {
   index: number;
   displayStatus: HostQuestionDisplayStatus;
   isHighlighted?: boolean;
+  /** Holdt fokus fra mangellisten til oppgaven er ferdig. */
+  isPinnedIncomplete?: boolean;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onChange: (question: Question) => void;
@@ -82,6 +84,7 @@ export function HostQuestionEditorCard({
   index,
   displayStatus,
   isHighlighted = false,
+  isPinnedIncomplete = false,
   isExpanded,
   onToggleExpand,
   onChange,
@@ -94,7 +97,8 @@ export function HostQuestionEditorCard({
   const performanceScoring = isPerformanceScoringMode({ scoringMode });
   const localTitleRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = titleInputRef ?? localTitleRef;
-  const incomplete = isQuestionIncomplete(question);
+  const incompleteIssues = getQuestionIncompleteIssues(question);
+  const incomplete = incompleteIssues.length > 0;
   const bodyLines = question.lines.slice(1).map((l) => l.text).join('\n');
   const hasHint = Boolean(question.hint?.trim());
   const hasBody = bodyLines.trim().length > 0;
@@ -169,14 +173,21 @@ export function HostQuestionEditorCard({
     <article
       id={`question-editor-${question.id}`}
       className={`max-w-full min-w-0 rounded-xl border bg-quiz-surface shadow-sm transition-all duration-300 overflow-hidden ${
-        isHighlighted
-          ? 'border-2 border-quiz-accent'
-          : incomplete
-            ? 'border-slate-400/50 border-dashed'
-            : 'border-quiz-border'
+        isPinnedIncomplete
+          ? 'border-2 border-amber-500 ring-2 ring-amber-300/50'
+          : isHighlighted
+            ? 'border-2 border-quiz-accent'
+            : incomplete
+              ? 'border-2 border-amber-400/60 border-dashed bg-amber-50/25'
+              : 'border-quiz-border'
       }`}
     >
-      {isHighlighted && (
+      {isPinnedIncomplete && (
+        <div className="bg-amber-600 px-3 py-1.5 text-center text-xs font-semibold text-white">
+          Her mangler noe — se under
+        </div>
+      )}
+      {isHighlighted && !isPinnedIncomplete && (
         <div className="bg-quiz-accent px-3 py-1.5 text-center text-xs font-semibold text-white">
           Nylig lagt til
         </div>
@@ -199,6 +210,11 @@ export function HostQuestionEditorCard({
             <p className="text-sm font-semibold text-quiz-text break-words [overflow-wrap:anywhere] line-clamp-2">
               {titlePreview}
             </p>
+            {incomplete && !isExpanded && (
+              <p className="mt-1 text-xs font-medium text-amber-900 line-clamp-2">
+                {incompleteIssues.join(' · ')}
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-1.5 mt-1 min-w-0 max-w-full overflow-hidden">
               <Badge variant="neutral">{typeLabel}</Badge>
               <PointsChip points={question.maxPoints} />
@@ -238,6 +254,16 @@ export function HostQuestionEditorCard({
 
       {isExpanded && (
         <div className="px-3 pb-3 pt-1 space-y-3 border-t border-quiz-border/80 bg-quiz-bg/40 min-w-0 max-w-full overflow-x-hidden">
+          {incomplete && (
+            <div className="rounded-lg border border-amber-400/60 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+              <p className="font-bold">Mangler før oppgaven er klar:</p>
+              <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                {incompleteIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {readOnly && (
             <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
               Dette spørsmålet er åpent for spillerne og kan ikke redigeres. Lukk det først — deretter

@@ -10,6 +10,10 @@ import {
   type GameId,
   type Question,
 } from '@quiz-tool/shared';
+import {
+  buildIncompleteQuestionEntries,
+  IncompleteQuestionsPanel,
+} from '../components/host/IncompleteQuestionsPanel';
 import { HostQuestionAddBar } from '../components/host/HostQuestionAddBar';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
@@ -89,6 +93,7 @@ export function HostEditPage() {
   const [exportedHash, setExportedHash] = useState<string>('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [pinnedIncompleteId, setPinnedIncompleteId] = useState<string | null>(null);
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [gamePickerOpen, setGamePickerOpen] = useState(false);
   const editorListRef = useRef<HTMLDivElement>(null);
@@ -190,34 +195,78 @@ export function HostEditPage() {
     [scrollToQuestion],
   );
 
+  const focusIncompleteQuestion = useCallback(
+    (questionId: string) => {
+      setEditMode('editor');
+      setPinnedIncompleteId(questionId);
+      setExpandedIds((prev) => new Set(prev).add(questionId));
+      scrollToQuestion(questionId);
+    },
+    [scrollToQuestion],
+  );
+
+  const incompleteEntries = useMemo(
+    () => buildIncompleteQuestionEntries(draftQuestions),
+    [draftQuestions],
+  );
+
   const focusFirstIncompleteQuestion = useCallback(
     (message: string) => {
-      const firstIncompleteIndex = draftQuestions.findIndex(isQuestionIncomplete);
-      const firstIncomplete = firstIncompleteIndex >= 0 ? draftQuestions[firstIncompleteIndex] : null;
-      if (!firstIncomplete) {
+      const first = incompleteEntries[0];
+      if (!first) {
         setSaveMessage(message);
         return;
       }
-      setEditMode('editor');
-      setExpandedIds(new Set([firstIncomplete.id]));
-      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-      setHighlightedId(firstIncomplete.id);
-      scrollToQuestion(firstIncomplete.id);
-      highlightTimerRef.current = setTimeout(() => {
-        setHighlightedId(null);
-        highlightTimerRef.current = null;
-      }, HIGHLIGHT_MS);
-      setSaveMessage(`${message} Hopper til spørsmål ${firstIncompleteIndex + 1}.`);
+      focusIncompleteQuestion(first.question.id);
+      setSaveMessage(`${message} Hopper til oppgave ${first.index + 1}.`);
     },
-    [draftQuestions, scrollToQuestion],
+    [incompleteEntries, focusIncompleteQuestion],
   );
+
+  const focusNextIncompleteQuestion = useCallback(() => {
+    if (incompleteEntries.length === 0) return;
+    const currentIndex = pinnedIncompleteId
+      ? incompleteEntries.findIndex((e) => e.question.id === pinnedIncompleteId)
+      : -1;
+    const next = incompleteEntries[(currentIndex + 1) % incompleteEntries.length];
+    if (next) {
+      focusIncompleteQuestion(next.question.id);
+      setSaveMessage(`Oppgave ${next.index + 1} — ${next.issues[0] ?? 'mangler noe'}`);
+    }
+  }, [incompleteEntries, pinnedIncompleteId, focusIncompleteQuestion]);
+
+  const expandAllIncompleteQuestions = useCallback(() => {
+    const ids = incompleteEntries.map((e) => e.question.id);
+    if (ids.length === 0) return;
+    setEditMode('editor');
+    setExpandedIds(new Set(ids));
+    focusIncompleteQuestion(ids[0]!);
+  }, [incompleteEntries, focusIncompleteQuestion]);
+
+  useEffect(() => {
+    if (!pinnedIncompleteId) return;
+    const pinned = draftQuestions.find((q) => q.id === pinnedIncompleteId);
+    if (pinned && !isQuestionIncomplete(pinned)) {
+      const remaining = buildIncompleteQuestionEntries(draftQuestions);
+      if (remaining.length > 0) {
+        focusIncompleteQuestion(remaining[0]!.question.id);
+        setSaveMessage(`Oppgave ferdig! Neste: oppgave ${remaining[0]!.index + 1}.`);
+      } else {
+        setPinnedIncompleteId(null);
+        setSaveMessage('Alle oppgaver er fullført.');
+        setTimeout(() => setSaveMessage(null), 4000);
+      }
+    }
+  }, [draftQuestions, pinnedIncompleteId, focusIncompleteQuestion]);
 
   const persistQuestions = useCallback(
     (questions: Question[]) => {
       const normalized = normalizeQuestionsForSave(questions);
       const incomplete = normalized.filter(isQuestionIncomplete);
       if (incomplete.length > 0) {
-        setSaveMessage('Fullfør alle spørsmål (tittel og svar) før du oppdaterer aktiv Gruiz.');
+        focusFirstIncompleteQuestion(
+          'Fullfør alle spørsmål (tittel og svar) før du oppdaterer aktiv Gruiz.',
+        );
         return false;
       }
       const toSave =
@@ -236,7 +285,7 @@ export function HostEditPage() {
       setTimeout(() => setSaveMessage(null), 4000);
       return true;
     },
-    [socket, syncImportTextFromDraft, room],
+    [socket, syncImportTextFromDraft, room, focusFirstIncompleteQuestion],
   );
 
   const updateDraft = (questions: Question[]) => {
@@ -553,13 +602,25 @@ export function HostEditPage() {
             ref={editorListRef}
             className="space-y-3 min-h-[120px] min-w-0 max-w-full overflow-x-hidden"
           >
+            <IncompleteQuestionsPanel
+              entries={incompleteEntries}
+              pinnedQuestionId={pinnedIncompleteId}
+              onFocusQuestion={focusIncompleteQuestion}
+              onExpandAllIncomplete={expandAllIncompleteQuestions}
+              onNextIncomplete={focusNextIncompleteQuestion}
+            />
+
             <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/10">
               <h3 className="text-base font-bold">Spørsmål ({draftQuestions.length})</h3>
               <div className="flex flex-wrap items-center gap-2">
                 {incompleteCount > 0 && (
-                  <span className="text-xs text-slate-800 bg-slate-500/20 px-2 py-1 rounded-full">
-                    {incompleteCount} uferdige
-                  </span>
+                  <button
+                    type="button"
+                    onClick={focusNextIncompleteQuestion}
+                    className="text-xs font-semibold text-amber-950 bg-amber-200/80 hover:bg-amber-300/80 px-2 py-1 rounded-full transition-colors"
+                  >
+                    {incompleteCount} uferdige — hopp til
+                  </button>
                 )}
                 {draftQuestions.length > 0 && (
                   <>
@@ -604,6 +665,7 @@ export function HostEditPage() {
                   )}
                   roomId={roomId}
                   isHighlighted={highlightedId === q.id}
+                  isPinnedIncomplete={pinnedIncompleteId === q.id}
                   isExpanded={expandedIds.has(q.id)}
                   onToggleExpand={() => toggleExpand(q.id)}
                   onChange={(updated) => updateQuestionAt(index, updated)}
