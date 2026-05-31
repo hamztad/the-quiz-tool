@@ -16,8 +16,8 @@ export interface BuiltInGameDefinition {
 export const builtInGames: BuiltInGameDefinition[] = [
   {
     id: 'mathExpression',
-    label: 'Regnestykke',
-    description: 'Regnerace med tilfeldige regnestykker underveis (enkelt regnestykke kan velges i editor).',
+    label: 'Regnerace',
+    description: 'Løs flest mulig auto-genererte regneoppgaver innen tidsfristen (skriv svar eller alternativer).',
     createDefaultConfig: createDefaultMathGameConfig,
   },
   {

@@ -233,8 +233,8 @@ export function QuestionCard({
                     ? `Anagram: ${question.game.scrambledText || 'ikke satt'} · fasit ${question.game.answerText || '—'}`
                     : question.game.gameId === 'mathExpression'
                       ? question.game.mode === 'single'
-                        ? `Regnestykke: ${question.game.expression}`
-                        : `Regnerace: auto (${(question.game.enabledOperations ?? []).length} regnearter)`
+                        ? `Regnestykke (enkelt): ${question.game.expression}`
+                        : `Regnerace (${(question.game.enabledOperations ?? []).length} regnearter)`
                       : question.game.gameId === 'revealImage'
                         ? `Avslør bildet: ${question.game.gridSize}x${question.game.gridSize} ruter · svar ${question.game.correctAnswer || '—'}`
               : 'Innebygd spill'}

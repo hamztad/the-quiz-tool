@@ -274,10 +274,6 @@ export function isMathAnswerCorrect(
   return Math.abs(actual - expected) < 1e-9;
 }
 
-function mathOptionOnesDigit(value: number): number {
-  return ((Math.round(value) % 10) + 10) % 10;
-}
-
 function mathOptionsHaveConsecutivePair(values: number[]): boolean {
   for (let i = 0; i < values.length; i += 1) {
     for (let j = i + 1; j < values.length; j += 1) {
@@ -287,67 +283,84 @@ function mathOptionsHaveConsecutivePair(values: number[]): boolean {
   return false;
 }
 
-function mathOptionsShareOnesDigit(values: number[]): boolean {
-  const counts = new Map<number, number>();
-  for (const value of values) {
-    const digit = mathOptionOnesDigit(value);
-    counts.set(digit, (counts.get(digit) ?? 0) + 1);
-  }
-  return [...counts.values()].some((count) => count >= 2);
+/** Feilsvar som kan forveksles med riktig — ikke åpenbart feil eller påfølgende tall. */
+export function isPlausibleRegneraceOption(correct: number, candidate: number): boolean {
+  const roundedCorrect = Math.round(correct);
+  const rounded = Math.round(candidate);
+  if (!Number.isFinite(rounded) || rounded <= 0) return false;
+  if (rounded === roundedCorrect) return false;
+  if (Math.abs(rounded - roundedCorrect) === 1) return false;
+
+  const minGap = Math.max(2, Math.round(Math.abs(roundedCorrect) * 0.08));
+  if (Math.abs(rounded - roundedCorrect) < minGap) return false;
+
+  const ratio = rounded / roundedCorrect;
+  if (roundedCorrect >= 80) return ratio >= 0.55 && ratio <= 1.85;
+  if (roundedCorrect >= 25) return ratio >= 0.45 && ratio <= 2.15;
+  return ratio >= 0.35 && ratio <= 2.75;
 }
 
-function candidateWrongAnswer(
-  correct: number,
-  targetOnes: number,
-  rng: () => number,
-): number {
-  const correctOnes = mathOptionOnesDigit(correct);
-  const deltaOnes = (targetOnes - correctOnes + 10) % 10;
-  const magnitude = 10 + Math.floor(rng() * 8) * 10;
-  const sign = rng() < 0.5 ? -1 : 1;
-  let candidate = correct + sign * magnitude + deltaOnes;
-  if (candidate === correct) candidate += sign * 10;
-  if (candidate <= 0) candidate = correct + magnitude + deltaOnes;
-  if (candidate === correct) candidate += 10;
-  return candidate;
+function plausibleWrongCandidates(correct: number): number[] {
+  const rounded = Math.round(correct);
+  const step = Math.max(4, Math.round(Math.abs(rounded) * 0.14));
+  const deltas = [
+    step,
+    -step,
+    step * 2,
+    -step * 2,
+    Math.round(step * 1.5),
+    -Math.round(step * 1.5),
+    5,
+    -5,
+    8,
+    -8,
+    12,
+    -12,
+    Math.max(3, Math.round(rounded * 0.1)),
+    -Math.max(3, Math.round(rounded * 0.1)),
+    Math.max(4, Math.round(rounded * 0.2)),
+    -Math.max(4, Math.round(rounded * 0.2)),
+  ];
+  const seen = new Set<number>([rounded]);
+  const candidates: number[] = [];
+  for (const delta of deltas) {
+    const value = rounded + delta;
+    if (seen.has(value)) continue;
+    if (!isPlausibleRegneraceOption(rounded, value)) continue;
+    seen.add(value);
+    candidates.push(value);
+  }
+  return candidates;
 }
 
 function buildMathOptionValues(
   correct: number,
   rng: () => number,
 ): [number, number, number] | null {
-  const correctOnes = mathOptionOnesDigit(correct);
-  const wrongOffsets = [10, 20, -10, -20, 3, 7, -3, -7, 5, -5, 15, -15, 30, -30];
-
+  const pool = plausibleWrongCandidates(correct);
   for (let attempt = 0; attempt < 80; attempt += 1) {
-    const wrongA =
-      attempt % 3 === 0
-        ? candidateWrongAnswer(correct, correctOnes, rng)
-        : correct + wrongOffsets[Math.floor(rng() * wrongOffsets.length)]!;
-    const sharedOnes = attempt % 2 === 0 ? correctOnes : mathOptionOnesDigit(wrongA);
-    let wrongB = candidateWrongAnswer(correct, sharedOnes, rng);
-    if (wrongB === wrongA) wrongB = candidateWrongAnswer(correct, sharedOnes, rng);
-
-    const nums = [correct, wrongA, wrongB];
-    const unique = new Set(nums);
-    if (unique.size !== 3) continue;
+    const shuffled = [...pool].sort(() => rng() - 0.5);
+    const wrongA = shuffled[0];
+    const wrongB = shuffled[1];
+    if (wrongA === undefined || wrongB === undefined || wrongA === wrongB) continue;
+    const nums = [Math.round(correct), wrongA, wrongB];
+    if (new Set(nums).size !== 3) continue;
     if (mathOptionsHaveConsecutivePair(nums)) continue;
-    if (!mathOptionsShareOnesDigit(nums)) continue;
-    return [correct, wrongA, wrongB];
+    return [nums[0]!, nums[1]!, nums[2]!];
   }
 
-  const fallbackA = correct + 10;
-  let fallbackB = correct + 20;
-  if (mathOptionOnesDigit(fallbackB) !== mathOptionOnesDigit(correct)) {
-    fallbackB = correct - 20;
-  }
-  const nums = [correct, fallbackA, fallbackB];
-  if (
-    new Set(nums).size === 3 &&
-    !mathOptionsHaveConsecutivePair(nums) &&
-    mathOptionsShareOnesDigit(nums)
-  ) {
-    return [correct, fallbackA, fallbackB];
+  for (let offset = 4; offset <= 40; offset += 2) {
+    const wrongA = Math.round(correct) + offset;
+    const wrongB = Math.round(correct) - offset;
+    const nums = [Math.round(correct), wrongA, wrongB];
+    if (
+      new Set(nums).size === 3 &&
+      !mathOptionsHaveConsecutivePair(nums) &&
+      isPlausibleRegneraceOption(correct, wrongA) &&
+      isPlausibleRegneraceOption(correct, wrongB)
+    ) {
+      return [nums[0]!, nums[1]!, nums[2]!];
+    }
   }
   return null;
 }
@@ -393,7 +406,7 @@ export function createDefaultMathRaceConfig(): MathExpressionRaceConfig {
     gameId: 'mathExpression',
     mode: 'race',
     title: 'Regnerace',
-    instructions: 'Løs så mange regnestykker som mulig før tiden er ute.',
+    instructions: 'Løs så mange Regnerace-oppgaver som mulig før tiden er ute.',
     enabledOperations: [...DEFAULT_REGNERACE_OPERATIONS],
     answerMode: 'input',
     timeLimitMs: DEFAULT_MATH_RACE_TIME_LIMIT_MS,

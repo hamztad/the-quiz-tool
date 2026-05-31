@@ -32,7 +32,7 @@ export function getQuestionFasitText(question: Question): string | null {
     }
     if (question.game?.gameId === 'mathExpression') {
       if (question.game.mode === 'single') {
-        return `Regnestykke: ${question.game.expression}`;
+        return `Regnestykke (enkelt): ${question.game.expression}`;
       }
       const ops = question.game.enabledOperations ?? [];
       return `Regnerace: auto-generering (${ops.length} regnearter aktive)`;

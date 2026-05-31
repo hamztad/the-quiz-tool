@@ -6,11 +6,11 @@ import {
   maxRegneraceSolvedForTimeLimit,
   REGNERACE_ADD_SUB_MAX,
   REGNERACE_ADD_SUB_MIN,
+  REGNERACE_DIVIDEND_MAX,
   REGNERACE_DIVISOR_MAX,
   REGNERACE_DIVISOR_MIN,
   REGNERACE_MUL_MAX,
   REGNERACE_MUL_MIN,
-  REGNERACE_QUOTIENT_MIN,
 } from './regneraceGenerator.js';
 
 describe('regneraceGenerator', () => {
@@ -57,18 +57,18 @@ describe('regneraceGenerator', () => {
     }
   });
 
-  it('division uses divisor 12–150, quotient at least 2, dividend not equal to divisor', () => {
+  it('division uses dividend up to 500 and divisor never equals dividend', () => {
     for (let i = 0; i < 40; i += 1) {
       const problem = generateRegneraceProblem(rng, ['divide']);
       const parts = problem.expression.split(':').map((s) => Number(s.trim()));
       expect(parts).toHaveLength(2);
       const [dividend, divisor] = parts;
+      expect(dividend).toBeLessThanOrEqual(REGNERACE_DIVIDEND_MAX);
       expect(divisor).toBeGreaterThanOrEqual(REGNERACE_DIVISOR_MIN);
       expect(divisor).toBeLessThanOrEqual(REGNERACE_DIVISOR_MAX);
-      expect(dividend).toBeGreaterThan(2);
       expect(dividend).not.toBe(divisor);
       expect(dividend! % divisor!).toBe(0);
-      expect(problem.answer).toBeGreaterThanOrEqual(REGNERACE_QUOTIENT_MIN);
+      expect(problem.answer).toBeGreaterThanOrEqual(2);
       expect(problem.answer).toBe(dividend! / divisor!);
     }
   });

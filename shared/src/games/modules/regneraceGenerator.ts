@@ -6,11 +6,10 @@ export const REGNERACE_MUL_MAX = 12;
 /** Tosifrede ledd (10–99). */
 export const REGNERACE_ADD_SUB_MIN = 10;
 export const REGNERACE_ADD_SUB_MAX = 99;
+export const REGNERACE_DIVIDEND_MIN = 12;
+export const REGNERACE_DIVIDEND_MAX = 500;
 export const REGNERACE_DIVISOR_MIN = 12;
 export const REGNERACE_DIVISOR_MAX = 150;
-/** Kvotient (svar) minst 2 — dividend ≠ divisor. */
-export const REGNERACE_QUOTIENT_MIN = 2;
-export const REGNERACE_QUOTIENT_MAX = 12;
 
 export const DEFAULT_REGNERACE_OPERATIONS: RegneraceOperation[] = [
   'add',
@@ -84,14 +83,21 @@ function generateSubtract(rng: RegneraceRandomFn): RegneraceGeneratedProblem {
 
 function generateDivide(rng: RegneraceRandomFn): RegneraceGeneratedProblem {
   for (let attempt = 0; attempt < 64; attempt += 1) {
-    const divisor = randomInt(rng, REGNERACE_DIVISOR_MIN, REGNERACE_DIVISOR_MAX);
-    const quotient = randomInt(rng, REGNERACE_QUOTIENT_MIN, REGNERACE_QUOTIENT_MAX);
-    const dividend = divisor * quotient;
-    if (dividend <= 2 || dividend === divisor) continue;
+    const dividend = randomInt(rng, REGNERACE_DIVIDEND_MIN, REGNERACE_DIVIDEND_MAX);
+    if (dividend <= REGNERACE_DIVISOR_MAX) continue;
+    const divisors: number[] = [];
+    for (let d = REGNERACE_DIVISOR_MIN; d <= REGNERACE_DIVISOR_MAX; d += 1) {
+      if (d === dividend) continue;
+      if (dividend % d === 0) divisors.push(d);
+    }
+    if (divisors.length === 0) continue;
+    const divisor = divisors[Math.floor(rng() * divisors.length)]!;
+    const quotient = dividend / divisor;
+    if (!Number.isInteger(quotient) || quotient < 2) continue;
     const expression = `${dividend} : ${divisor}`;
     return { expression, answer: quotient, operation: 'divide' };
   }
-  return { expression: '144 : 12', answer: 12, operation: 'divide' };
+  return { expression: '480 : 12', answer: 40, operation: 'divide' };
 }
 
 export function generateRegneraceProblem(

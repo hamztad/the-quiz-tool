@@ -1014,9 +1014,13 @@ function GameQuestionEditor({
     return (
       <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
         <div>
-          <p className="text-xs font-semibold text-indigo-200">Spill: Regnestykke</p>
+          <p className="text-xs font-semibold text-indigo-200">
+            Spill: {config.mode === 'race' ? 'Regnerace' : 'Regnestykke (enkelt)'}
+          </p>
           <p className="mt-1 text-xs text-quiz-muted">
-            Velg enkelt auto-rettet regnestykke eller rankingbasert regnerace.
+            {config.mode === 'race'
+              ? 'Regnerace med auto-genererte oppgaver underveis.'
+              : 'Enkelt fast regnestykke (legacy) — bruk Regnerace for dynamisk generering.'}
           </p>
         </div>
         <label className="block min-w-0">
@@ -1046,8 +1050,8 @@ function GameQuestionEditor({
             <li>Minus: -</li>
             <li>Gange: * eller x</li>
             <li>Dele: / eller :</li>
-            <li>Bruk 2-4 tall per regnestykke</li>
-            <li>Regnerace genererer tilfeldige regnestykker underveis</li>
+            <li>Enkelt modus: 2–4 tall per uttrykk</li>
+            <li>Regnerace genererer nye oppgaver underveis</li>
           </ul>
         </details>
         {!validation.ok && (
@@ -1258,13 +1262,14 @@ function MathRaceEditor({
           })}
         </div>
         <p className="text-xs text-quiz-muted leading-relaxed">
-          Oppgaver genereres tilfeldig underveis (heltall). Gang 3–12, pluss 2–3 ledd (tosifret),
-          minus tosifret, divisjon divisor 12–150 (kvotient minst 2). Tid: 30 sek, 1 min eller 2 min.
+          Regnerace genererer heltallsoppgaver underveis. Gang 3–12, pluss 2–3 ledd (tosifret),
+          minus tosifret, divisjon med dividend maks 500 (divisor 12–150, aldri lik dividend). Tid:
+          30 sek, 1 min eller 2 min.
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label>
-          <span className="mb-1 block text-xs font-medium text-quiz-muted">Svarmodus</span>
+          <span className="mb-1 block text-xs font-medium text-quiz-muted">Regnerace – svar</span>
           <select
             value={config.answerMode}
             onChange={(event) =>
@@ -1275,8 +1280,8 @@ function MathRaceEditor({
             }
             className="box-border w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text min-h-[44px]"
           >
-            <option value="input">Skriv svar</option>
-            <option value="multipleChoice">Tre alternativer</option>
+            <option value="input">Regnerace – skriv svar</option>
+            <option value="multipleChoice">Regnerace – tre alternativer</option>
           </select>
         </label>
         <label>

@@ -349,8 +349,8 @@ function MathRaceView({
     <div className="mt-4 rounded-3xl border-2 border-indigo-300/40 bg-gradient-to-br from-indigo-500/20 via-sky-400/15 to-fuchsia-500/15 p-4 text-center shadow-[0_0_28px_rgba(129,140,248,0.14)]">
       <p className="text-2xl font-black text-quiz-text">{title || 'Regnerace'}</p>
       <p className="mt-2 text-sm text-quiz-muted">
-        Løs så mange oppgaver som mulig innen {formatCountdownMs(timeLimitMs)}. Nye regnestykker
-        genereres underveis.
+        Løs så mange Regnerace-oppgaver som mulig innen {formatCountdownMs(timeLimitMs)}. Nye
+        oppgaver genereres underveis.
       </p>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
