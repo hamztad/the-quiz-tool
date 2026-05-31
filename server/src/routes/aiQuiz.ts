@@ -1,12 +1,13 @@
 import { Router, type Request, type Response } from 'express';
 import multer from 'multer';
 import {
-  clampAiQuestionCount,
   type AiGenerateQuizRequest,
   type AiImageProvider,
   type AiQuizDifficulty,
-  type AiQuizQuestionStyle,
+  type AiShopMode,
+  type AiShopSlot,
   type ParsedAiQuizQuestion,
+  builtInGames,
 } from '@quiz-tool/shared';
 import { roomStore } from '../store/activeRoomStore.js';
 import { AiQuizGenerateError, generateQuizWithOpenAI } from '../services/openaiQuizGenerate.js';
@@ -19,7 +20,19 @@ import {
 } from '../services/imageProviders/index.js';
 
 const DIFFICULTIES = new Set<AiQuizDifficulty>(['easy', 'medium', 'hard']);
-const STYLES = new Set<AiQuizQuestionStyle>(['open', 'mc', 'mixed', 'quizPackage']);
+const MODES = new Set<AiShopMode>(['instant', 'cart']);
+const BUILTIN_GAME_IDS = new Set(builtInGames.map((g) => g.id));
+const SLOT_TYPES = new Set(['open', 'mc', 'ordering', 'game']);
+
+function isValidSlot(raw: unknown): raw is AiShopSlot {
+  if (!raw || typeof raw !== 'object') return false;
+  const s = raw as Record<string, unknown>;
+  if (!SLOT_TYPES.has(s.type as string)) return false;
+  if (s.type === 'game') {
+    return typeof s.gameId === 'string' && BUILTIN_GAME_IDS.has(s.gameId as AiShopSlot['gameId']!);
+  }
+  return s.gameId === undefined;
+}
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_TRANSLATE_MODEL = 'gpt-4o-mini';
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1_000_000 } });
@@ -113,21 +126,31 @@ function isValidRequest(body: unknown): body is AiGenerateQuizRequest {
     b.varietySeed === undefined ||
     (typeof b.varietySeed === 'string' && b.varietySeed.length <= 120);
 
-  return (
-    typeof b.roomId === 'string' &&
-    typeof b.topic === 'string' &&
-    typeof b.questionCount === 'number' &&
-    typeof b.difficulty === 'string' &&
-    DIFFICULTIES.has(b.difficulty as AiQuizDifficulty) &&
-    typeof b.questionStyle === 'string' &&
-    STYLES.has(b.questionStyle as AiQuizQuestionStyle) &&
-    (b.includePixabayImages === undefined || typeof b.includePixabayImages === 'boolean') &&
-    (b.imageProvider === undefined ||
-      b.imageProvider === 'pixabay' ||
-      b.imageProvider === 'wikimedia' ||
-      b.imageProvider === 'upload') &&
-    varietyOk
-  );
+  if (
+    typeof b.roomId !== 'string' ||
+    typeof b.topic !== 'string' ||
+    typeof b.questionCount !== 'number' ||
+    typeof b.difficulty !== 'string' ||
+    !DIFFICULTIES.has(b.difficulty as AiQuizDifficulty) ||
+    typeof b.mode !== 'string' ||
+    !MODES.has(b.mode as AiShopMode) ||
+    (b.includePixabayImages !== undefined && typeof b.includePixabayImages !== 'boolean') ||
+    (b.imageProvider !== undefined &&
+      b.imageProvider !== 'pixabay' &&
+      b.imageProvider !== 'wikimedia' &&
+      b.imageProvider !== 'upload') ||
+    !varietyOk
+  ) {
+    return false;
+  }
+
+  if (b.mode === 'cart') {
+    if (!Array.isArray(b.slots) || b.slots.length < 2 || b.slots.length > 10) return false;
+    if (!b.slots.every(isValidSlot)) return false;
+    if (b.slots.length !== Math.round(b.questionCount)) return false;
+  }
+
+  return true;
 }
 
 export const aiQuizRouter = Router();
@@ -163,7 +186,7 @@ async function handleImageSearch(
       ok: false,
       code: 'ROOM_NOT_FOUND',
       message:
-        'Quizen finnes ikke på serveren (kan ha blitt nullstilt). Last siden på nytt eller opprett quizen på nytt.',
+        'Gruizen finnes ikke på serveren (kan ha blitt nullstilt). Last siden på nytt eller opprett Gruizen på nytt.',
     });
     return;
   }
@@ -172,7 +195,7 @@ async function handleImageSearch(
     res.status(403).json({
       ok: false,
       code: 'FORBIDDEN',
-      message: 'Ugyldig quizmaster-tilgang. Last siden på nytt for å koble til quizen igjen.',
+      message: 'Ugyldig Gruizmaster-tilgang. Last siden på nytt for å koble til Gruizen igjen.',
     });
     return;
   }
@@ -302,7 +325,7 @@ aiQuizRouter.post('/upload-image', (req, res) => {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Kunne ikke laste opp bilde.';
-      const status = message.includes('quizmaster-tilgang')
+      const status = message.includes('Gruizmaster-tilgang')
         ? 403
         : message.includes('smaller than 1 MB') || message.includes('tillatt')
           ? 400
@@ -361,7 +384,8 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
     topic,
     questionCount,
     difficulty,
-    questionStyle,
+    mode,
+    slots,
     includePixabayImages,
     imageProvider,
     varietySeed,
@@ -372,7 +396,7 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
     res.status(403).json({
       ok: false,
       code: 'FORBIDDEN',
-      message: 'Ugyldig quizmaster-tilgang.',
+      message: 'Ugyldig Gruizmaster-tilgang.',
     });
     return;
   }
@@ -381,7 +405,7 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
     res.status(400).json({
       ok: false,
       code: 'INVALID_PHASE',
-      message: 'AI-generering er kun tilgjengelig mens quizen bygges (ikke under live quiz).',
+      message: 'AI-generering er kun tilgjengelig mens Gruizen bygges (ikke under live Gruiz).',
     });
     return;
   }
@@ -390,11 +414,13 @@ aiQuizRouter.post('/generate-quiz', async (req, res) => {
     let questions = await generateQuizWithOpenAI(
       {
         roomId,
+        mode,
         topic: topic.trim(),
-        questionCount: questionStyle === 'quizPackage' ? 5 : clampAiQuestionCount(questionCount),
+        questionCount,
         difficulty,
-        questionStyle,
+        slots: mode === 'cart' ? slots : undefined,
         includePixabayImages,
+        imageProvider,
         varietySeed: typeof varietySeed === 'string' ? varietySeed.trim() : undefined,
       },
       apiKey,

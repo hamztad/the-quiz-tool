@@ -30,7 +30,7 @@ export function GruizMark({ size = 'md', className = '', tagline = size === 'her
       </p>
       {tagline && (
         <p className="gruiz-mark-tagline mt-2 text-sm font-semibold tracking-wide text-quiz-muted sm:text-base">
-          Live quiz-show
+          Live show med oppgaver og spill
         </p>
       )}
     </div>

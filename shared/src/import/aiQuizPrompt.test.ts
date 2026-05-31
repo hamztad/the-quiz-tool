@@ -44,7 +44,7 @@ describe('buildAiQuizPrompt', () => {
   it('uses custom question count', () => {
     const prompt = buildAiQuizPrompt('Sport', 8);
     expect(prompt).toContain('Nøyaktig 8 spørsmål');
-    expect(prompt).toContain('Tema for quizen: «Sport»');
+    expect(prompt).toContain('Tema for Gruizen: «Sport»');
     expect(prompt).toContain('Spørsmål 8: flervalg (MC) (siste spørsmål, MC)');
   });
 
@@ -66,6 +66,6 @@ describe('buildAiQuizPrompt', () => {
 
   it('embeds optional topic when provided', () => {
     const prompt = buildAiQuizPrompt('Norsk geografi');
-    expect(prompt).toContain('Tema for quizen: «Norsk geografi»');
+    expect(prompt).toContain('Tema for Gruizen: «Norsk geografi»');
   });
 });

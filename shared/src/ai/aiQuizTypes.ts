@@ -1,4 +1,5 @@
 import type { Question } from '../types/room.js';
+import type { GameId } from '../games/types.js';
 
 export const AI_GENERATE_QUESTION_MIN = 2;
 export const AI_GENERATE_QUESTION_MAX = 10;
@@ -21,20 +22,31 @@ export const AI_QUIZ_CUSTOM_THEME = 'Egendefinert tema' as const;
 
 export type AiQuizDifficulty = 'easy' | 'medium' | 'hard';
 
+/** @deprecated Kun for eldre tester — bruk AiShopMode + slots. */
 export type AiQuizQuestionStyle = 'open' | 'mc' | 'mixed' | 'quizPackage';
 export type AiImageProvider = 'pixabay' | 'wikimedia' | 'upload';
 
+export type AiShopMode = 'instant' | 'cart';
+
+export type AiShopSlotType = 'open' | 'mc' | 'ordering' | 'game';
+
+export interface AiShopSlot {
+  type: AiShopSlotType;
+  gameId?: GameId;
+}
+
 export interface AiGenerateQuizRequest {
   roomId: string;
-  topic: string;
+  mode: AiShopMode;
   questionCount: number;
   difficulty: AiQuizDifficulty;
-  questionStyle: AiQuizQuestionStyle;
-  /** Best-effort: attach one image per generated question when possible. */
+  topic: string;
+  slots?: AiShopSlot[];
   includePixabayImages?: boolean;
   imageProvider?: AiImageProvider;
-  /** Unique per generation — encourages fresh questions from the model. */
   varietySeed?: string;
+  /** @deprecated */
+  questionStyle?: AiQuizQuestionStyle;
 }
 
 export interface AiGenerateQuizResponse {

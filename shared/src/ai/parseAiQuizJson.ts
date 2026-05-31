@@ -15,7 +15,9 @@ import {
   AI_GENERATE_QUESTION_MAX,
   AI_GENERATE_QUESTION_MIN,
   type AiQuizQuestionStyle,
+  type AiShopSlot,
 } from './aiQuizTypes.js';
+import { getBuiltInGame } from '../games/registry.js';
 import { shuffleAiGeneratedMcOptions } from './shuffleMcOptions.js';
 
 const MAX_QUESTION_TEXT = 400;
@@ -151,9 +153,34 @@ function parsePuzzleQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQu
   return null;
 }
 
-function parseOtherGameQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQuestion['lines']): ParsedAiQuizQuestion | null {
+function parseRegistryGameQuestion(
+  raw: Record<string, unknown>,
+  lines: ParsedAiQuizQuestion['lines'],
+): ParsedAiQuizQuestion | null {
   const gameId = raw.gameId;
-  if (gameId !== 'rainbowPuzzle' && gameId !== 'emojiHunt' && gameId !== 'dropBall') return null;
+  if (typeof gameId !== 'string') return null;
+  const def = getBuiltInGame(gameId as GameId);
+  if (!def) return null;
+  const title = lines[0]?.text?.trim();
+  const canonicalTitle = title || def.label;
+  return {
+    type: 'game',
+    lines: withCanonicalTitle(lines, canonicalTitle),
+    gameType: def.id,
+    game: def.createDefaultConfig(),
+    maxPoints: def.id === 'mathExpression' ? 5 : 5,
+  };
+}
+
+/** @deprecated Bruk parseRegistryGameQuestion — behold for quizPackage gameId enum. */
+function parseLegacyPackageGameQuestion(
+  raw: Record<string, unknown>,
+  lines: ParsedAiQuizQuestion['lines'],
+): ParsedAiQuizQuestion | null {
+  const gameId = raw.gameId;
+  if (gameId !== 'rainbowPuzzle' && gameId !== 'emojiHunt' && gameId !== 'dropBall') {
+    return parseRegistryGameQuestion(raw, lines);
+  }
   const config =
     gameId === 'rainbowPuzzle'
       ? createDefaultRainbowPuzzleConfig()
@@ -239,7 +266,7 @@ function parseQuestion(raw: unknown, index: number): ParsedAiQuizQuestion | null
   }
 
   if (type === 'game') {
-    return parseOtherGameQuestion(raw, lines);
+    return parseLegacyPackageGameQuestion(raw, lines);
   }
 
   return null;
@@ -304,10 +331,47 @@ export function validateAiQuestionStyle(
   return [];
 }
 
+function questionMatchesSlot(question: ParsedAiQuizQuestion, slot: AiShopSlot): boolean {
+  if (slot.type === 'open') return question.type === 'open';
+  if (slot.type === 'mc') return question.type === 'mc';
+  if (slot.type === 'ordering') return question.type === 'ordering';
+  if (slot.type === 'game') {
+    return question.type === 'game' && question.game?.gameId === slot.gameId;
+  }
+  return false;
+}
+
+/** Valider at genererte oppgaver matcher forventede slots (AI-shop). */
+export function validateAiShopSlots(
+  questions: ParsedAiQuizQuestion[],
+  slots: AiShopSlot[],
+): string[] {
+  const errors: string[] = [];
+  if (questions.length !== slots.length) {
+    errors.push(`Forventet ${slots.length} oppgaver, fikk ${questions.length}.`);
+    return errors;
+  }
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i]!;
+    const q = questions[i];
+    if (!q) {
+      errors.push(`Oppgave ${i + 1} mangler.`);
+      continue;
+    }
+    if (!questionMatchesSlot(q, slot)) {
+      const expected =
+        slot.type === 'game' ? `spill ${slot.gameId}` : slot.type;
+      errors.push(`Oppgave ${i + 1} skulle være ${expected}, fikk ${q.type}.`);
+    }
+  }
+  return errors;
+}
+
 /** Parse and validate strict JSON from the AI model. */
 export function parseAiQuizJson(
   raw: string,
   questionStyle?: AiQuizQuestionStyle,
+  slots?: AiShopSlot[],
 ): ParseAiQuizJsonResult {
   const errors: string[] = [];
 
@@ -347,7 +411,9 @@ export function parseAiQuizJson(
   const saveErrors = validateQuestionsForSave(questions);
   errors.push(...saveErrors);
 
-  if (questionStyle && errors.length === 0) {
+  if (slots && slots.length > 0 && errors.length === 0) {
+    errors.push(...validateAiShopSlots(questions, slots));
+  } else if (questionStyle && errors.length === 0) {
     errors.push(...validateAiQuestionStyle(questions, questionStyle));
   }
 

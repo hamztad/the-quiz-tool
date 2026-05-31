@@ -16,7 +16,7 @@ export function LandingPage() {
   return (
     <PageShell
       showBrand="hero"
-      subtitle="Live quiz-show for quizmaster og deltakere — spill sammen på sekunder"
+      subtitle="Live show med oppgaver og spill — for Gruizmaster og deltakere"
       wide
     >
       <div className="w-full min-w-0 max-w-full space-y-5 sm:space-y-6">
@@ -38,9 +38,9 @@ export function LandingPage() {
             >
               🎤
             </span>
-            <p className="quiz-display text-2xl font-bold text-quiz-text sm:text-3xl">Quizmaster</p>
+            <p className="quiz-display text-2xl font-bold text-quiz-text sm:text-3xl">Gruizmaster</p>
             <p className="mt-2 text-base text-quiz-muted leading-relaxed">
-              Lag quizen, inviter deltakere og kjør live — som en ekte gameshow-vert.
+              Lag Gruizen, inviter deltakere og kjør live — som en ekte gameshow-vert.
             </p>
             <span className="mt-5 inline-flex items-center gap-2 text-base font-bold text-violet-700 group-hover:gap-3 transition-all">
               Åpne kontrollrom
@@ -61,7 +61,7 @@ export function LandingPage() {
             </span>
             <p className="quiz-display text-2xl font-bold text-quiz-text sm:text-3xl">Deltaker</p>
             <p className="mt-2 text-base text-quiz-muted leading-relaxed">
-              Skann QR-koden eller skriv romkode og navn — så er du med i quizen.
+              Skann QR-koden eller skriv romkode og navn — så er du med i Gruizen.
             </p>
 
             <div className="mt-5 w-full min-w-0">
@@ -86,7 +86,7 @@ export function LandingPage() {
               className="w-full mt-4"
               onClick={goToJoin}
             >
-              🚀 Bli med i quizen
+              🚀 Bli med i Gruizen
             </Button>
             <Link
               to="/join"

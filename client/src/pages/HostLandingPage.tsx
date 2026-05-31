@@ -35,8 +35,8 @@ export function HostLandingPage() {
   return (
     <PageShell
       showBrand="compact"
-      title="Quizmaster"
-      subtitle="Kontrollrommet for live quiz — bygg, presenter og kjør showet"
+      title="Gruizmaster"
+      subtitle="Kontrollrommet for Gruiz — bygg, presenter og kjør showet"
       emoji="🎤"
       wide
     >
@@ -44,12 +44,12 @@ export function HostLandingPage() {
 
       <div className="w-full min-w-0 max-w-full space-y-4">
         <p className="rounded-2xl border border-violet-200/50 bg-violet-50/60 px-4 py-3 text-sm sm:text-base text-quiz-muted leading-relaxed break-words">
-          Velg hvordan du vil bygge quizen. QR-kode og romkode vises når du er klar til å invitere
+          Velg hvordan du vil bygge Gruizen. QR-kode og romkode vises når du er klar til å invitere
           deltakerne.
         </p>
 
         <HostSetupCard
-          title="Ny quiz i editor"
+          title="Ny Gruiz i editor"
           description="Legg til spørsmål ett og ett med spørsmålskort."
           icon="✏️"
           tone="purple"
@@ -57,15 +57,15 @@ export function HostLandingPage() {
           disabled={!connected || busy}
         />
         <HostSetupCard
-          title="Ny quiz med tekst"
-          description="Kopier AI-prompt, lim inn svar — eller skriv quizen direkte som tekst."
+          title="Ny Gruiz med tekst"
+          description="Kopier AI-prompt, lim inn svar — eller skriv Gruizen direkte som tekst."
           icon="📝"
           tone="cyan"
           onClick={() => createQuiz('tekst')}
           disabled={!connected || busy}
         />
         <HostSetupCard
-          title="Importer quizfil"
+          title="Importer Gruiz-fil"
           description="Last opp en JSON-backup fra Gruiz."
           icon="📦"
           tone="orange"
@@ -73,8 +73,8 @@ export function HostLandingPage() {
           disabled={!connected || busy}
         />
         <HostSetupCard
-          title="Generer med AI"
-          description="Velg tema og antall spørsmål — rediger i editoren før du presenterer."
+          title="AI-shop"
+          description="Lag Gruiz med KI — rediger i editoren før du presenterer."
           icon="🧠"
           tone="pink"
           onClick={() => createQuiz('ai')}
@@ -83,7 +83,7 @@ export function HostLandingPage() {
 
         {loading && (
           <p className="text-sm text-quiz-muted text-center font-medium" role="status">
-            ✨ Oppretter quizrom…
+            ✨ Oppretter Gruiz-rom…
           </p>
         )}
         {!connected && (

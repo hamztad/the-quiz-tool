@@ -14,7 +14,7 @@ import { HostQuestionAddBar } from '../components/host/HostQuestionAddBar';
 import { HostPhaseIndicator } from '../components/host/HostPhaseIndicator';
 import { EmptyQuestionsState } from '../components/host/EmptyQuestionsState';
 import { HostQuestionEditorCard } from '../components/host/HostQuestionEditorCard';
-import { HostAiGeneratePanel } from '../components/host/HostAiGeneratePanel';
+import { AiShopWizard } from '../components/host/AiShopWizard';
 import { QuickImportPanel } from '../components/host/QuickImportPanel';
 import { QuizBackupPanel } from '../components/host/QuizBackupPanel';
 import { QuizEditModeTabs, type QuizEditMode } from '../components/host/QuizEditModeTabs';
@@ -213,7 +213,7 @@ export function HostEditPage() {
       const normalized = normalizeQuestionsForSave(questions);
       const incomplete = normalized.filter(isQuestionIncomplete);
       if (incomplete.length > 0) {
-        setSaveMessage('Fullfør alle spørsmål (tittel og svar) før du oppdaterer aktiv quiz.');
+        setSaveMessage('Fullfør alle spørsmål (tittel og svar) før du oppdaterer aktiv Gruiz.');
         return false;
       }
       const toSave =
@@ -226,8 +226,8 @@ export function HostEditPage() {
       setDirty(false);
       setSaveMessage(
         room && isLiveQuizEditPhase(room.phase)
-          ? 'Aktiv quiz oppdatert. Lukkede spørsmål er endret — åpne på nytt når du er klar.'
-          : 'Aktiv quiz oppdatert for denne økta.',
+          ? 'Aktiv Gruiz oppdatert. Lukkede spørsmål er endret — åpne på nytt når du er klar.'
+          : 'Aktiv Gruiz oppdatert for denne økta.',
       );
       setTimeout(() => setSaveMessage(null), 4000);
       return true;
@@ -285,7 +285,7 @@ export function HostEditPage() {
 
   const deleteQuestionAt = (index: number) => {
     if (room && isLiveQuizEditPhase(room.phase)) {
-      setSaveMessage('Under live quiz kan du ikke slette spørsmål — bare redigere lukkede.');
+      setSaveMessage('Under live Gruiz kan du ikke slette spørsmål — bare redigere lukkede.');
       return;
     }
     if (!window.confirm('Slette dette spørsmålet?')) return;
@@ -357,7 +357,9 @@ export function HostEditPage() {
     if (stamped.length > 0) {
       flashHighlight(stamped[0].id, startIndex);
     }
-    setSaveMessage(`${stamped.length} AI-spørsmål lagt til i editoren — bruk endringene for å oppdatere aktiv quiz.`);
+    setSaveMessage(
+      `${stamped.length} oppgaver lagt til — sjekk fasit (særlig rekkefølge) i editoren, deretter bruk endringene for å oppdatere aktiv Gruiz.`,
+    );
     navigate(`/host/${roomId}/edit?mode=editor`, { replace: true });
   };
 
@@ -417,7 +419,7 @@ export function HostEditPage() {
     if (savedCount === 0) {
       setEditMode('editor');
       editorEntryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setSaveMessage('Oppdater aktiv quiz med minst ett fullført spørsmål før du presenterer.');
+      setSaveMessage('Oppdater aktiv Gruiz med minst ett fullført spørsmål før du presenterer.');
       return;
     }
     if (incompleteCount > 0) {
@@ -455,7 +457,7 @@ export function HostEditPage() {
 
   if (loading || !room) {
     return (
-      <PageShell showBrand="compact" title="Bygg quiz" subtitle="Kobler til quizrom…">
+      <PageShell showBrand="compact" title="Bygg Gruiz" subtitle="Kobler til Gruiz-rom…">
         <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
       </PageShell>
     );
@@ -469,7 +471,7 @@ export function HostEditPage() {
         : buildEntry === 'import'
           ? 'Velg en JSON-quizfil å importere'
           : buildEntry === 'ai'
-            ? 'Generer spørsmål med AI'
+            ? 'AI-shop — lag Gruiz med KI'
             : 'Legg til spørsmål i editoren'
       : hasExistingQuiz
         ? `${draftQuestions.length} spørsmål · aktiv økt oppdateres når du bruker endringene`
@@ -485,10 +487,10 @@ export function HostEditPage() {
     >
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold break-words">
-          {isSynced ? 'Aktiv quiz er oppdatert' : 'Du har endringer som ikke er brukt'}
+          {isSynced ? 'Aktiv Gruiz er oppdatert' : 'Du har endringer som ikke er brukt'}
         </p>
         <p className="text-xs text-quiz-muted mt-0.5 break-words">
-          {draftQuestions.length} spørsmål · Dette er arbeidsquizen i denne økta
+          {draftQuestions.length} spørsmål · Dette er arbeidsGruizen i denne økta
         </p>
         {hasUnexportedQuiz && (
           <p className="text-xs text-yellow-900 mt-1 break-words">
@@ -632,7 +634,7 @@ export function HostEditPage() {
 
   const aiSection = roomId ? (
     <section className="rounded-2xl border border-quiz-accent/40 bg-gradient-to-b from-quiz-accent/10 to-quiz-surface p-4 sm:p-6 min-w-0 max-w-full overflow-hidden box-border">
-      <HostAiGeneratePanel roomId={roomId} onGenerated={applyAiGeneratedQuestions} />
+      <AiShopWizard roomId={roomId} onGenerated={applyAiGeneratedQuestions} />
     </section>
   ) : null;
 
@@ -675,7 +677,7 @@ export function HostEditPage() {
   return (
     <PageShell
       showBrand="compact"
-      title={isLiveEdit ? 'Rediger quiz' : 'Bygg quiz'}
+      title={isLiveEdit ? 'Rediger Gruiz' : 'Bygg Gruiz'}
       emoji={isLiveEdit ? '✏️' : '✨'}
       subtitle={pageSubtitle}
       wide
@@ -699,7 +701,7 @@ export function HostEditPage() {
           }
           className="inline-flex items-center text-sm text-quiz-accent hover:underline shrink-0"
         >
-          {isLiveEdit ? '← Tilbake til kjøring' : '← Quizmaster-meny'}
+          {isLiveEdit ? '← Tilbake til kjøring' : '← Gruizmaster-meny'}
         </button>
         {focusEntry && (
           <span className="text-xs text-quiz-muted truncate">
@@ -722,7 +724,7 @@ export function HostEditPage() {
 
       {isLiveEdit && (
         <p className="mb-4 rounded-xl border border-violet-300/60 bg-violet-50 px-4 py-3 text-sm text-violet-950 break-words">
-          Quizen kjører. Du kan rette feil i <strong>lukkede</strong> spørsmål — åpne spørsmål må
+          Gruizen kjører. Du kan rette feil i <strong>lukkede</strong> spørsmål — åpne spørsmål må
           lukkes først. Etter endring: bruk knappen nedenfor, gå tilbake og åpne spørsmålet på nytt
           for deltakerne.
         </p>
@@ -760,7 +762,7 @@ export function HostEditPage() {
                 canStartTest={canPresent}
                 startDisabledReason={
                   !canPresent
-                    ? 'Bruk endringene og fullfør alle spørsmål før du prøver quizen.'
+                    ? 'Bruk endringene og fullfør alle spørsmål før du prøver Gruizen.'
                     : undefined
                 }
                 starting={testBusy === 'start'}
@@ -791,7 +793,7 @@ export function HostEditPage() {
               {dirty ? (
                 <span className="text-amber-700 font-bold">⚠️ Endringer er ikke brukt ennå</span>
               ) : (
-                <span className="text-emerald-700 font-bold">✓ Aktiv quiz er oppdatert</span>
+                <span className="text-emerald-700 font-bold">✓ Aktiv Gruiz er oppdatert</span>
               )}
               {saveMessage && (
                 <span
@@ -813,7 +815,7 @@ export function HostEditPage() {
               </Button>
               {canPresent && (
                 <Button type="button" variant="gold" className="w-full sm:w-auto" onClick={goToPresent}>
-                  🎤 Presenter quiz
+                  🎤 Presenter Gruiz
                 </Button>
               )}
               <Button

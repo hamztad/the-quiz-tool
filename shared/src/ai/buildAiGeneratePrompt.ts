@@ -1,6 +1,7 @@
-import type { AiGenerateQuizRequest, AiQuizQuestionStyle } from './aiQuizTypes.js';
+import type { AiGenerateQuizRequest, AiShopSlot } from './aiQuizTypes.js';
+import { getBuiltInGame } from '../games/registry.js';
 import { buildAiQuizVarietyHints, formatVarietyBlock } from './aiQuizVariety.js';
-import { clampAiQuestionCount } from './parseAiQuizJson.js';
+import { resolveAiGeneration } from './resolveAiGeneration.js';
 
 const DIFFICULTY_NO: Record<AiGenerateQuizRequest['difficulty'], string> = {
   easy: 'lett (de fleste deltakere bør klare det)',
@@ -8,124 +9,55 @@ const DIFFICULTY_NO: Record<AiGenerateQuizRequest['difficulty'], string> = {
   hard: 'vanskelig (krever god kunnskap, men fortsatt rettferdig)',
 };
 
-function buildMixedTypePlan(count: number): string {
-  const lines: string[] = [];
-  for (let i = 1; i <= count; i++) {
-    const type = i % 2 === 1 ? 'open' : 'mc';
-    const label = type === 'open' ? 'åpent tekstsvar' : 'flervalg (MC)';
-    lines.push(`  - Spørsmål ${i}: type "${type}" (${label})`);
+function slotTypeLabel(slot: AiShopSlot): string {
+  if (slot.type === 'open') return 'type "open" (åpent tekstsvar med acceptedAnswers)';
+  if (slot.type === 'mc') return 'type "mc" eller "multipleChoice" (nøyaktig 4 options, én correct: true)';
+  if (slot.type === 'ordering') {
+    return 'type "ordering" (3-5 items, correctOrder i riktig rekkefølge, directionLabel med tydelig topp→bunn)';
   }
-  return lines.join('\n');
+  const game = slot.gameId ? getBuiltInGame(slot.gameId) : undefined;
+  const label = game?.label ?? slot.gameId ?? 'spill';
+  return `type "game" med gameId "${slot.gameId}" (tittel: ${label}) — ikke inkluder spillconfig`;
 }
 
-function buildStyleBlock(style: AiQuizQuestionStyle, count: number): string {
-  if (style === 'quizPackage') {
-    return `QUIZPAKKE (strengt — brudd forkaster svaret):
-- Returner ALLTID nøyaktig 5 oppgaver i denne rekkefølgen:
-  1. type "open" med acceptedAnswers
-  2. type "multipleChoice" med nøyaktig 4 options og én correct: true
-  3. type "ordering" med 3-5 items, correctOrder og tydelig retning topp til bunn
-  4. type "puzzle" med puzzleType "mathRace" (alltid — ikke anagram)
-  5. type "game" med gameId enten "rainbowPuzzle", "emojiHunt" eller "dropBall"
-- Ikke bruk unsupported gameId eller puzzleType "anagram".
-- Ikke inkluder full spillconfig; systemet lager trygg konfigurasjon.
-- Spillnavn må være nøyaktige: "Rainbow Puzzle", "Emoji-jakt", "Drop the Ball", "Regnerace".
+export function buildAiShopSlotsBlock(slots: AiShopSlot[]): string {
+  const lines = slots.map((slot, i) => `  - Oppgave ${i + 1}: ${slotTypeLabel(slot)}`);
+  return `OPPGAVER (strengt — nøyaktig ${slots.length} oppgaver i denne rekkefølgen):
+${lines.join('\n')}
 
-JSON-eksempel (bruk disse feltene):
-{
-  "questions": [
-    { "type": "open", "text": "...", "body": null, "acceptedAnswers": ["..."] },
-    { "type": "multipleChoice", "text": "...", "body": null, "options": [
-      { "text": "...", "correct": true },
-      { "text": "...", "correct": false },
-      { "text": "...", "correct": false },
-      { "text": "...", "correct": false }
-    ] },
-    { "type": "ordering", "text": "...", "body": null, "directionLabel": "Størst øverst → Minst nederst", "directionLabelTop": "Størst", "directionLabelBottom": "Minst", "items": ["..."], "correctOrder": ["..."] },
-    { "type": "puzzle", "puzzleType": "mathRace", "text": "Regnerace", "body": null, "answerText": "", "anagramKind": "commonWord", "anagramEvidence": "" },
-    { "type": "game", "gameId": "emojiHunt", "text": "Emoji-jakt", "body": null }
-  ]
-}
-
-Slot 4 skal alltid være puzzleType "mathRace" (Regnerace med auto-genererte regnestykker underveis).`;
-  }
-
-  if (style === 'open') {
-    return `SPØRSMÅLSTYPE (strengt — brudd forkaster svaret):
-- ALLE ${count} spørsmål skal ha "type": "open"
-- Hvert spørsmål skal ha "acceptedAnswers" med minst ett svar
-- FORBUDT: "type": "mc", "options", eller flervalg
-- Ikke inkluder hint med mindre det hjelper tydelig
-
-JSON-eksempel (bruk nøyaktig denne strukturen for HVERT spørsmål):
-{
-  "type": "open",
-  "text": "Spørsmålstekst?",
-  "body": "Valgfri kort tilleggstekst, eller utelat feltet",
-  "acceptedAnswers": ["Svar 1", "evt. alternativt svar"]
-}`;
-  }
-
-  if (style === 'mc') {
-    return `SPØRSMÅLSTYPE (strengt — brudd forkaster svaret):
-- ALLE ${count} spørsmål skal ha "type": "mc"
-- Hvert spørsmål skal ha nøyaktig 4 "options"
-- Nøyaktig én option med "correct": true, de andre false
-- Plassering av riktig svar i listen spiller ingen rolle (systemet stokker alternativene)
-- FORBUDT: "type": "open", "acceptedAnswers", eller åpne tekstsvar
-- Ikke skriv svar som fri tekst utenfor options
-
-JSON-eksempel (bruk nøyaktig denne strukturen for HVERT spørsmål):
-{
-  "type": "mc",
-  "text": "Spørsmålstekst?",
-  "body": "Valgfri kort tilleggstekst, eller utelat feltet",
-  "options": [
-    { "text": "Alternativ A", "correct": true },
-    { "text": "Alternativ B", "correct": false },
-    { "text": "Alternativ C", "correct": false },
-    { "text": "Alternativ D", "correct": false }
-  ]
-}`;
-  }
-
-  return `SPØRSMÅLSTYPE (strengt — blandet):
-- Bruk BÅDE "open" og "mc" — minst ett av hver type
-- Følg denne rekkefølgen for type-feltet:
-${buildMixedTypePlan(count)}
-- FORBUDT: bare én type for hele quizen
-
-Åpent spørsmål:
-{ "type": "open", "text": "...", "body": "valgfritt", "acceptedAnswers": ["..."] }
-
-Flervalg:
-{ "type": "mc", "text": "...", "body": "valgfritt", "options": [ fire alternativer, én correct: true ] }`;
+Rekkefølge: Sjekk at correctOrder faktisk matcher den objektive rekkefølgen (størst→minst, eldste→nyeste, osv.).
+Spill: Bruk kanonisk tittel fra spillnavn. Ikke bruk puzzleType med mindre slot krever regnerace som eget spill — bruk gameId fra listen over.`;
 }
 
 export function buildAiGeneratePrompt(params: AiGenerateQuizRequest): string {
-  const count = params.questionStyle === 'quizPackage' ? 5 : clampAiQuestionCount(params.questionCount);
-  const topic = params.topic.trim();
-  const varietyHints = buildAiQuizVarietyHints(topic, count, params.varietySeed);
+  const resolved = resolveAiGeneration(params);
+  if (!resolved.ok) {
+    throw new Error(resolved.errors.join(' '));
+  }
+  const { topic, questionCount, slots } = resolved.resolved;
+  const varietyHints = buildAiQuizVarietyHints(topic, questionCount, params.varietySeed);
   const varietyBlock = formatVarietyBlock(varietyHints);
+  const modeLabel = params.mode === 'instant' ? 'AI-shop (automatisk miks)' : 'AI-shop (valgt kurv)';
 
-  return `Lag en norsk pubquiz med nøyaktig ${count} spørsmål om temaet: «${topic}».
+  return `Lag en norsk Gruiz med nøyaktig ${questionCount} oppgaver om temaet: «${topic}».
+Modus: ${modeLabel}.
 
 Vanskelighetsgrad: ${DIFFICULTY_NO[params.difficulty]}.
 
 ${varietyBlock}
 
-${buildStyleBlock(params.questionStyle, count)}
+${buildAiShopSlotsBlock(slots)}
 
 Generelle krav:
 - All tekst på norsk (naturlig, idiomatisk)
 - Korte, tydelige spørsmål (maks ca. 2 setninger)
-- Bruk "text" som tittel/spørsmål; bruk valgfri "body" kun for kort tilleggstekst
-- Unngå tvetydige formuleringer
+- Bruk "text" som tittel/spørsmål; bruk valgfri "body" kun for kort tilleggstekst (eller null)
+- Unngå tvetydige formuleringer og feil fasit
 - Unngå opphavsrettsbeskyttede sangtekster eller lange sitater
 - Ikke inkluder maxPoints i JSON
 
 Svar KUN med gyldig JSON (ingen markdown, ingen forklaring):
 {
-  "questions": [ ... nøyaktig ${count} spørsmål ... ]
+  "questions": [ ... nøyaktig ${questionCount} oppgaver ... ]
 }`;
 }

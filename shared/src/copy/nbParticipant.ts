@@ -13,10 +13,10 @@ export const NB = {
     'Dette navnet er reservert for testmodus. Velg et annet deltakernavn.',
   maxParticipantsReached: 'Maks antall deltakere er nådd.',
   participantNotFound: 'Deltakeren finnes ikke.',
-  participantRemoved: 'Quizmaster har fjernet deltakeren fra quizen.',
+  participantRemoved: 'Gruizmaster har fjernet deltakeren fra Gruizen.',
   sessionInvalid:
     'Kunne ikke koble til deltakeren igjen. Bli med på nytt med romkode og deltakernavn.',
-  joinLocked: 'Quizmaster har stengt for nye deltakere.',
+  joinLocked: 'Gruizmaster har stengt for nye deltakere.',
   onlyParticipantRole: 'Kun deltakeren kan utføre denne handlingen.',
   cannotGradeThisParticipant: 'Du kan ikke rette denne deltakeren.',
 
