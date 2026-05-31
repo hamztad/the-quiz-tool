@@ -30,7 +30,7 @@ ARP-P`;
 export const QUIZ_TEXT_IMPORT_STEPS = [
   'Kopier eksemplet under (eller skriv i samme mønster). Valgfritt: ARP-P eller ARP-W — bilder hentes automatisk når du trykker Legg til.',
   'Lim inn i tekstfeltet. Ett spørsmål per blokk — tom linje mellom hvert spørsmål.',
-  'Trykk «Legg til», deretter «Legg til bilder på oppgaver» (Pixabay eller Wikimedia) hvis du vil.',
+  'Trykk «Legg til». Mangler bilder? Bruk «Hent bilder» under feltet (Pixabay eller Wikimedia).',
 ] as const;
 
 /** Korte seksjoner for hjelpepanelet i editoren. */

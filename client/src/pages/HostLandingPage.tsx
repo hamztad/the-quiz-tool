@@ -58,7 +58,7 @@ export function HostLandingPage() {
         />
         <HostSetupCard
           title="Ny Gruiz med tekst"
-          description="Kopier AI-prompt, lim inn svar — eller skriv Gruizen direkte som tekst."
+          description="Skriv eller lim inn quiz i tekstformat (Q, MC, ORDER, GAME)."
           icon="📝"
           tone="cyan"
           onClick={() => createQuiz('tekst')}

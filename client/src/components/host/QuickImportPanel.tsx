@@ -11,7 +11,6 @@ import {
 } from '@quiz-tool/shared';
 import type { HostSession } from '../../lib/tokens';
 import { AttachQuizImagesPanel } from './AttachQuizImagesPanel';
-import { AiQuizPromptPanel } from './AiQuizPromptPanel';
 import { GameImportPickPanel } from './GameImportPickPanel';
 import { QuestionPreviewStrip } from './QuestionPreviewStrip';
 import { Button } from '../ui/Button';
@@ -348,8 +347,6 @@ export function QuickImportPanel({
           {e}
         </p>
       ))}
-
-      <AiQuizPromptPanel />
 
       {preview.length > 0 && <QuestionPreviewStrip questions={preview} />}
 

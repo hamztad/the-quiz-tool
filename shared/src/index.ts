@@ -29,7 +29,6 @@ export * from './import/finalizeParseResult.js';
 export * from './import/quizTextImportHelp.js';
 export * from './import/parseTextImportImageLine.js';
 export * from './import/questionImageSearchQuery.js';
-export * from './import/aiQuizPrompt.js';
 export * from './grading/buildGradingAssignments.js';
 export * from './grading/aiGrading.js';
 export * from './games/index.js';
