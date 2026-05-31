@@ -23,7 +23,7 @@ export function TestModeParticipantBar({
   return (
     <div className={`mb-4 ${testModeAlertPanelClass}`}>
       <div>
-        <p className={testModeAlertTitleClass}>Testmodus — quizmaster</p>
+        <p className={testModeAlertTitleClass}>Testmodus — Gruizmaster</p>
         <p className={`mt-1 ${testModeAlertBodyClass}`}>
           Alle oppgaver er åpne. Når du er ferdig, avslutt testmodus for å gå tilbake til redigering
           eller kjøring.
@@ -37,7 +37,7 @@ export function TestModeParticipantBar({
         </Link>
         <Link to={hostHref} className="w-full sm:w-auto sm:min-w-[10rem]">
           <Button type="button" variant="secondary" className="w-full">
-            Quizmaster-panel
+            Gruizmaster-panel
           </Button>
         </Link>
         <Button

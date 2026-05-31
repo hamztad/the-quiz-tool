@@ -120,7 +120,7 @@ function emitRoomAccessError(
 
 function requireHost(socket: Socket, roomId: string): boolean {
   if (socket.data.role !== 'host' || socket.data.roomId !== roomId) {
-    emitError(socket, 'Kun quizmaster kan utføre denne handlingen.');
+    emitError(socket, 'Kun Gruizmaster kan utføre denne handlingen.');
     return false;
   }
   return true;
@@ -238,7 +238,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         }
 
         if (access.room.phase === 'post_quiz') {
-          emitError(socket, 'Quizen er avsluttet av quizmaster.', ROOM_ERROR_CODES.ROOM_ENDED);
+          emitError(socket, 'Gruizen er avsluttet av Gruizmaster.', ROOM_ERROR_CODES.ROOM_ENDED);
           return;
         }
 
@@ -405,7 +405,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
       typeof payload?.hostToken === 'string' &&
       payload.hostToken === room.hostToken;
     if (!asHost && !asTestParticipant) {
-      emitError(socket, 'Kun quizmaster kan avslutte testmodus.');
+      emitError(socket, 'Kun Gruizmaster kan avslutte testmodus.');
       return;
     }
 

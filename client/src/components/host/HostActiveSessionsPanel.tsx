@@ -79,7 +79,7 @@ export function HostActiveSessionsPanel({ connected }: { connected: boolean }) {
       <div>
         <h2 className="quiz-display text-lg font-bold text-quiz-text">Fortsett aktive quizer</h2>
         <p className="mt-1 text-sm text-quiz-muted leading-relaxed">
-          Vi fant aktive quizmaster-økter i denne nettleseren. Fortsett der du slapp — uten permanent
+          Vi fant aktive Gruizmaster-økter i denne nettleseren. Fortsett der du slapp — uten permanent
           lagring i skyen.
         </p>
       </div>

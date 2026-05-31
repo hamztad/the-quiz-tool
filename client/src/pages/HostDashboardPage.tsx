@@ -56,7 +56,7 @@ function phaseLabel(phase: PublicRoomState['phase']): string {
     case 'leaderboard':
       return 'Leaderboard';
     case 'post_quiz':
-      return 'Etter quiz';
+      return 'Etter Gruiz';
     default:
       return phase;
   }
@@ -130,7 +130,7 @@ export function HostDashboardPage() {
 
   if (loading || !room) {
     return (
-      <PageShell showBrand="compact" title="Quizmaster" subtitle="Kobler til quizrom…">
+      <PageShell showBrand="compact" title="Gruizmaster" subtitle="Kobler til Gruiz-rom…">
         <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
       </PageShell>
     );
@@ -138,7 +138,7 @@ export function HostDashboardPage() {
 
   if (room.phase === 'lobby') {
     return (
-      <PageShell showBrand="compact" title="Kjør quiz" subtitle="Kobler til…">
+      <PageShell showBrand="compact" title="Kjør Gruiz" subtitle="Kobler til…">
         <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
       </PageShell>
     );
@@ -186,7 +186,7 @@ export function HostDashboardPage() {
   const endQuizForTeams = () => {
     if (
       !window.confirm(
-        'Avslutte quizen for deltakerne? Du kan fortsatt se resultater, fasit og eksportere etterpå.',
+        'Avslutte Gruizen for deltakerne? Du kan fortsatt se resultater, fasit og eksportere etterpå.',
       )
     ) {
       return;
@@ -198,7 +198,7 @@ export function HostDashboardPage() {
     requestLeave(() => {
       if (
         !window.confirm(
-          'Lukke quizmaster-økten helt? Rommet forsvinner og deltakere kan ikke koble til igjen.',
+          'Lukke Gruizmaster-økten helt? Rommet forsvinner og deltakere kan ikke koble til igjen.',
         )
       ) {
         return;
@@ -257,7 +257,7 @@ export function HostDashboardPage() {
   return (
     <PageShell
       showBrand="compact"
-      title={isPostQuiz ? 'Etter quiz' : 'Kjør quiz'}
+      title={isPostQuiz ? 'Etter Gruiz' : 'Kjør Gruiz'}
       emoji="🎮"
       subtitle={`Romkode ${room.joinCode} · ${phaseLabel(room.phase)}`}
       wide
@@ -283,15 +283,15 @@ export function HostDashboardPage() {
 
       {room.settings.teamsLockedOut && (
         <p className="mb-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Quizen er avsluttet for deltakere. Bruk «Tving åpne» på et spørsmål for å åpne igjen
+          Gruizen er avsluttet for deltakere. Bruk «Tving åpne» på et spørsmål for å åpne igjen
           manuelt.
         </p>
       )}
 
       {isPostQuiz && (
         <p className="mb-4 rounded-xl border border-quiz-border bg-quiz-surface/60 px-4 py-3 text-sm text-quiz-muted break-words">
-          Quizen er avsluttet for deltakerne. Du kan fortsatt se resultater, fasit og eksportere
-          quizen.
+          Gruizen er avsluttet for deltakerne. Du kan fortsatt se resultater, fasit og eksportere
+          Gruizen.
         </p>
       )}
 
@@ -305,7 +305,7 @@ export function HostDashboardPage() {
           roomId={roomId}
           canStartTest={canStartTest}
           startDisabledReason={
-            incompleteCount > 0 ? 'Fullfør alle spørsmål før du prøver quizen.' : undefined
+            incompleteCount > 0 ? 'Fullfør alle spørsmål før du prøver Gruizen.' : undefined
           }
           starting={testBusy === 'start'}
           ending={testBusy === 'end'}
@@ -454,7 +454,7 @@ export function HostDashboardPage() {
                   title={
                     canLockFinalResult
                       ? undefined
-                      : 'Avslutt quizen eller vis leaderboard, og behandle protester først.'
+                      : 'Avslutt Gruizen eller vis leaderboard, og behandle protester først.'
                   }
                   onClick={() => setShowFinalLockConfirm(true)}
                 >
@@ -467,7 +467,7 @@ export function HostDashboardPage() {
           <div className="flex w-full min-w-0 max-w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Link to={`/host/${roomId}/edit`} className="w-full min-w-0 sm:w-auto">
               <Button variant="cta" size="sm" className="w-full sm:w-auto">
-                ✏️ Rediger quiz
+                ✏️ Rediger Gruiz
               </Button>
             </Link>
             <Link to={`/host/${roomId}/present?invite=1`} className="w-full min-w-0 sm:w-auto">
@@ -614,7 +614,7 @@ export function HostDashboardPage() {
 
             {room.questions.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-quiz-border px-6 py-8 text-center">
-                <p className="text-quiz-muted text-sm mb-4">Ingen spørsmål i quizen.</p>
+                <p className="text-quiz-muted text-sm mb-4">Ingen spørsmål i Gruizen.</p>
                 <Link to={`/host/${roomId}/edit`}>
                   <Button>Legg til spørsmål</Button>
                 </Link>

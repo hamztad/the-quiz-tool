@@ -12,23 +12,23 @@ const ROOM_UNAVAILABLE_COPY: Record<RoomUnavailableReason, RoomUnavailableConten
   not_found: {
     title: 'Quizrommet er ikke tilgjengelig',
     description:
-      'Finner ikke quizen på serveren. Den kan ha utløpt, eller serveren kan ha startet på ny. Be quizmaster om ny kode eller prøv igjen senere.',
+      'Finner ikke Gruizen på serveren. Den kan ha utløpt, eller serveren kan ha startet på ny. Be Gruizmaster om ny kode eller prøv igjen senere.',
     icon: 'unavailable',
   },
   ended: {
-    title: 'Quizen er avsluttet',
-    description: 'Quizmaster har lukket dette rommet permanent. Takk for deltakelsen!',
+    title: 'Gruizen er avsluttet',
+    description: 'Gruizmaster har lukket dette rommet permanent. Takk for deltakelsen!',
     icon: 'ended',
   },
   expired: {
-    title: 'Quizen er avsluttet',
+    title: 'Gruizen er avsluttet',
     description:
-      'Tidsplanen for quizen er over, og romdata er ikke lenger tilgjengelig. Be quizmaster om en ny kode hvis dere skal spille igjen.',
+      'Tidsplanen for Gruizen er over, og romdata er ikke lenger tilgjengelig. Be Gruizmaster om en ny kode hvis dere skal spille igjen.',
     icon: 'unavailable',
   },
   removed: {
     title: 'Deltakeren er fjernet',
-    description: 'Quizmaster har fjernet deltakeren fra quizen.',
+    description: 'Gruizmaster har fjernet deltakeren fra Gruizen.',
     icon: 'unavailable',
   },
 };

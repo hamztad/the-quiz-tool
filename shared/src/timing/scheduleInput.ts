@@ -33,7 +33,7 @@ export function validateScheduleInput(input: SetScheduleInput, now = Date.now())
     return 'Velg enten relativ forsinkelse eller klokkeslett for start — ikke begge.';
   }
   if (!hasRelative && !hasAbsolute) {
-    return 'Angi når quizen skal starte.';
+    return 'Angi når Gruizen skal starte.';
   }
 
   if (hasAbsolute) {

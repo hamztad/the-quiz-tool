@@ -14,7 +14,7 @@ export function canChangeScoringMode(
   if (room.phase !== 'lobby') {
     return {
       ok: false,
-      message: 'Poengmodus kan bare endres i lobby før quizen starter.',
+      message: 'Poengmodus kan bare endres i lobby før Gruizen starter.',
     };
   }
   return { ok: true };

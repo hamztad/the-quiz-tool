@@ -368,7 +368,7 @@ function MathRaceView({
         <div className="mt-5 space-y-3">
           {result && retrying && (
             <p className="rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-semibold text-green-900">
-              Forsøket er lagret. Prøv igjen for å slå resultatet før quizmaster låser.
+              Forsøket er lagret. Prøv igjen for å slå resultatet før Gruizmaster låser.
             </p>
           )}
           <button

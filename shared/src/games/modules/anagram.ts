@@ -125,7 +125,7 @@ export function createDefaultAnagramConfig(): AnagramGameConfig {
   return {
     gameId: 'anagram',
     title: 'Anagram',
-    instructions: 'Løs anagrammet før quizmaster låser spørsmålet.',
+    instructions: 'Løs anagrammet før Gruizmaster låser spørsmålet.',
     mode: 'classic',
     shuffleMode: 'perWord',
     answerText: '',

@@ -11,7 +11,7 @@ interface HostPhaseIndicatorProps {
 const steps: { id: HostUiPhase; label: string; emoji: string }[] = [
   { id: 'build', label: 'Lag quiz', emoji: '✨' },
   { id: 'present', label: 'Presenter', emoji: '🎤' },
-  { id: 'live', label: 'Kjør quiz', emoji: '🚀' },
+  { id: 'live', label: 'Kjør Gruiz', emoji: '🚀' },
 ];
 
 function StepContent({
@@ -57,14 +57,14 @@ function HostLivePhaseNav({
   return (
     <nav
       className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl border border-violet-200/60 bg-white/70 px-4 py-3 text-sm min-w-0 shadow-sm"
-      aria-label="Quizmaster-faser"
+      aria-label="Gruizmaster-faser"
     >
       <span className="text-2xl" aria-hidden>
         🚀
       </span>
       <span className="text-quiz-muted">Fase:</span>
       <span className="font-bold text-violet-800" aria-current="step">
-        Kjør quiz
+        Kjør Gruiz
       </span>
       {buildHref && (
         <>
@@ -75,7 +75,7 @@ function HostLivePhaseNav({
             to={buildHref}
             className="font-bold text-violet-700 hover:text-violet-900 hover:underline underline-offset-2"
           >
-            ✏️ Rediger quiz
+            ✏️ Rediger Gruiz
           </Link>
         </>
       )}
@@ -106,7 +106,7 @@ export function HostPhaseIndicator({ active, links }: HostPhaseIndicatorProps) {
   return (
     <nav
       className="mb-6 w-full min-w-0 max-w-full rounded-2xl border border-indigo-200/50 bg-white/60 p-3 shadow-sm backdrop-blur-sm"
-      aria-label="Quizmaster-faser"
+      aria-label="Gruizmaster-faser"
     >
       <ol className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden sm:gap-2">
         {steps.map((step, index) => {

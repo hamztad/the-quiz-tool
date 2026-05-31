@@ -77,7 +77,7 @@ function WinnerCertificate({
       <div className="mb-3 flex justify-center">
         <GruizMark size="sm" />
       </div>
-      <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-800">Vinner av quizen</p>
+      <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-800">Vinner av Gruizen</p>
       <h2 className="quiz-display mt-3 text-3xl font-bold text-quiz-text break-words [overflow-wrap:anywhere] sm:text-4xl">
         {teamName}
       </h2>
@@ -94,7 +94,7 @@ function WinnerCertificate({
       <p className="mt-5 text-sm font-semibold text-quiz-text">{quizTitle}</p>
       <p className="mt-1 text-xs text-quiz-muted">{dateText}</p>
       <p className="mt-5 rounded-2xl border border-amber-200/80 bg-white/70 px-4 py-3 text-sm text-quiz-text">
-        Gratulerer! Dette er den offisielle vinnerplakaten etter at quizmaster låste
+        Gratulerer! Dette er den offisielle vinnerplakaten etter at Gruizmaster låste
         sluttresultatet.
       </p>
     </section>
@@ -114,7 +114,7 @@ function FinalPlacementCard({
       <p className="mt-2 text-3xl font-black text-quiz-text">{placement}. plass</p>
       <p className="mt-1 text-sm text-quiz-muted">{score} poeng</p>
       <p className="mt-3 text-sm text-quiz-text">
-        Sluttresultatet er låst av quizmaster. Takk for innsatsen!
+        Sluttresultatet er låst av Gruizmaster. Takk for innsatsen!
       </p>
     </Card>
   );
@@ -151,7 +151,7 @@ function AnswerKeyCta({ to }: { to: string }) {
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-base font-bold text-quiz-text">Quizmaster har delt fasit</p>
+          <p className="text-base font-bold text-quiz-text">Gruizmaster har delt fasit</p>
           <p className="mt-1 text-sm text-quiz-muted">
             Se alle oppgaver, riktige svar og maks poeng.
           </p>
@@ -301,7 +301,7 @@ export function TeamPage() {
       <PageShell showBrand="compact" title="Deltaker" subtitle="Kunne ikke koble til igjen">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt quizmaster.
+            Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt Gruizmaster.
           </p>
           <Link to="/join">
             <Button size="lg" className="w-full max-w-xs">
@@ -322,7 +322,7 @@ export function TeamPage() {
       <PageShell showBrand="compact" title="Deltaker" subtitle="Ingen deltakerøkt funnet">
         <div className="py-10 text-center space-y-4 max-w-md mx-auto">
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt quizmaster.
+            Vi fant ikke deltakerøkten din. Bli med på nytt eller kontakt Gruizmaster.
           </p>
           <Link to="/join">
             <Button size="lg" className="w-full max-w-xs">
@@ -514,12 +514,12 @@ export function TeamPage() {
 
   if (room.phase === 'post_quiz') {
     return (
-      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Quizen er avsluttet">
+      <PageShell showBrand="compact" title={myTeam?.name ?? 'Deltaker'} subtitle="Gruizen er avsluttet">
         {finalResultContent}
         {canSeeAnswerKey && <AnswerKeyCta to={answerKeyHref} />}
         {canReviewOwn && <ReviewAnswersCta to={reviewHref} />}
         <Card className="p-5 text-center space-y-3">
-          <p className="text-lg font-semibold text-quiz-text">Quiz avsluttet av quizmaster</p>
+          <p className="text-lg font-semibold text-quiz-text">Quiz avsluttet av Gruizmaster</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
             Takk for deltakelsen! Resultater og poeng er lagret.
           </p>
@@ -541,7 +541,7 @@ export function TeamPage() {
         <Card className="p-5 text-center space-y-3">
           <p className="text-lg font-semibold text-quiz-text">Ingen retteroppgave for deg</p>
           <p className="text-sm text-quiz-muted leading-relaxed">
-            Retterunde krever minst to deltakere. Quizmaster må ha minst to deltakere og åpne
+            Retterunde krever minst to deltakere. Gruizmaster må ha minst to deltakere og åpne
             oppgaver for at peer-retting skal starte.
           </p>
         </Card>
@@ -662,7 +662,7 @@ export function TeamPage() {
                     </div>
                   )}
                   <p className="mb-4 text-sm text-quiz-muted leading-relaxed">
-                    Du kan gå tilbake til oppgavelisten og åpne denne igjen så lenge quizmaster holder den
+                    Du kan gå tilbake til oppgavelisten og åpne denne igjen så lenge Gruizmaster holder den
                     åpen.
                   </p>
                   {activeQuestion.game?.gameId !== 'rainbowPuzzle' &&
@@ -769,7 +769,7 @@ export function TeamPage() {
           ) : (
             <>
               <p className="text-sm text-quiz-muted">
-                {room.questions.length} oppgaver i quizen. Trykk på en åpen oppgave for å sende
+                {room.questions.length} oppgaver i Gruizen. Trykk på en åpen oppgave for å sende
                 svar — eller bla mellom oppgaver med pilene når du er inne i en oppgave.
               </p>
               {room.questions.map((q) => {

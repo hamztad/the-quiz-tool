@@ -187,10 +187,10 @@ export function TeamSelfPacedQuiz({
 
       {teamsLockedOut && (
         <Card className="border-2 border-violet-300/60 bg-violet-50 p-4">
-          <p className="text-sm font-bold text-violet-950">Quizen er avsluttet</p>
+          <p className="text-sm font-bold text-violet-950">Gruizen er avsluttet</p>
           <p className="mt-1 text-sm text-violet-900">
             Tidsfristen er nådd. Du kan ikke sende flere svar, men du kan se leaderboard og vente
-            på endelig resultat fra quizmaster.
+            på endelig resultat fra Gruizmaster.
           </p>
         </Card>
       )}
@@ -205,7 +205,7 @@ export function TeamSelfPacedQuiz({
             <strong>Oppgaver (ikke spill) låses når du sender inn</strong> — da kan du ikke endre svaret.
           </li>
           <li>
-            <strong>Spill</strong> kan du spille på nytt fram til quizen avsluttes ved tidsfrist.
+            <strong>Spill</strong> kan du spille på nytt fram til Gruizen avsluttes ved tidsfrist.
           </li>
         </ul>
         {nonGameCount > 0 && (

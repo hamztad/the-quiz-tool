@@ -23,8 +23,8 @@ export function ProvisionalLeaderboardPanel({ room, onBack }: ProvisionalLeaderb
             sluttresultatet.
           </p>
           <p className="text-sm text-amber-950 leading-relaxed">
-            Du kan sende <strong>protest</strong> på enkeltoppgaver etter quizen. Quizmaster kan
-            godkjenne protester og justere poeng <strong>etter at quizen er ferdig</strong>.
+            Du kan sende <strong>protest</strong> på enkeltoppgaver etter Gruizen. Gruizmaster kan
+            godkjenne protester og justere poeng <strong>etter at Gruizen er ferdig</strong>.
           </p>
         </Card>
       )}

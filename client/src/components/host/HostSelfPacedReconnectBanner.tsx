@@ -14,7 +14,7 @@ export function HostSelfPacedReconnectBanner({
       className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-900"
       role="status"
     >
-      <span>Du er koblet tilbake til den selvgående quizen.</span>
+      <span>Du er koblet tilbake til den selvgående Gruizen.</span>
       <button
         type="button"
         onClick={onDismiss}

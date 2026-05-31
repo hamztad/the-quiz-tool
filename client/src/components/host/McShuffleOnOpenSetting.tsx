@@ -35,7 +35,7 @@ export function McShuffleOnOpenSetting({
         </span>
         <span className="block text-xs leading-relaxed text-emerald-900/90">
           Deltakerne får ny tilfeldig rekkefølge hver gang du åpner spørsmålet. Fasit og
-          quizmaster-rekkefølge i editoren endres ikke.
+          Gruizmaster-rekkefølge i editoren endres ikke.
         </span>
       </span>
     </label>

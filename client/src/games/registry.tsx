@@ -492,7 +492,7 @@ function RevealImageTeamView({ room, question, teamId }: TeamGameViewProps) {
   if (!config || !imageMedia || !teamToken) {
     return (
       <p className="mt-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-900">
-        Spillbildet mangler. Be quizmaster legge til bilde.
+        Spillbildet mangler. Be Gruizmaster legge til bilde.
       </p>
     );
   }
@@ -640,7 +640,7 @@ function TimerChallengeTeamView({ room, question, teamId }: TeamGameViewProps) {
         <div className="space-y-3">
           {latestSubmission && (
             <p className="rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-bold text-green-900">
-              Forsøket er lagret. Prøv igjen for å slå bestetiden før quizmaster låser.
+              Forsøket er lagret. Prøv igjen for å slå bestetiden før Gruizmaster låser.
             </p>
           )}
           <button

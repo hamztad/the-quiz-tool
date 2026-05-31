@@ -47,10 +47,10 @@ function imageSearchFallbackMessage(
   status: number,
 ): string {
   if (status === 404) {
-    return 'Quizen finnes ikke på serveren. Last siden på nytt eller opprett quizen på nytt.';
+    return 'Gruizen finnes ikke på serveren. Last siden på nytt eller opprett Gruizen på nytt.';
   }
   if (status === 403) {
-    return 'Ugyldig quizmaster-tilgang. Last siden på nytt for å koble til quizen igjen.';
+    return 'Ugyldig Gruizmaster-tilgang. Last siden på nytt for å koble til Gruizen igjen.';
   }
   if (status === 503) {
     return 'Pixabay-søk er ikke konfigurert på serveren (PIXABAY_API_KEY mangler).';

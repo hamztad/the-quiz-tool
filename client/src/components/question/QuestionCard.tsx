@@ -130,7 +130,7 @@ export function QuestionCard({
       )}
       {viewMode === 'team' && !teamRevealed ? (
         <p className="text-sm text-quiz-muted italic leading-relaxed">
-          Skjules til quizmaster åpner oppgaven
+          Skjules til Gruizmaster åpner oppgaven
         </p>
       ) : (
         <QuestionBody

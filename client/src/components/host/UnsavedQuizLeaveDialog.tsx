@@ -34,10 +34,10 @@ export function UnsavedQuizLeaveDialog({
       <div className="space-y-4 p-5">
         <div>
           <h2 id="unsaved-quiz-title" className="text-lg font-bold text-quiz-text">
-            Quizen er ikke lagret som fil
+            Gruizen er ikke lagret som fil
           </h2>
           <p className="mt-2 text-sm text-quiz-muted leading-relaxed break-words">
-            Denne quizen er ikke permanent lagret. Hvis du avslutter nå, kan quizen bli borte fra
+            Denne Gruizen er ikke permanent lagret. Hvis du avslutter nå, kan Gruizen bli borte fra
             denne økta. Last ned en quizfil hvis du vil bruke den senere.
           </p>
         </div>

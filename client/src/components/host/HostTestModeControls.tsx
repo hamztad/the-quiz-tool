@@ -37,7 +37,7 @@ export function HostTestModeControls({
         <div>
           <p className={testModeAlertTitleClass}>Testmodus er aktiv</p>
           <p className={`mt-1 ${testModeAlertBodyClass}`}>
-            Alle oppgaver er åpne. Styr quizen her eller svar i deltakervisningen — der finner du
+            Alle oppgaver er åpne. Styr Gruizen her eller svar i deltakervisningen — der finner du
             knapper tilbake til redigering og for å avslutte test.
           </p>
         </div>
@@ -64,9 +64,9 @@ export function HostTestModeControls({
   return (
     <div className="rounded-xl border border-quiz-border bg-quiz-surface-elevated/40 px-4 py-3 space-y-3">
       <div>
-        <p className="text-sm font-semibold text-quiz-text">Prøv quizen</p>
+        <p className="text-sm font-semibold text-quiz-text">Prøv Gruizen</p>
         <p className="mt-1 text-xs text-quiz-muted leading-relaxed">
-          Oppretter én testdeltaker, setter quizen i gang og åpner alle oppgaver automatisk, slik at du
+          Oppretter én testdeltaker, setter Gruizen i gang og åpner alle oppgaver automatisk, slik at du
           kan prøve hele opplegget uten ekte deltakere.
         </p>
       </div>
@@ -78,7 +78,7 @@ export function HostTestModeControls({
         title={!canStartTest ? startDisabledReason : undefined}
         onClick={onStartTest}
       >
-        {starting ? 'Starter test…' : 'Prøv quizen'}
+        {starting ? 'Starter test…' : 'Prøv Gruizen'}
       </Button>
     </div>
   );

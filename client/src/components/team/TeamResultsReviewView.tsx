@@ -40,7 +40,7 @@ interface TeamResultsReviewViewProps {
 function protestStatusLabel(status: Protest['status']): string {
   switch (status) {
     case 'pending':
-      return 'Venter på quizmaster';
+      return 'Venter på Gruizmaster';
     case 'approved':
       return 'Godkjent';
     case 'rejected':
@@ -170,7 +170,7 @@ export function TeamResultsReviewView({
         ))}
 
       <p className="text-sm text-quiz-muted mb-5 leading-relaxed">
-        Se hvordan svarene dine ble vurdert. Du kan sende protest til quizmaster hvis du mener
+        Se hvordan svarene dine ble vurdert. Du kan sende protest til Gruizmaster hvis du mener
         poengene er feil.
       </p>
 
@@ -379,7 +379,7 @@ export function TeamResultsReviewView({
                       {showProtestForm ? (
                       <div className="space-y-2 rounded-xl border border-quiz-border/60 bg-quiz-surface/40 p-3">
                         <TextArea
-                          placeholder="Valgfri melding til quizmaster…"
+                          placeholder="Valgfri melding til Gruizmaster…"
                           value={protestDrafts[question.id] ?? ''}
                           onChange={(e) =>
                             setProtestDrafts((prev) => ({

@@ -136,7 +136,7 @@ export async function storeUploadedImage(params: {
 
   const room = roomStore.get(roomId);
   if (!room || room.hostToken !== hostToken) {
-    throw new Error('Ugyldig quizmaster-tilgang.');
+    throw new Error('Ugyldig Gruizmaster-tilgang.');
   }
 
   const ext = path.extname(originalFilename).toLowerCase();

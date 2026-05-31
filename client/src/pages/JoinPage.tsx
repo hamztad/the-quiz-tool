@@ -112,7 +112,7 @@ export function JoinPage() {
       }
       if (e.code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {
         setError(
-          'Quizmaster har stengt for nye deltakere. Hvis du allerede er med, bruk Fortsett-knappen.',
+          'Gruizmaster har stengt for nye deltakere. Hvis du allerede er med, bruk Fortsett-knappen.',
         );
         return;
       }
@@ -140,7 +140,7 @@ export function JoinPage() {
         if (res && 'ok' in res && res.ok === false) {
           setLoading(false);
           if (res.code === ROOM_ERROR_CODES.TEAM_JOIN_LOCKED) {
-            setError('Quizmaster har stengt for nye deltakere.');
+            setError('Gruizmaster har stengt for nye deltakere.');
           }
           return;
         }
@@ -151,7 +151,7 @@ export function JoinPage() {
 
   return (
     <ParticipantPageShell
-      title="Bli med i quizen"
+      title="Bli med i Gruizen"
       emoji="👥"
       subtitle={
         hasPresetCode
@@ -178,7 +178,7 @@ export function JoinPage() {
 
         {showExistingTeamPrompt ? (
           <div className="w-full rounded-3xl border-2 border-violet-300/60 bg-gradient-to-br from-violet-50 to-fuchsia-50/80 p-6 text-center shadow-lg">
-            <p className="text-sm font-semibold text-quiz-muted">Du er allerede med i denne quizen som</p>
+            <p className="text-sm font-semibold text-quiz-muted">Du er allerede med i denne Gruizen som</p>
             <p className="mt-2 text-2xl font-black text-quiz-text break-words [overflow-wrap:anywhere]">
               {storedTeamSession?.teamName ?? 'deltakeren din'}
             </p>
@@ -218,7 +218,7 @@ export function JoinPage() {
           <>
         {storedTeamSession && storedSessionMatchesRoom && overrideExistingSession && (
           <div className="w-full rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900">
-            Denne enheten deltar allerede i quizen. Fortsett eksisterende deltaker hvis du ikke
+            Denne enheten deltar allerede i Gruizen. Fortsett eksisterende deltaker hvis du ikke
             bevisst lager en ekstra deltaker.
           </div>
         )}

@@ -322,7 +322,7 @@ export function removeTeam(room: RoomRecord, teamId: string): RoomRecord {
   };
 }
 
-/** Start live phase if needed and open every question for quizmaster test run. */
+/** Start live phase if needed and open every question for Gruizmaster test run. */
 export function prepareRoomForTestSession(room: RoomRecord): RoomRecord {
   let next: RoomRecord =
     room.phase === 'lobby'
@@ -349,7 +349,7 @@ export function startTestSession(
   room: RoomRecord,
 ): { room: RoomRecord; teamId: string; teamToken: string } {
   if (room.questions.length === 0) {
-    throw new Error('Legg til spørsmål før du prøver quizen.');
+    throw new Error('Legg til spørsmål før du prøver Gruizen.');
   }
 
   const existingTestId =
@@ -414,7 +414,7 @@ export function endTestSession(room: RoomRecord): RoomRecord {
 
 export function startQuiz(room: RoomRecord, now = Date.now()): RoomRecord {
   if (room.questions.length === 0) {
-    throw new Error('Legg til spørsmål før du starter quizen.');
+    throw new Error('Legg til spørsmål før du starter Gruizen.');
   }
   if (
     room.schedule?.enabled &&
@@ -423,7 +423,7 @@ export function startQuiz(room: RoomRecord, now = Date.now()): RoomRecord {
     room.schedule.runMode !== 'manual'
   ) {
     throw new Error(
-      'Quizen har planlagt start. Vent til nedtellingen er ferdig, eller avbryt tidsplanen.',
+      'Gruizen har planlagt start. Vent til nedtellingen er ferdig, eller avbryt tidsplanen.',
     );
   }
   const cleared = room.settings.testMode ? endTestSession(room) : room;
@@ -439,7 +439,7 @@ export function lockFinalResult(room: RoomRecord, now = Date.now()): RoomRecord 
     throw new Error('Avslutt retterunden før sluttresultatet låses.');
   }
   if (room.phase !== 'leaderboard' && room.phase !== 'post_quiz') {
-    throw new Error('Sluttresultatet kan låses etter at quizen er avsluttet eller leaderboard er åpnet.');
+    throw new Error('Sluttresultatet kan låses etter at Gruizen er avsluttet eller leaderboard er åpnet.');
   }
   return {
     ...room,

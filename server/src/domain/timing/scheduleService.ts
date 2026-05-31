@@ -23,7 +23,7 @@ export function setQuizSchedule(
   now = Date.now(),
 ): RoomRecord {
   if (room.phase !== 'lobby') {
-    throw new Error('Tidsplan kan bare settes før quizen starter.');
+    throw new Error('Tidsplan kan bare settes før Gruizen starter.');
   }
   if (room.questions.length === 0) {
     throw new Error('Legg til spørsmål før du planlegger start.');
@@ -46,7 +46,7 @@ export function setQuizSchedule(
 
 export function cancelQuizSchedule(room: RoomRecord): RoomRecord {
   if (room.phase !== 'lobby') {
-    throw new Error('Tidsplan kan bare avbrytes før quizen starter.');
+    throw new Error('Tidsplan kan bare avbrytes før Gruizen starter.');
   }
   logScheduleLifecycle('schedule_cancelled', { roomId: room.id, phase: room.phase });
   return { ...room, schedule: undefined };

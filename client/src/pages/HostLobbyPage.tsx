@@ -93,7 +93,7 @@ export function HostLobbyPage() {
 
   if (loading || !room) {
     return (
-      <PageShell showBrand="compact" title="Presenter quiz" subtitle="Kobler til quizrom…">
+      <PageShell showBrand="compact" title="Presenter Gruiz" subtitle="Kobler til Gruiz-rom…">
         <p className="text-sm text-quiz-muted text-center py-12">Laster…</p>
       </PageShell>
     );
@@ -137,7 +137,7 @@ export function HostLobbyPage() {
   const endQuizNow = () => {
     if (
       !window.confirm(
-        'Avslutte quizen for deltakerne nå? Quizmaster kan fortsatt se resultater og administrere etterpå.',
+        'Avslutte Gruizen for deltakerne nå? Gruizmaster kan fortsatt se resultater og administrere etterpå.',
       )
     ) {
       return;
@@ -157,7 +157,7 @@ export function HostLobbyPage() {
   const removeTeamFromQuiz = (teamId: string, teamName: string) => {
     if (
       !window.confirm(
-        `Kaste ut «${teamName}»?\n\nDeltakerens svar og poeng fjernes hvis quizen allerede er i gang.`,
+        `Kaste ut «${teamName}»?\n\nDeltakerens svar og poeng fjernes hvis Gruizen allerede er i gang.`,
       )
     ) {
       return;
@@ -168,7 +168,7 @@ export function HostLobbyPage() {
   return (
     <PageShell
       showBrand="compact"
-      title={inviteOnly ? 'Invitasjon til deltakere' : 'Presenter quiz'}
+      title={inviteOnly ? 'Invitasjon til deltakere' : 'Presenter Gruiz'}
       emoji="🎤"
       wide
       subtitle={
@@ -215,7 +215,7 @@ export function HostLobbyPage() {
             canStartTest={canStartTest}
             startDisabledReason={
               incompleteCount > 0
-                ? 'Fullfør alle spørsmål i editoren før du prøver quizen.'
+                ? 'Fullfør alle spørsmål i editoren før du prøver Gruizen.'
                 : undefined
             }
             starting={testBusy === 'start'}
@@ -276,7 +276,7 @@ export function HostLobbyPage() {
         <div className="w-full min-w-0 space-y-3">
           <Link to={`/host/${roomId}/edit`} className="block w-full">
             <Button type="button" variant="cta" size="lg" className="w-full">
-              ✏️ Rediger quiz
+              ✏️ Rediger Gruiz
             </Button>
           </Link>
           {canStart && (
@@ -288,11 +288,11 @@ export function HostLobbyPage() {
               disabled={!connected || scheduleBlocksManualStart}
               title={
                 scheduleBlocksManualStart
-                  ? 'Quizen har planlagt start — vent på nedtellingen eller avbryt planen'
+                  ? 'Gruizen har planlagt start — vent på nedtellingen eller avbryt planen'
                   : undefined
               }
             >
-              {scheduleBlocksManualStart ? '⏰ Planlagt start' : '🚀 Start quiz'}
+              {scheduleBlocksManualStart ? '⏰ Planlagt start' : '🚀 Start Gruiz'}
             </Button>
           )}
           {inviteOnly && room.phase === 'live' && (
@@ -309,7 +309,7 @@ export function HostLobbyPage() {
               onClick={() => requestLeave(() => navigate('/host'))}
               className="hover:text-quiz-accent underline-offset-2 hover:underline"
             >
-              Ny quizmaster-økt
+              Ny Gruizmaster-økt
             </button>
           </p>
         </div>

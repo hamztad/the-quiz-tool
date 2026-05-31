@@ -9,7 +9,7 @@ interface QuestionBodyProps {
   showHint?: boolean;
   /** Type badge is shown on QuestionCard header in team view — skip duplicate heading. */
   showTypeHeading?: boolean;
-  /** full = quizmaster/editor; deferred = participant during task; revealed = after lock/completion. */
+  /** full = Gruizmaster/editor; deferred = participant during task; revealed = after lock/completion. */
   mediaCreditsMode?: MediaCreditsDisplayMode;
 }
 

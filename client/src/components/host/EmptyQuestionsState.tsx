@@ -15,7 +15,7 @@ export function EmptyQuestionsState({ onAddOpen, onAddMc, onAddOrdering, onOpenT
       </div>
       <h3 className="text-lg font-semibold mb-2">Ingen spørsmål ennå</h3>
       <p className="text-sm text-quiz-muted max-w-sm mx-auto mb-6">
-        Legg til spørsmål her i Editor, eller bytt til Tekst for å lime inn hele quizen på en gang.
+        Legg til spørsmål her i Editor, eller bytt til Tekst for å lime inn hele Gruizen på en gang.
       </p>
       <div className="flex flex-col sm:flex-row gap-2 justify-center">
         <Button onClick={onAddOpen}>+ Åpent spørsmål</Button>

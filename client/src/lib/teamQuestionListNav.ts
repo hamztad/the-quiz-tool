@@ -1,4 +1,4 @@
-export const PARTICIPANT_BACK_TO_QUIZ_LABEL = 'Tilbake til quizen';
+export const PARTICIPANT_BACK_TO_QUIZ_LABEL = 'Tilbake til Gruizen';
 
 export function teamQuestionListAnchorId(questionId: string): string {
   return `team-question-${questionId}`;

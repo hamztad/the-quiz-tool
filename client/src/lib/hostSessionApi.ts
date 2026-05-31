@@ -28,7 +28,7 @@ export async function fetchHostSessionSummary(
       return {
         ok: false,
         code: !data.ok ? data.code : undefined,
-        message: !data.ok ? data.message : 'Denne quizen er ikke lenger aktiv.',
+        message: !data.ok ? data.message : 'Denne Gruizen er ikke lenger aktiv.',
       };
     }
     return data;

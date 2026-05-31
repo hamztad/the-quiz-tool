@@ -56,7 +56,7 @@ export function QuestionOpenNotifyToggle({
         <div className="min-w-0">
           <p className="text-sm font-bold text-quiz-text">Varsel ved oppgaveåpning</p>
           <p className="text-xs text-quiz-muted mt-0.5">
-            Når quizmaster eller tidsplan åpner en oppgave, får du beskjed her og eventuelt fra
+            Når Gruizmaster eller tidsplan åpner en oppgave, får du beskjed her og eventuelt fra
             nettleseren.
           </p>
         </div>

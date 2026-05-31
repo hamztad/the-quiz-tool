@@ -188,7 +188,7 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
         <div className="mt-4 space-y-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-quiz-muted mb-2">
-              Når skal quizen starte?
+              Når skal Gruizen starte?
             </p>
             <div className="flex flex-wrap gap-2">
               {(
@@ -345,7 +345,7 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
                   {
                     id: 'qm_led' as const,
                     label: 'QM-styrt',
-                    hint: 'Quizmaster åpner og lukker oppgaver manuelt',
+                    hint: 'Gruizmaster åpner og lukker oppgaver manuelt',
                   },
                   {
                     id: 'self_paced' as const,
@@ -399,7 +399,7 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
           {deliveryMode === 'qm_led' && (
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-quiz-muted mb-2">
-                Quizmaster-flyt
+                Gruizmaster-flyt
               </p>
               <div className="flex flex-wrap gap-2">
                 {(['manual', 'assisted'] as const).map((mode) => (
@@ -430,7 +430,7 @@ export function HostScheduleCard({ room, disabled = false }: HostScheduleCardPro
                 className="mt-1 h-5 w-5 rounded border-indigo-300 text-violet-600"
               />
               <span className="text-sm text-quiz-text">
-                Åpne første spørsmål automatisk når quizen starter
+                Åpne første spørsmål automatisk når Gruizen starter
               </span>
             </label>
           )}

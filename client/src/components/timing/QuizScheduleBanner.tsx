@@ -17,13 +17,13 @@ export function QuizScheduleBanner({ room }: QuizScheduleBannerProps) {
     return (
       <div className="mb-4 rounded-2xl border-2 border-violet-300/60 bg-gradient-to-r from-violet-50 to-cyan-50 px-4 py-4 text-center shadow-sm quiz-animate-in">
         <p className="text-xs font-bold uppercase tracking-widest text-violet-700">
-          Quizen starter om
+          Gruizen starter om
         </p>
         <p className="quiz-display mt-1 text-4xl font-bold tabular-nums text-violet-900">
           {formatCountdown(startCountdown.remaining)}
         </p>
         <p className="mt-2 text-sm text-quiz-muted">
-          Starter {formatScheduleClock(quizStartsAt)} · vent her til quizen er i gang.
+          Starter {formatScheduleClock(quizStartsAt)} · vent her til Gruizen er i gang.
         </p>
       </div>
     );

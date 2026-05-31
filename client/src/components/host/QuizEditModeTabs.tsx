@@ -9,7 +9,7 @@ const modes: { id: QuizEditMode; label: string; description: string; emoji: stri
   {
     id: 'editor',
     label: 'Editor',
-    description: 'Bygg quizen med spørsmålskort',
+    description: 'Bygg Gruizen med spørsmålskort',
     emoji: '✨',
   },
   {

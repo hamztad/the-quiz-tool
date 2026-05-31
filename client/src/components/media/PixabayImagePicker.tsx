@@ -113,7 +113,7 @@ export function PixabayImagePicker({
     const session = getHostSession(roomId);
     if (!session) {
       setError(
-        'Fant ikke quizmaster-økt. Gå tilbake til quizmaster-siden og åpne redigering på nytt.',
+        'Fant ikke Gruizmaster-økt. Gå tilbake til Gruizmaster-siden og åpne redigering på nytt.',
       );
       return;
     }
@@ -160,7 +160,7 @@ export function PixabayImagePicker({
     if (!roomId || !activeSearch || !activeSearch.hasMore) return;
     const session = getHostSession(roomId);
     if (!session) {
-      setError('Fant ikke quizmaster-økt. Oppdater siden og prøv igjen.');
+      setError('Fant ikke Gruizmaster-økt. Oppdater siden og prøv igjen.');
       return;
     }
 
@@ -236,7 +236,7 @@ export function PixabayImagePicker({
     }
     const session = getHostSession(roomId);
     if (!session) {
-      setError('Fant ikke quizmaster-økt. Oppdater siden og prøv igjen.');
+      setError('Fant ikke Gruizmaster-økt. Oppdater siden og prøv igjen.');
       return;
     }
 
@@ -354,7 +354,7 @@ export function PixabayImagePicker({
               checked={ownershipConfirmed}
               onChange={(e) => setOwnershipConfirmed(e.target.checked)}
             />
-            <span>Jeg bekrefter at jeg eier bildet eller har tillatelse til å bruke det i quizen.</span>
+            <span>Jeg bekrefter at jeg eier bildet eller har tillatelse til å bruke det i Gruizen.</span>
           </label>
           <div className="mt-3">
             <input

@@ -99,7 +99,7 @@ export function canStartAiGrading(
     return { ok: false, message: 'KI-retting pågår allerede.' };
   }
   if (openQuestionCount === 0) {
-    return { ok: false, message: 'KI-retting krever minst ett åpent spørsmål i quizen.' };
+    return { ok: false, message: 'KI-retting krever minst ett åpent spørsmål i Gruizen.' };
   }
   if (jobCount === 0) {
     return {

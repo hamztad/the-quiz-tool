@@ -39,7 +39,7 @@ export function HostAnswerKeyPanel({ room, onClose }: HostAnswerKeyPanelProps) {
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
         {room.questions.length === 0 ? (
-          <p className="text-sm text-quiz-muted">Ingen spørsmål i quizen.</p>
+          <p className="text-sm text-quiz-muted">Ingen spørsmål i Gruizen.</p>
         ) : (
           room.questions.map((question, index) => {
             const fasit = getQuestionFasitText(question);

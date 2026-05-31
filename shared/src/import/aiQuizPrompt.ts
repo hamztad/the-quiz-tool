@@ -61,7 +61,7 @@ export function buildAiQuizPrompt(topic?: string, questionCount?: number): strin
   const count = normalizeAiQuizQuestionCount(questionCount);
   const trimmedTopic = topic?.trim();
   const topicInstruction = trimmedTopic
-    ? `Tema for quizen: «${trimmedTopic}»`
+    ? `Tema for Gruizen: «${trimmedTopic}»`
     : 'Tema: velg et morsomt, allmenngyldig tema som passer til en norsk pubquiz.';
 
   return `Lag en quiz til import i The Quiz Tool.

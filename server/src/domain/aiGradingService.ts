@@ -127,7 +127,7 @@ export function fallbackAiGrade(
     teamId: job.teamId,
     questionId: job.questionId,
     points: 0,
-    reasoning: `KI kunne ikke vurdere automatisk: ${message}. Quizmaster bør se over manuelt.`,
+    reasoning: `KI kunne ikke vurdere automatisk: ${message}. Gruizmaster bør se over manuelt.`,
     confidence: 'low',
     submittedAt: Date.now(),
   };

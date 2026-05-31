@@ -117,7 +117,7 @@ export function canStartPeerGrading(
   if (openQuestionCount === 0) {
     return {
       ok: false,
-      message: 'Retterunde krever minst ett åpent spørsmål i quizen.',
+      message: 'Retterunde krever minst ett åpent spørsmål i Gruizen.',
     };
   }
   return { ok: true };

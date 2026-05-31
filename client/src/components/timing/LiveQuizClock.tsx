@@ -22,7 +22,7 @@ export function LiveQuizClock({ room }: LiveQuizClockProps) {
         aria-atomic="true"
       >
         <p className="text-xs font-bold uppercase tracking-widest text-violet-700">
-          Quizen starter om
+          Gruizen starter om
         </p>
         <p className="quiz-display mt-1 text-4xl font-bold tabular-nums text-violet-900">
           {formatCountdown(startCountdown.remaining)}
@@ -45,7 +45,7 @@ export function LiveQuizClock({ room }: LiveQuizClockProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-left">
             <span className="text-sm font-bold text-amber-900 block">
-              {room.settings.teamsLockedOut ? 'Quizen er avsluttet' : 'Quiz slutter om'}
+              {room.settings.teamsLockedOut ? 'Gruizen er avsluttet' : 'Quiz slutter om'}
             </span>
             <span className="text-xs text-amber-900">
               {formatScheduleClock(quizEndsAt)}

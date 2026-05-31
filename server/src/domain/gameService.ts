@@ -80,13 +80,13 @@ export function startTeamGame(
   questionId: string,
 ): RoomRecord {
   if (room.phase !== 'live') {
-    throw new Error('Quizen er ikke startet ennå.');
+    throw new Error('Gruizen er ikke startet ennå.');
   }
   if (room.settings.finalResultLocked) {
     throw new Error('Endelig resultat er låst.');
   }
   if (room.settings.teamsLockedOut) {
-    throw new Error('Quizen er avsluttet for deltakere.');
+    throw new Error('Gruizen er avsluttet for deltakere.');
   }
 
   if (!isSelfPacedQuiz(room.schedule) && room.questionStatus[questionId] !== 'open') {
@@ -124,13 +124,13 @@ export function submitGameResult(
   payload: GameSubmissionPayload,
 ): RoomRecord {
   if (room.phase !== 'live') {
-    throw new Error('Quizen er ikke startet ennå.');
+    throw new Error('Gruizen er ikke startet ennå.');
   }
   if (room.settings.finalResultLocked) {
     throw new Error('Endelig resultat er låst.');
   }
   if (room.settings.teamsLockedOut) {
-    throw new Error('Quizen er avsluttet for deltakere.');
+    throw new Error('Gruizen er avsluttet for deltakere.');
   }
 
   if (!isSelfPacedQuiz(room.schedule) && room.questionStatus[questionId] !== 'open') {
