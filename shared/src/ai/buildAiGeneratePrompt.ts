@@ -54,11 +54,7 @@ export function buildAiGeneratePrompt(params: AiGenerateQuizRequest): string {
   const varietyHints = buildAiQuizVarietyHints(headlineTopic, questionCount, params.varietySeed);
   const varietyBlock = formatVarietyBlock(varietyHints);
   const modeLabel =
-    params.mode === 'regnerace'
-      ? 'AI-shop (kun Regnerace)'
-      : params.mode === 'instant'
-        ? 'AI-shop (automatisk miks)'
-        : 'AI-shop (valgt kurv)';
+    params.mode === 'instant' ? 'AI-shop (automatisk miks)' : 'AI-shop (valgt kurv)';
 
   const topicNote =
     slots.some((s) => s.topic?.trim()) && params.mode === 'cart'

@@ -26,7 +26,7 @@ export type AiQuizDifficulty = 'easy' | 'medium' | 'hard';
 export type AiQuizQuestionStyle = 'open' | 'mc' | 'mixed' | 'quizPackage';
 export type AiImageProvider = 'pixabay' | 'wikimedia' | 'upload';
 
-export type AiShopMode = 'instant' | 'cart' | 'regnerace';
+export type AiShopMode = 'instant' | 'cart';
 
 export type AiShopSlotType = 'open' | 'mc' | 'ordering' | 'game';
 

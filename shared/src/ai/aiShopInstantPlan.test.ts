@@ -16,6 +16,14 @@ describe('aiShopInstantPlan', () => {
     expect(slots.filter((s) => s.type === 'game')).toHaveLength(3);
   });
 
+  it('always includes Regnerace (mathExpression) among instant games', () => {
+    for (let i = 0; i < 20; i++) {
+      const slots = buildInstantSlots(createSeededRandom(`race-${i}`));
+      const gameIds = slots.filter((s) => s.type === 'game').map((s) => s.gameId);
+      expect(gameIds.filter((id) => id === 'mathExpression')).toHaveLength(1);
+    }
+  });
+
   it('never picks revealImage for instant games', () => {
     for (let i = 0; i < 20; i++) {
       const slots = buildInstantSlots(createSeededRandom(`seed-${i}`));

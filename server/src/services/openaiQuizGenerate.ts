@@ -311,7 +311,15 @@ function systemMessageForSlots(slots: AiShopSlot[]): string {
   const orderingNote = hasOrdering
     ? ' For rekkefølge: correctOrder må være objektivt korrekt (f.eks. størst til minst).'
     : '';
-  return `Du lager oppgaver til Gruiz (The Quiz Tool). Svar alltid med gyldig JSON på norsk. Følg slot-rekkefølgen nøyaktig. Unike, varierte oppgaver.${orderingNote}`;
+  const hasRegnerace = slots.some((s) => s.type === 'game' && s.gameId === 'mathExpression');
+  const regneraceNote = hasRegnerace
+    ? ' gameId mathExpression = Regnerace (kun spill-tittel; regnestykkene genereres under spillet).'
+    : '';
+  const hasOpenOrMc = slots.some((s) => s.type === 'open' || s.type === 'mc');
+  const noArithmeticNote = hasOpenOrMc
+    ? ' Aldri regnestykker (2+2, 12×3 osv.) i open eller mc.'
+    : '';
+  return `Du lager oppgaver til Gruiz (The Quiz Tool). Svar alltid med gyldig JSON på norsk. Følg slot-rekkefølgen nøyaktig. Unike, varierte oppgaver.${orderingNote}${regneraceNote}${noArithmeticNote}`;
 }
 
 async function callOpenAi(

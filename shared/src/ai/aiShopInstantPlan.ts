@@ -28,9 +28,9 @@ export function pickInstantTopic(random: () => number = Math.random): string {
   return AI_QUIZ_THEME_PRESETS[index] ?? AI_QUIZ_THEME_PRESETS[0];
 }
 
-function pickGameId(random: () => number): GameId {
-  const pool = AI_SHOP_INSTANT_GAME_IDS;
-  return pool[Math.floor(random() * pool.length)] ?? 'mathExpression';
+function pickInstantGameId(random: () => number): GameId {
+  const pool = AI_SHOP_INSTANT_GAME_IDS.filter((id) => id !== 'mathExpression');
+  return pool[Math.floor(random() * pool.length)] ?? 'dropBall';
 }
 
 /** Bygg nøyaktig 10 slots for instant-generering. */
@@ -44,8 +44,9 @@ export function buildInstantSlots(random: () => number = Math.random): AiShopSlo
       orderingItemCount: AI_SHOP_ORDERING_DEFAULT_ITEMS,
     });
   }
-  for (let i = 0; i < INSTANT_TYPE_COUNTS.game; i++) {
-    slots.push({ type: 'game', gameId: pickGameId(random) });
+  slots.push({ type: 'game', gameId: 'mathExpression' });
+  for (let i = 1; i < INSTANT_TYPE_COUNTS.game; i++) {
+    slots.push({ type: 'game', gameId: pickInstantGameId(random) });
   }
   return slots;
 }
