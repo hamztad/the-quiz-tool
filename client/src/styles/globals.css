@@ -528,6 +528,149 @@ pre {
   }
 }
 
+/* AI-shop: genererer Gruiz */
+@keyframes ai-shop-orbit {
+  from {
+    transform: rotate(0deg) translateX(var(--orbit-r, 3.25rem)) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(var(--orbit-r, 3.25rem)) rotate(-360deg);
+  }
+}
+
+@keyframes ai-shop-core-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 10px 28px rgba(124, 58, 237, 0.35);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 14px 36px rgba(217, 70, 239, 0.4);
+  }
+}
+
+@keyframes ai-shop-title-shimmer {
+  0%,
+  100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+}
+
+@keyframes ai-shop-progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+@keyframes ai-shop-glow-drift {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translate(-50%, 0) scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: translate(-50%, -6%) scale(1.08);
+  }
+}
+
+@keyframes ai-shop-step-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes ai-shop-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.ai-shop-generating__glow {
+  animation: ai-shop-glow-drift 4s ease-in-out infinite;
+}
+
+.ai-shop-generating__orbit-item {
+  --orbit-r: 3.25rem;
+  top: 50%;
+  left: 50%;
+  margin-top: -0.65em;
+  margin-left: -0.65em;
+  animation: ai-shop-orbit 10s linear infinite;
+  animation-delay: calc(var(--orbit-i) * -1.65s);
+}
+
+@media (min-width: 640px) {
+  .ai-shop-generating__orbit-item {
+    --orbit-r: 3.75rem;
+  }
+}
+
+.ai-shop-generating__core {
+  animation: ai-shop-core-pulse 2.2s ease-in-out infinite;
+}
+
+.ai-shop-generating__title {
+  background: linear-gradient(
+    90deg,
+    #5b21b6 0%,
+    #7c3aed 25%,
+    #d946ef 50%,
+    #06b6d4 75%,
+    #5b21b6 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ai-shop-title-shimmer 4s ease-in-out infinite;
+}
+
+.ai-shop-generating__progress-bar {
+  width: 40%;
+  background: linear-gradient(90deg, transparent, #7c3aed, #d946ef, #22d3ee, transparent);
+  animation: ai-shop-progress-slide 1.8s ease-in-out infinite;
+}
+
+.ai-shop-generating__step-icon-active {
+  animation: ai-shop-step-pulse 1.2s ease-in-out infinite;
+}
+
+.ai-shop-generating__dots span {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: #7c3aed;
+  animation: ai-shop-dot-bounce 1.2s ease-in-out infinite;
+}
+
+.ai-shop-generating__dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.ai-shop-generating__dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
 /* Rekkefølge under spill: hele kortet tar touch til drag */
 .ordering-sortable-card {
   touch-action: none;
@@ -551,9 +694,23 @@ pre {
   .drop-ball-music-btn--on,
   .drop-ball-music-btn__icon--playing,
   .drop-ball-dancer--dance,
-  .drop-ball-dancer--launch {
+  .drop-ball-dancer--launch,
+  .ai-shop-generating__glow,
+  .ai-shop-generating__orbit-item,
+  .ai-shop-generating__core,
+  .ai-shop-generating__title,
+  .ai-shop-generating__progress-bar,
+  .ai-shop-generating__step-icon-active,
+  .ai-shop-generating__dots span {
     animation: none;
     transition: none;
+  }
+
+  .ai-shop-generating__title {
+    color: #5b21b6;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
   }
 
   .quiz-hover-lift:hover:not(:disabled) {

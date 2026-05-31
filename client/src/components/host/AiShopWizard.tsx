@@ -21,6 +21,7 @@ import {
 } from '@quiz-tool/shared';
 import { requestAiQuizGeneration } from '../../lib/aiQuizApi';
 import { getHostSession } from '../../lib/tokens';
+import { AiShopGeneratingPanel } from './AiShopGeneratingPanel';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
@@ -37,10 +38,10 @@ const DIFFICULTY_OPTIONS: { value: AiQuizDifficulty; label: string }[] = [
 ];
 
 const LOADING_STEPS = [
-  'Finner gode vinkler',
-  'Skriver oppgaver',
-  'Validerer format',
-  'Stokker flervalgsalternativer',
+  { emoji: '💡', label: 'Finner gode vinkler' },
+  { emoji: '✍️', label: 'Skriver oppgaver' },
+  { emoji: '✅', label: 'Validerer format' },
+  { emoji: '🎲', label: 'Stokker flervalgsalternativer' },
 ];
 
 const CART_GAMES = builtInGames.filter((g) => g.id !== 'revealImage');
@@ -499,7 +500,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
         </p>
       </div>
 
-      {step === 'choosePath' && (
+      {!loading && step === 'choosePath' && (
         <div className="space-y-3">
           <Button
             type="button"
@@ -524,7 +525,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
         </div>
       )}
 
-      {step === 'buildCart' && (
+      {!loading && step === 'buildCart' && (
         <div className="space-y-4">
           {cartBlock}
           <div className="flex flex-wrap gap-2">
@@ -543,7 +544,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
         </div>
       )}
 
-      {step === 'cartReady' && (
+      {!loading && step === 'cartReady' && (
         <div className="space-y-4">
           <p className="text-sm text-quiz-muted">
             {total} oppgaver i kurven. Du kan gå tilbake og justere.
@@ -576,7 +577,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
         </div>
       )}
 
-      {step === 'theme' && (
+      {!loading && step === 'theme' && (
         <div className="space-y-4">
           {themeBlock}
           <Button
@@ -593,26 +594,7 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
         </div>
       )}
 
-      {step === 'generating' && loading && (
-        <div className="rounded-2xl border border-quiz-accent/40 bg-quiz-accent/10 p-4" role="status">
-          <p className="text-sm font-semibold text-quiz-text">Bygger Gruiz…</p>
-          <p className="mt-1 text-xs text-quiz-muted">Dette kan ta opptil et halvt minutt.</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {LOADING_STEPS.map((label, index) => (
-              <div
-                key={label}
-                className="flex items-center gap-2 rounded-xl border border-quiz-border/50 bg-quiz-bg/40 px-3 py-2 text-xs text-quiz-muted"
-              >
-                <span
-                  className="h-2 w-2 rounded-full bg-quiz-accent animate-pulse"
-                  style={{ animationDelay: `${index * 180}ms` }}
-                />
-                {label}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {loading && <AiShopGeneratingPanel steps={LOADING_STEPS} />}
 
       {error && (
         <p className="text-sm text-red-400 break-words" role="alert">
