@@ -53,6 +53,7 @@ import {
   canParticipantRetryGame,
   countParticipantGameSubmissions,
   hasParticipantGameAttempt,
+  useParticipantGameCompleteNav,
 } from '../lib/participantGameComplete';
 import { QuestionLockedPlaceholder } from '../components/team/QuestionLockedPlaceholder';
 import { shouldHideParticipantChoiceLabels } from '../lib/participantChoiceDisplay';
@@ -447,10 +448,16 @@ export function TeamPage() {
     showGameCompleteNav && teamId && activeQuestion
       ? canParticipantRetryGame(room, teamId, activeQuestion)
       : false;
-  const gameCompleteDismissResetKey =
+  const gameCompleteSubmissionCount =
     teamId && activeQuestion
       ? countParticipantGameSubmissions(room, teamId, activeQuestion.id)
       : 0;
+  const { visible: gameCompleteNavVisible, dismissForRetry: dismissGameCompleteNav } =
+    useParticipantGameCompleteNav(
+      activeQuestion?.id,
+      gameCompleteSubmissionCount,
+      showGameCompleteNav,
+    );
 
   const canReviewOwn = room.settings.teamReviewOpen === true;
   const canSeeAnswerKey = room.settings.answerKeyOpen === true;
@@ -715,7 +722,7 @@ export function TeamPage() {
         quizEndNotifications={quizEndNotifications}
       />
 
-      <div className={`quiz-page-content space-y-4 ${showGameCompleteNav ? 'pb-28' : ''}`}>
+      <div className={`quiz-page-content space-y-4 ${gameCompleteNavVisible ? 'pb-28' : ''}`}>
           {activeQuestion ? (
             <>
             <Card
@@ -847,14 +854,15 @@ export function TeamPage() {
                 />
               )}
             </Card>
-            {showGameCompleteNav && (
+            {showGameCompleteNav && activeQuestion && (
               <GameCompleteNavigation
                 questionNumber={activeIndex + 1}
                 totalQuestions={totalQuestions}
                 canGoPrev={canGoPrev}
                 canGoNext={canGoNext}
                 canRetry={gameCompleteCanRetry}
-                dismissResetKey={gameCompleteDismissResetKey}
+                visible={gameCompleteNavVisible}
+                onDismissForRetry={dismissGameCompleteNav}
                 onBackToOverview={closeActiveQuestion}
                 onPrev={goPrev}
                 onNext={goNext}

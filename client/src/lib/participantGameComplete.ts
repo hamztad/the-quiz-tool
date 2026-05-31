@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react';
 import { type PublicRoomState, type Question } from '@quiz-tool/shared';
 import { isQuestionFrozen } from './gameFreeze';
 
@@ -40,6 +41,42 @@ export function countParticipantGameSubmissions(
   return room.gameSubmissions.filter(
     (submission) => submission.questionId === questionId && submission.teamId === teamId,
   ).length;
+}
+
+/**
+ * Modal etter spill: skjult ved innlogging på oppgave (pil/oversikt),
+ * vises igjen når submissionCount stiger over nivået ved inngang.
+ */
+export function useParticipantGameCompleteNav(
+  questionId: string | null | undefined,
+  submissionCount: number,
+  enabled: boolean,
+) {
+  const [baselineCount, setBaselineCount] = useState(submissionCount);
+  const [retryDismissed, setRetryDismissed] = useState(false);
+
+  useEffect(() => {
+    setBaselineCount(submissionCount);
+    setRetryDismissed(false);
+    // Baseline settes ved inngang på oppgave (pil, oversikt eller bytte oppgave).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- kun questionId
+  }, [questionId]);
+
+  useEffect(() => {
+    if (submissionCount > baselineCount) {
+      setRetryDismissed(false);
+    }
+  }, [submissionCount, baselineCount]);
+
+  const visible =
+    enabled && submissionCount > baselineCount && !retryDismissed;
+
+  const dismissForRetry = useCallback(() => {
+    setBaselineCount(submissionCount);
+    setRetryDismissed(true);
+  }, [submissionCount]);
+
+  return { visible, dismissForRetry };
 }
 
 export function scrollToParticipantGameRetry(): void {

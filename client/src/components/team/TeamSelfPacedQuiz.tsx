@@ -35,6 +35,7 @@ import {
   canParticipantRetryGame,
   countParticipantGameSubmissions,
   hasParticipantGameAttempt,
+  useParticipantGameCompleteNav,
 } from '../../lib/participantGameComplete';
 import { QuestionLockedPlaceholder } from './QuestionLockedPlaceholder';
 
@@ -183,9 +184,15 @@ export function TeamSelfPacedQuiz({
     showGameCompleteNav && activeQuestion
       ? canParticipantRetryGame(room, teamId, activeQuestion)
       : false;
-  const gameCompleteDismissResetKey = activeQuestion
+  const gameCompleteSubmissionCount = activeQuestion
     ? countParticipantGameSubmissions(room, teamId, activeQuestion.id)
     : 0;
+  const { visible: gameCompleteNavVisible, dismissForRetry: dismissGameCompleteNav } =
+    useParticipantGameCompleteNav(
+      activeQuestion?.id,
+      gameCompleteSubmissionCount,
+      showGameCompleteNav,
+    );
 
   const lockedNonGameCount = room.questions.filter(
     (q) => q.type !== 'game' && isTeamQuestionLocked(locks, teamId, q.id),
@@ -202,7 +209,7 @@ export function TeamSelfPacedQuiz({
   }
 
   return (
-    <div className={`space-y-4 ${showGameCompleteNav ? 'pb-28' : ''}`}>
+    <div className={`space-y-4 ${gameCompleteNavVisible ? 'pb-28' : ''}`}>
       <LiveQuizClock room={room} />
 
       {teamsLockedOut && (
@@ -376,14 +383,15 @@ export function TeamSelfPacedQuiz({
             />
           )}
         </Card>
-        {showGameCompleteNav && (
+        {showGameCompleteNav && activeQuestion && (
           <GameCompleteNavigation
             questionNumber={activeIndex + 1}
             totalQuestions={totalQuestions}
             canGoPrev={canGoPrev}
             canGoNext={canGoNext}
             canRetry={gameCompleteCanRetry}
-            dismissResetKey={gameCompleteDismissResetKey}
+            visible={gameCompleteNavVisible}
+            onDismissForRetry={dismissGameCompleteNav}
             onBackToOverview={closeActiveQuestion}
             onPrev={goPrev}
             onNext={goNext}

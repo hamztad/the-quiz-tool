@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { formatOppgaveLabel } from '../../lib/participantCopy';
 import { scrollToParticipantGameRetry } from '../../lib/participantGameComplete';
 
@@ -8,8 +7,8 @@ interface GameCompleteNavigationProps {
   canGoPrev: boolean;
   canGoNext: boolean;
   canRetry: boolean;
-  /** Øker ved nytt spillforsøk — modalen vises på nytt etter fullføring. */
-  dismissResetKey?: number;
+  visible: boolean;
+  onDismissForRetry: () => void;
   onBackToOverview: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -26,27 +25,22 @@ export function GameCompleteNavigation({
   canGoPrev,
   canGoNext,
   canRetry,
-  dismissResetKey = 0,
+  visible,
+  onDismissForRetry,
   onBackToOverview,
   onPrev,
   onNext,
 }: GameCompleteNavigationProps) {
-  const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    setDismissed(false);
-  }, [questionNumber, dismissResetKey]);
-
   const handleStay = () => {
     if (canRetry) {
-      setDismissed(true);
+      onDismissForRetry();
       scrollToParticipantGameRetry();
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  if (dismissed) {
+  if (!visible) {
     return null;
   }
 

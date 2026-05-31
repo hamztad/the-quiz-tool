@@ -21,6 +21,7 @@ import {
   canParticipantRetryGame,
   countParticipantGameSubmissions,
   hasParticipantGameAttempt,
+  useParticipantGameCompleteNav,
 } from '../../lib/participantGameComplete';
 import { QuestionLockedPlaceholder } from './QuestionLockedPlaceholder';
 
@@ -162,12 +163,18 @@ export function TeamIntervalQuiz({
     showGameCompleteNav && activeQuestion
       ? canParticipantRetryGame(room, teamId, activeQuestion)
       : false;
-  const gameCompleteDismissResetKey = activeQuestion
+  const gameCompleteSubmissionCount = activeQuestion
     ? countParticipantGameSubmissions(room, teamId, activeQuestion.id)
     : 0;
+  const { visible: gameCompleteNavVisible, dismissForRetry: dismissGameCompleteNav } =
+    useParticipantGameCompleteNav(
+      activeQuestion?.id,
+      gameCompleteSubmissionCount,
+      showGameCompleteNav,
+    );
 
   return (
-    <div className={`space-y-4 ${showGameCompleteNav ? 'pb-28' : ''}`}>
+    <div className={`space-y-4 ${gameCompleteNavVisible ? 'pb-28' : ''}`}>
       <LiveQuizClock room={room} />
 
       <Card className="border-2 border-indigo-200/70 bg-indigo-50/80 p-4 space-y-2">
@@ -290,14 +297,15 @@ export function TeamIntervalQuiz({
             />
           )}
         </Card>
-        {showGameCompleteNav && (
+        {showGameCompleteNav && activeQuestion && (
           <GameCompleteNavigation
             questionNumber={activeIndex + 1}
             totalQuestions={totalQuestions}
             canGoPrev={canGoPrev}
             canGoNext={canGoNext}
             canRetry={gameCompleteCanRetry}
-            dismissResetKey={gameCompleteDismissResetKey}
+            visible={gameCompleteNavVisible}
+            onDismissForRetry={dismissGameCompleteNav}
             onBackToOverview={closeActiveQuestion}
             onPrev={goPrev}
             onNext={goNext}
