@@ -1258,8 +1258,8 @@ function MathRaceEditor({
           })}
         </div>
         <p className="text-xs text-quiz-muted leading-relaxed">
-          Oppgaver genereres tilfeldig underveis (heltall). Gang 3–12, pluss/minus med 2–3-sifrede
-          tall, divisjon med kvotient 12–150 / 3–50.
+          Oppgaver genereres tilfeldig underveis (heltall). Gang 3–12, pluss 2–3 ledd (tosifret),
+          minus tosifret, divisjon divisor 12–150 (kvotient minst 2). Tid: 30 sek, 1 min eller 2 min.
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -1297,9 +1297,8 @@ function MathRaceEditor({
             className="box-border w-full rounded-xl border border-quiz-border bg-quiz-bg px-4 py-2 text-sm text-quiz-text min-h-[44px]"
           >
             <option value="30s">30 sekunder</option>
-            <option value="60s">60 sekunder</option>
-            <option value="90s">90 sekunder</option>
-            <option value="120s">120 sekunder</option>
+            <option value="60s">1 minutt</option>
+            <option value="120s">2 minutter</option>
             <option value="custom">Egendefinert</option>
           </select>
         </label>

@@ -274,6 +274,84 @@ export function isMathAnswerCorrect(
   return Math.abs(actual - expected) < 1e-9;
 }
 
+function mathOptionOnesDigit(value: number): number {
+  return ((Math.round(value) % 10) + 10) % 10;
+}
+
+function mathOptionsHaveConsecutivePair(values: number[]): boolean {
+  for (let i = 0; i < values.length; i += 1) {
+    for (let j = i + 1; j < values.length; j += 1) {
+      if (Math.abs(values[i]! - values[j]!) === 1) return true;
+    }
+  }
+  return false;
+}
+
+function mathOptionsShareOnesDigit(values: number[]): boolean {
+  const counts = new Map<number, number>();
+  for (const value of values) {
+    const digit = mathOptionOnesDigit(value);
+    counts.set(digit, (counts.get(digit) ?? 0) + 1);
+  }
+  return [...counts.values()].some((count) => count >= 2);
+}
+
+function candidateWrongAnswer(
+  correct: number,
+  targetOnes: number,
+  rng: () => number,
+): number {
+  const correctOnes = mathOptionOnesDigit(correct);
+  const deltaOnes = (targetOnes - correctOnes + 10) % 10;
+  const magnitude = 10 + Math.floor(rng() * 8) * 10;
+  const sign = rng() < 0.5 ? -1 : 1;
+  let candidate = correct + sign * magnitude + deltaOnes;
+  if (candidate === correct) candidate += sign * 10;
+  if (candidate <= 0) candidate = correct + magnitude + deltaOnes;
+  if (candidate === correct) candidate += 10;
+  return candidate;
+}
+
+function buildMathOptionValues(
+  correct: number,
+  rng: () => number,
+): [number, number, number] | null {
+  const correctOnes = mathOptionOnesDigit(correct);
+  const wrongOffsets = [10, 20, -10, -20, 3, 7, -3, -7, 5, -5, 15, -15, 30, -30];
+
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    const wrongA =
+      attempt % 3 === 0
+        ? candidateWrongAnswer(correct, correctOnes, rng)
+        : correct + wrongOffsets[Math.floor(rng() * wrongOffsets.length)]!;
+    const sharedOnes = attempt % 2 === 0 ? correctOnes : mathOptionOnesDigit(wrongA);
+    let wrongB = candidateWrongAnswer(correct, sharedOnes, rng);
+    if (wrongB === wrongA) wrongB = candidateWrongAnswer(correct, sharedOnes, rng);
+
+    const nums = [correct, wrongA, wrongB];
+    const unique = new Set(nums);
+    if (unique.size !== 3) continue;
+    if (mathOptionsHaveConsecutivePair(nums)) continue;
+    if (!mathOptionsShareOnesDigit(nums)) continue;
+    return [correct, wrongA, wrongB];
+  }
+
+  const fallbackA = correct + 10;
+  let fallbackB = correct + 20;
+  if (mathOptionOnesDigit(fallbackB) !== mathOptionOnesDigit(correct)) {
+    fallbackB = correct - 20;
+  }
+  const nums = [correct, fallbackA, fallbackB];
+  if (
+    new Set(nums).size === 3 &&
+    !mathOptionsHaveConsecutivePair(nums) &&
+    mathOptionsShareOnesDigit(nums)
+  ) {
+    return [correct, fallbackA, fallbackB];
+  }
+  return null;
+}
+
 export function generateMathOptions(
   expression: string,
   options: { decimals?: 0 | 1 | 2; rounding?: 'exact' | 'rounded' } = {},
@@ -284,13 +362,10 @@ export function generateMathOptions(
     decimals: options.decimals ?? 0,
   });
   const decimals = options.decimals ?? 0;
-  const deltas = [1, -1, 2, -2, 10, -10];
-  const values = new Set<string>([formatMathAnswer(correct, decimals)]);
-  for (const delta of deltas) {
-    if (values.size >= 3) break;
-    values.add(formatMathAnswer(correct + delta, decimals));
-  }
-  return Array.from(values).slice(0, 3).sort(() => 0.5 - Math.random());
+  const built = buildMathOptionValues(correct, Math.random);
+  const values = built ?? [correct, correct + 10, correct + 20];
+  const formatted = values.map((value) => formatMathAnswer(value, decimals));
+  return formatted.sort(() => Math.random() - 0.5);
 }
 
 export function createDefaultMathExpressionConfig(): MathExpressionConfig {

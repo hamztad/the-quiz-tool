@@ -3,12 +3,14 @@ import { evaluateMathExpression } from './mathExpression.js';
 
 export const REGNERACE_MUL_MIN = 3;
 export const REGNERACE_MUL_MAX = 12;
+/** Tosifrede ledd (10–99). */
 export const REGNERACE_ADD_SUB_MIN = 10;
-export const REGNERACE_ADD_SUB_MAX = 999;
-export const REGNERACE_DIVIDEND_MIN = 12;
-export const REGNERACE_DIVIDEND_MAX = 150;
-export const REGNERACE_DIVISOR_MIN = 3;
-export const REGNERACE_DIVISOR_MAX = 50;
+export const REGNERACE_ADD_SUB_MAX = 99;
+export const REGNERACE_DIVISOR_MIN = 12;
+export const REGNERACE_DIVISOR_MAX = 150;
+/** Kvotient (svar) minst 2 — dividend ≠ divisor. */
+export const REGNERACE_QUOTIENT_MIN = 2;
+export const REGNERACE_QUOTIENT_MAX = 12;
 
 export const DEFAULT_REGNERACE_OPERATIONS: RegneraceOperation[] = [
   'add',
@@ -54,6 +56,10 @@ function pickOperation(rng: RegneraceRandomFn, enabled: RegneraceOperation[]): R
   return enabled[index] ?? enabled[0]!;
 }
 
+function twoDigitOperand(rng: RegneraceRandomFn): number {
+  return randomInt(rng, REGNERACE_ADD_SUB_MIN, REGNERACE_ADD_SUB_MAX);
+}
+
 function generateMultiply(rng: RegneraceRandomFn): RegneraceGeneratedProblem {
   const a = randomInt(rng, REGNERACE_MUL_MIN, REGNERACE_MUL_MAX);
   const b = randomInt(rng, REGNERACE_MUL_MIN, REGNERACE_MUL_MAX);
@@ -62,14 +68,15 @@ function generateMultiply(rng: RegneraceRandomFn): RegneraceGeneratedProblem {
 }
 
 function generateAdd(rng: RegneraceRandomFn): RegneraceGeneratedProblem {
-  const a = randomInt(rng, REGNERACE_ADD_SUB_MIN, REGNERACE_ADD_SUB_MAX);
-  const b = randomInt(rng, REGNERACE_ADD_SUB_MIN, REGNERACE_ADD_SUB_MAX);
-  const expression = `${a} + ${b}`;
-  return { expression, answer: a + b, operation: 'add' };
+  const termCount = rng() < 0.5 ? 2 : 3;
+  const terms = Array.from({ length: termCount }, () => twoDigitOperand(rng));
+  const expression = terms.join(' + ');
+  const answer = terms.reduce((sum, n) => sum + n, 0);
+  return { expression, answer, operation: 'add' };
 }
 
 function generateSubtract(rng: RegneraceRandomFn): RegneraceGeneratedProblem {
-  const a = randomInt(rng, REGNERACE_ADD_SUB_MIN, REGNERACE_ADD_SUB_MAX);
+  const a = twoDigitOperand(rng);
   const b = randomInt(rng, REGNERACE_ADD_SUB_MIN, Math.min(a - 1, REGNERACE_ADD_SUB_MAX));
   const expression = `${a} - ${b}`;
   return { expression, answer: a - b, operation: 'subtract' };
@@ -78,11 +85,9 @@ function generateSubtract(rng: RegneraceRandomFn): RegneraceGeneratedProblem {
 function generateDivide(rng: RegneraceRandomFn): RegneraceGeneratedProblem {
   for (let attempt = 0; attempt < 64; attempt += 1) {
     const divisor = randomInt(rng, REGNERACE_DIVISOR_MIN, REGNERACE_DIVISOR_MAX);
-    const qMin = Math.ceil(REGNERACE_DIVIDEND_MIN / divisor);
-    const qMax = Math.floor(REGNERACE_DIVIDEND_MAX / divisor);
-    if (qMin > qMax) continue;
-    const quotient = randomInt(rng, qMin, qMax);
+    const quotient = randomInt(rng, REGNERACE_QUOTIENT_MIN, REGNERACE_QUOTIENT_MAX);
     const dividend = divisor * quotient;
+    if (dividend <= 2 || dividend === divisor) continue;
     const expression = `${dividend} : ${divisor}`;
     return { expression, answer: quotient, operation: 'divide' };
   }

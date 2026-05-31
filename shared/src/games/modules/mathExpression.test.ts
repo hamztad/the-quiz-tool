@@ -109,6 +109,26 @@ describe('mathExpression', () => {
     expect(generateMathOptions('2 + 2', { decimals: 0 })).toHaveLength(3);
   });
 
+  it('generates MC options with shared ones digit and no consecutive values', () => {
+    for (let i = 0; i < 30; i += 1) {
+      const options = generateMathOptions('47 + 12', { rounding: 'exact', decimals: 0 });
+      expect(options).toHaveLength(3);
+      const nums = options.map((text) => Number(text));
+      expect(nums.every((n) => Number.isFinite(n))).toBe(true);
+      const onesCounts = new Map<number, number>();
+      for (const n of nums) {
+        const digit = ((Math.round(n) % 10) + 10) % 10;
+        onesCounts.set(digit, (onesCounts.get(digit) ?? 0) + 1);
+      }
+      expect([...onesCounts.values()].some((c) => c >= 2)).toBe(true);
+      for (let a = 0; a < nums.length; a += 1) {
+        for (let b = a + 1; b < nums.length; b += 1) {
+          expect(Math.abs(nums[a]! - nums[b]!)).not.toBe(1);
+        }
+      }
+    }
+  });
+
   it('validates default math race config with enabled operations', () => {
     const validation = validateMathExpressionConfig(createDefaultMathRaceConfig());
     expect(validation.ok).toBe(true);

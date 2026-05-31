@@ -4,13 +4,13 @@ import {
   createRegneraceRandom,
   generateRegneraceProblem,
   maxRegneraceSolvedForTimeLimit,
+  REGNERACE_ADD_SUB_MAX,
   REGNERACE_ADD_SUB_MIN,
-  REGNERACE_DIVIDEND_MAX,
-  REGNERACE_DIVIDEND_MIN,
   REGNERACE_DIVISOR_MAX,
   REGNERACE_DIVISOR_MIN,
   REGNERACE_MUL_MAX,
   REGNERACE_MUL_MIN,
+  REGNERACE_QUOTIENT_MIN,
 } from './regneraceGenerator.js';
 
 describe('regneraceGenerator', () => {
@@ -29,41 +29,46 @@ describe('regneraceGenerator', () => {
     }
   });
 
-  it('addition uses operands from 10 to 999', () => {
-    for (let i = 0; i < 30; i += 1) {
+  it('addition uses two-digit operands with 2 or 3 terms', () => {
+    for (let i = 0; i < 40; i += 1) {
       const problem = generateRegneraceProblem(rng, ['add']);
       const parts = problem.expression.split('+').map((s) => Number(s.trim()));
-      expect(parts).toHaveLength(2);
+      expect(parts.length).toBeGreaterThanOrEqual(2);
+      expect(parts.length).toBeLessThanOrEqual(3);
       for (const n of parts) {
         expect(n).toBeGreaterThanOrEqual(REGNERACE_ADD_SUB_MIN);
-        expect(n).toBeLessThanOrEqual(999);
+        expect(n).toBeLessThanOrEqual(REGNERACE_ADD_SUB_MAX);
       }
+      expect(problem.answer).toBe(parts.reduce((sum, n) => sum + n, 0));
     }
   });
 
-  it('subtraction has minuend greater than subtrahend and non-negative result', () => {
+  it('subtraction uses two-digit operands with positive result', () => {
     for (let i = 0; i < 30; i += 1) {
       const problem = generateRegneraceProblem(rng, ['subtract']);
       const parts = problem.expression.split('-').map((s) => Number(s.trim()));
       expect(parts).toHaveLength(2);
       expect(parts[0]).toBeGreaterThan(parts[1]!);
       expect(problem.answer).toBeGreaterThan(0);
-      expect(parts[0]).toBeGreaterThanOrEqual(REGNERACE_ADD_SUB_MIN);
-      expect(parts[1]).toBeGreaterThanOrEqual(REGNERACE_ADD_SUB_MIN);
+      for (const n of parts) {
+        expect(n).toBeGreaterThanOrEqual(REGNERACE_ADD_SUB_MIN);
+        expect(n).toBeLessThanOrEqual(REGNERACE_ADD_SUB_MAX);
+      }
     }
   });
 
-  it('division uses dividend and divisor in range with integer quotient', () => {
+  it('division uses divisor 12–150, quotient at least 2, dividend not equal to divisor', () => {
     for (let i = 0; i < 40; i += 1) {
       const problem = generateRegneraceProblem(rng, ['divide']);
       const parts = problem.expression.split(':').map((s) => Number(s.trim()));
       expect(parts).toHaveLength(2);
       const [dividend, divisor] = parts;
-      expect(dividend).toBeGreaterThanOrEqual(REGNERACE_DIVIDEND_MIN);
-      expect(dividend).toBeLessThanOrEqual(REGNERACE_DIVIDEND_MAX);
       expect(divisor).toBeGreaterThanOrEqual(REGNERACE_DIVISOR_MIN);
       expect(divisor).toBeLessThanOrEqual(REGNERACE_DIVISOR_MAX);
+      expect(dividend).toBeGreaterThan(2);
+      expect(dividend).not.toBe(divisor);
       expect(dividend! % divisor!).toBe(0);
+      expect(problem.answer).toBeGreaterThanOrEqual(REGNERACE_QUOTIENT_MIN);
       expect(problem.answer).toBe(dividend! / divisor!);
     }
   });

@@ -101,18 +101,26 @@ function MathSingleView({
           {config.expression}
         </p>
       </div>
-      <label className="block text-left">
+      <label className="block">
         <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-quiz-muted">
           Svar
         </span>
         <input
           type="text"
           inputMode="decimal"
+          enterKeyHint="done"
+          autoComplete="off"
           value={answer}
           disabled={disabled}
           onChange={(event) => setAnswer(event.target.value)}
-          className="box-border w-full rounded-2xl border border-quiz-border bg-quiz-bg px-4 py-3 text-base text-quiz-text outline-none focus:border-quiz-accent focus:ring-1 focus:ring-quiz-accent disabled:opacity-60"
-          placeholder="Skriv svaret"
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            if (answer.trim() && !disabled) onSubmit(answer);
+          }}
+          className="box-border w-full rounded-2xl border-2 border-sky-300/45 bg-sky-300/10 px-4 py-4 text-center text-3xl font-black tabular-nums text-sky-900 outline-none focus:border-sky-400 disabled:opacity-60 sm:text-4xl"
+          placeholder="?"
+          aria-label="Skriv svaret"
         />
       </label>
       {latestAnswer && (
