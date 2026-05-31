@@ -432,6 +432,12 @@ export function HostEditPage() {
       );
       return;
     }
+    if (
+      shouldOfferRankingForNonGameQuiz(draftQuestions, room?.settings.scoringMode) &&
+      confirmSwitchToRankingForNonGameQuiz()
+    ) {
+      socket.emit(CLIENT_EVENTS.SETTINGS_SCORING_MODE_SET, { mode: 'ranking' });
+    }
     setHostPresenting(roomId, true);
     navigate(`/host/${roomId}/present`);
   };
