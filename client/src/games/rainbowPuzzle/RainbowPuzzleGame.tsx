@@ -52,16 +52,27 @@ export function RainbowPuzzleGame({ disabled = false, bestScore, onComplete }: R
 
   useEffect(() => () => clearAnimationTimers(), []);
 
-  const newAttempt = () => {
+  const resetBoardForSeed = (seed: number) => {
     clearAnimationTimers();
-    const seed = Date.now() + Math.floor(Math.random() * 100_000);
-    setAttemptSeed(seed);
     setBoard(generateRainbowBoard(seed));
     setScore(0);
     setCompleted(false);
     setIsAnimating(false);
     setAnimatingIndices(new Set());
   };
+
+  const restartSameBoard = () => {
+    resetBoardForSeed(attemptSeed);
+  };
+
+  const startNewBoard = () => {
+    const seed = Date.now() + Math.floor(Math.random() * 100_000);
+    setAttemptSeed(seed);
+    resetBoardForSeed(seed);
+  };
+
+  const canPickRetryMode = completed || score > 0;
+  const retryDisabled = disabled || isAnimating;
 
   const clickCell = (index: number) => {
     if (disabled || completed || isAnimating) return;
@@ -146,15 +157,45 @@ export function RainbowPuzzleGame({ disabled = false, bestScore, onComplete }: R
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={newAttempt}
-        disabled={disabled || isAnimating}
+      <div
+        className="mt-5 space-y-2"
         data-participant-game-retry={completed ? true : undefined}
-        className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border-2 border-fuchsia-200/30 bg-gradient-to-r from-fuchsia-500 via-purple-500 to-blue-500 px-6 py-3 text-base font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.24)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
-        Nytt forsøk
-      </button>
+        {canPickRetryMode ? (
+          <>
+            <p className="text-xs font-semibold text-quiz-muted">
+              Vil du prøve igjen med samme brett eller et nytt?
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                onClick={restartSameBoard}
+                disabled={retryDisabled}
+                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-2xl border-2 border-violet-300/60 bg-violet-100 px-4 py-3 text-sm font-black text-violet-950 transition-transform hover:bg-violet-200 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-[14rem]"
+              >
+                Samme brett igjen
+              </button>
+              <button
+                type="button"
+                onClick={startNewBoard}
+                disabled={retryDisabled}
+                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-2xl border-2 border-fuchsia-200/30 bg-gradient-to-r from-fuchsia-500 via-purple-500 to-blue-500 px-4 py-3 text-sm font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.24)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-[14rem]"
+              >
+                Nytt brett
+              </button>
+            </div>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={startNewBoard}
+            disabled={retryDisabled}
+            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border-2 border-fuchsia-200/30 bg-gradient-to-r from-fuchsia-500 via-purple-500 to-blue-500 px-6 py-3 text-base font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.24)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            Nytt brett
+          </button>
+        )}
+      </div>
       <div className="mt-3 flex flex-wrap justify-center gap-1.5">
         {RAINBOW_COLORS.map((color) => (
           <span key={color} className={`h-4 w-4 rounded-full border ${colorClasses[color]}`} />

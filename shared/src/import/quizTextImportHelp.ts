@@ -1,28 +1,33 @@
 import { listGameImportNames } from './resolveGameImport.js';
 
-/** Fullt eksempel for hurtigimport (Q, MC, ORDER, GAME). */
+/** Fullt eksempel for hurtigimport (Q, MC, ORDER, GAME) — skal parse uten feil. */
 export const QUIZ_TEXT_IMPORT_EXAMPLE = `Q Hva heter hovedstaden i Frankrike?
 Hint: begynner med P
 A Paris
 
-MC Hvilken planet er størst?
+MC Hvilken planet er størst i solsystemet?
 *Jupiter
 Mars
 Venus
 Saturn
 
-ORDER Rangér planetene etter avstand fra solen
+ORDER Rangér disse planetene etter avstand fra solen
 Retning: Nærmest solen → Lengst unna
 - Merkur
 - Venus
 - Jorden
 - Mars
 
-GAME Regnestykke
-Stopp klokka på 10 sekunder
+GAME Regnerace
 
-GAME
-Velg spill i dialogen etter import`;
+GAME Rainbow Puzzle`;
+
+/** Korte steg vist over tekstfeltet i editoren. */
+export const QUIZ_TEXT_IMPORT_STEPS = [
+  'Kopier eksemplet under (eller skriv i samme mønster).',
+  'Lim inn i tekstfeltet. Ett spørsmål per blokk — tom linje mellom hvert spørsmål.',
+  'Trykk «Legg til». Oppgavene dukker opp i Editor, der du kan finpusse dem.',
+] as const;
 
 /** Korte seksjoner for hjelpepanelet i editoren. */
 export const QUIZ_TEXT_IMPORT_SECTIONS: { title: string; body: string }[] = [
@@ -48,6 +53,6 @@ export const QUIZ_TEXT_IMPORT_SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: 'Spill (GAME)',
-    body: `GAME etterfulgt av spillnavn oppretter standardoppsett for det spillet. Gyldige navn inkluderer: ${listGameImportNames().join(', ')}. Du kan også skrive GAME alene eller GAME ? — da velger du spill i en dialog etter forhåndsvisning eller «Legg til».`,
+    body: `GAME etterfulgt av spillnavn oppretter standardoppsett for det spillet. Gyldige navn inkluderer: ${listGameImportNames().join(', ')}. Du kan også skrive GAME alene — da velger du spill i en dialog etter «Legg til».`,
   },
 ];

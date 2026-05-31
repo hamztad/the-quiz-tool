@@ -4,6 +4,7 @@ import {
   parseQuizText,
   QUIZ_TEXT_IMPORT_EXAMPLE,
   QUIZ_TEXT_IMPORT_SECTIONS,
+  QUIZ_TEXT_IMPORT_STEPS,
   type GameId,
   type GamePickRequest,
 } from '@quiz-tool/shared';
@@ -153,10 +154,57 @@ export function QuickImportPanel({
       ? 'Ingen spørsmål i listen fra før'
       : `${existingCount} spørsmål i listen fra før`;
 
+  const copyExampleToField = () => {
+    onImportTextChange(QUIZ_TEXT_IMPORT_EXAMPLE);
+    setGamePicks({});
+    setGamePickRequests([]);
+    setParseErrors([]);
+    requestAnimationFrame(() => importTextRef.current?.focus());
+  };
+
+  const textImportGuide = helpBelow ? (
+    <div className="rounded-2xl border-2 border-violet-300/50 bg-gradient-to-br from-violet-50/90 to-white p-4 sm:p-5 space-y-4 min-w-0">
+      <div>
+        <p className="text-base font-bold text-quiz-text">Slik lager du Gruiz fra tekst</p>
+        <p className="mt-1 text-sm text-quiz-muted leading-relaxed">
+          Skriv eller lim inn oppgaver med korte koder på starten av hver blokk. Prefiksene er
+          faste (Q, MC, ORDER, GAME) — de oversettes ikke til norsk.
+        </p>
+      </div>
+      <ol className="list-decimal pl-5 space-y-2 text-sm text-quiz-text">
+        {QUIZ_TEXT_IMPORT_STEPS.map((step, index) => (
+          <li key={index} className="pl-1 leading-relaxed">
+            {step}
+          </li>
+        ))}
+      </ol>
+      <div className="rounded-xl border border-quiz-border/50 bg-quiz-bg/50 overflow-hidden min-w-0">
+        <div className="flex flex-col gap-2 border-b border-quiz-border/40 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs font-semibold text-quiz-text">Eksempel — 5 oppgaver (åpent, MC, rekkefølge, 2 spill)</p>
+          <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={copyExampleToField}>
+            Kopier eksempel til feltet
+          </Button>
+        </div>
+        <pre className="max-h-[14rem] overflow-y-auto p-3 text-xs font-mono text-quiz-muted whitespace-pre-wrap break-words">
+          {QUIZ_TEXT_IMPORT_EXAMPLE}
+        </pre>
+      </div>
+      <p className="text-xs text-quiz-muted break-words">
+        Prefiks: <span className="font-mono text-quiz-text">Q</span> åpent ·{' '}
+        <span className="font-mono text-quiz-text">MC</span> flervalg ·{' '}
+        <span className="font-mono text-quiz-text">*</span> riktig MC-svar ·{' '}
+        <span className="font-mono text-quiz-text">A</span> godkjent svar ·{' '}
+        <span className="font-mono text-quiz-text">ORDER</span> rekkefølge ·{' '}
+        <span className="font-mono text-quiz-text">GAME</span> spill ·{' '}
+        <span className="font-mono text-quiz-text">Hint:</span> hint
+      </p>
+    </div>
+  ) : null;
+
   const helpBlock = (
-    <details className="rounded-xl border border-quiz-border/50 bg-quiz-bg/40" open={helpBelow}>
+    <details className="rounded-xl border border-quiz-border/50 bg-quiz-bg/40" open={!helpBelow}>
       <summary className="cursor-pointer px-4 py-3 text-sm text-quiz-muted hover:text-quiz-text">
-        Hjelp: tekstformat, typer og eksempel
+        {helpBelow ? 'Mer om format og typer' : 'Hjelp: tekstformat, typer og eksempel'}
       </summary>
       <div className="px-4 pb-4 space-y-4 border-t border-quiz-border/40">
         <div className="space-y-3 pt-3">
@@ -167,19 +215,19 @@ export function QuickImportPanel({
             </div>
           ))}
         </div>
-        <div>
-          <p className="text-xs font-semibold text-quiz-text mb-2">Eksempel (kan kopieres)</p>
-          <pre className="text-xs font-mono text-quiz-muted whitespace-pre-wrap break-words overflow-x-hidden rounded-lg border border-quiz-border/40 bg-quiz-bg/60 p-3">
-            {QUIZ_TEXT_IMPORT_EXAMPLE}
-          </pre>
-        </div>
-        <p className="text-xs text-quiz-muted break-words">
-          Prefiks på én linje: <code className="text-quiz-text">Q</code> åpent,{' '}
-          <code className="text-quiz-text">MC</code> flervalg, <code className="text-quiz-text">*</code>{' '}
-          riktig MC-svar, <code className="text-quiz-text">A</code> godkjent svar,{' '}
-          <code className="text-quiz-text">ORDER</code> rekkefølge, <code className="text-quiz-text">GAME</code>{' '}
-          spill, <code className="text-quiz-text">Hint:</code> hint.
-        </p>
+        {!helpBelow && (
+          <>
+            <div>
+              <p className="text-xs font-semibold text-quiz-text mb-2">Eksempel (kan kopieres)</p>
+              <pre className="text-xs font-mono text-quiz-muted whitespace-pre-wrap break-words overflow-x-hidden rounded-lg border border-quiz-border/40 bg-quiz-bg/60 p-3">
+                {QUIZ_TEXT_IMPORT_EXAMPLE}
+              </pre>
+            </div>
+            <Button type="button" variant="secondary" size="sm" onClick={copyExampleToField}>
+              Kopier eksempel til feltet
+            </Button>
+          </>
+        )}
       </div>
     </details>
   );
@@ -217,12 +265,11 @@ export function QuickImportPanel({
 
   return (
     <div className="quiz-page-content space-y-4">
+      {textImportGuide}
       <div>
-        {!helpBelow && (
-          <p className="text-xs font-semibold uppercase tracking-wider text-quiz-muted mb-2">
-            Quiz-tekst
-          </p>
-        )}
+        <p className="text-xs font-semibold uppercase tracking-wider text-quiz-muted mb-2">
+          {helpBelow ? 'Din quiz-tekst' : 'Quiz-tekst'}
+        </p>
         <div className="relative min-w-0 max-w-full overflow-hidden">
           <TextArea
             ref={importTextRef}
@@ -234,7 +281,11 @@ export function QuickImportPanel({
             }}
             rows={helpBelow ? 10 : 8}
             className={`font-mono text-sm bg-quiz-bg/60 min-h-[200px] quiz-user-text [word-break:break-word] ${hasImportText ? 'pr-14' : ''}`}
-            placeholder="Lim inn quiz — Q, MC, ORDER, GAME, A, *, Hint: …"
+            placeholder={
+              helpBelow
+                ? 'Lim inn teksten her — eller trykk «Kopier eksempel til feltet» over'
+                : 'Lim inn quiz — Q, MC, ORDER, GAME, A, *, Hint: …'
+            }
           />
           {hasImportText && (
             <button
