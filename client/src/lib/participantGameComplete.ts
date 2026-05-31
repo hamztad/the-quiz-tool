@@ -32,6 +32,16 @@ export function canParticipantRetryGame(
   );
 }
 
+export function countParticipantGameSubmissions(
+  room: Pick<PublicRoomState, 'gameSubmissions'>,
+  teamId: string,
+  questionId: string,
+): number {
+  return room.gameSubmissions.filter(
+    (submission) => submission.questionId === questionId && submission.teamId === teamId,
+  ).length;
+}
+
 export function scrollToParticipantGameRetry(): void {
   const target = document.querySelector<HTMLElement>('[data-participant-game-retry]');
   if (!target) return;

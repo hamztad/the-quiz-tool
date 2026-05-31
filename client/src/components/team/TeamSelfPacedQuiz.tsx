@@ -33,6 +33,7 @@ import { GameCompleteNavigation } from './GameCompleteNavigation';
 import { QuestionNavigation } from './QuestionNavigation';
 import {
   canParticipantRetryGame,
+  countParticipantGameSubmissions,
   hasParticipantGameAttempt,
 } from '../../lib/participantGameComplete';
 import { QuestionLockedPlaceholder } from './QuestionLockedPlaceholder';
@@ -182,6 +183,9 @@ export function TeamSelfPacedQuiz({
     showGameCompleteNav && activeQuestion
       ? canParticipantRetryGame(room, teamId, activeQuestion)
       : false;
+  const gameCompleteDismissResetKey = activeQuestion
+    ? countParticipantGameSubmissions(room, teamId, activeQuestion.id)
+    : 0;
 
   const lockedNonGameCount = room.questions.filter(
     (q) => q.type !== 'game' && isTeamQuestionLocked(locks, teamId, q.id),
@@ -379,6 +383,7 @@ export function TeamSelfPacedQuiz({
             canGoPrev={canGoPrev}
             canGoNext={canGoNext}
             canRetry={gameCompleteCanRetry}
+            dismissResetKey={gameCompleteDismissResetKey}
             onBackToOverview={closeActiveQuestion}
             onPrev={goPrev}
             onNext={goNext}

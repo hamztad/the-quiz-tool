@@ -51,6 +51,7 @@ import { GameCompleteNavigation } from '../components/team/GameCompleteNavigatio
 import { QuestionNavigation } from '../components/team/QuestionNavigation';
 import {
   canParticipantRetryGame,
+  countParticipantGameSubmissions,
   hasParticipantGameAttempt,
 } from '../lib/participantGameComplete';
 import { QuestionLockedPlaceholder } from '../components/team/QuestionLockedPlaceholder';
@@ -446,6 +447,10 @@ export function TeamPage() {
     showGameCompleteNav && teamId && activeQuestion
       ? canParticipantRetryGame(room, teamId, activeQuestion)
       : false;
+  const gameCompleteDismissResetKey =
+    teamId && activeQuestion
+      ? countParticipantGameSubmissions(room, teamId, activeQuestion.id)
+      : 0;
 
   const canReviewOwn = room.settings.teamReviewOpen === true;
   const canSeeAnswerKey = room.settings.answerKeyOpen === true;
@@ -849,6 +854,7 @@ export function TeamPage() {
                 canGoPrev={canGoPrev}
                 canGoNext={canGoNext}
                 canRetry={gameCompleteCanRetry}
+                dismissResetKey={gameCompleteDismissResetKey}
                 onBackToOverview={closeActiveQuestion}
                 onPrev={goPrev}
                 onNext={goNext}

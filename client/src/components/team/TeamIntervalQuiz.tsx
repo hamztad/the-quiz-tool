@@ -19,6 +19,7 @@ import { GameCompleteNavigation } from './GameCompleteNavigation';
 import { QuestionNavigation } from './QuestionNavigation';
 import {
   canParticipantRetryGame,
+  countParticipantGameSubmissions,
   hasParticipantGameAttempt,
 } from '../../lib/participantGameComplete';
 import { QuestionLockedPlaceholder } from './QuestionLockedPlaceholder';
@@ -161,6 +162,9 @@ export function TeamIntervalQuiz({
     showGameCompleteNav && activeQuestion
       ? canParticipantRetryGame(room, teamId, activeQuestion)
       : false;
+  const gameCompleteDismissResetKey = activeQuestion
+    ? countParticipantGameSubmissions(room, teamId, activeQuestion.id)
+    : 0;
 
   return (
     <div className={`space-y-4 ${showGameCompleteNav ? 'pb-28' : ''}`}>
@@ -293,6 +297,7 @@ export function TeamIntervalQuiz({
             canGoPrev={canGoPrev}
             canGoNext={canGoNext}
             canRetry={gameCompleteCanRetry}
+            dismissResetKey={gameCompleteDismissResetKey}
             onBackToOverview={closeActiveQuestion}
             onPrev={goPrev}
             onNext={goNext}

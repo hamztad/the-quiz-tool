@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { formatOppgaveLabel } from '../../lib/participantCopy';
 import { scrollToParticipantGameRetry } from '../../lib/participantGameComplete';
 
@@ -7,13 +8,17 @@ interface GameCompleteNavigationProps {
   canGoPrev: boolean;
   canGoNext: boolean;
   canRetry: boolean;
+  /** Øker ved nytt spillforsøk — modalen vises på nytt etter fullføring. */
+  dismissResetKey?: number;
   onBackToOverview: () => void;
   onPrev: () => void;
   onNext: () => void;
 }
 
 const navBtnClass =
-  'flex min-h-[48px] min-w-[48px] items-center justify-center rounded-xl border-2 font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500';
+  'flex min-h-[48px] items-center justify-center rounded-xl border-2 font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500';
+
+const arrowBtnClass = `${navBtnClass} flex-1 min-w-[4.25rem] max-w-[6rem] text-lg`;
 
 export function GameCompleteNavigation({
   questionNumber,
@@ -21,17 +26,29 @@ export function GameCompleteNavigation({
   canGoPrev,
   canGoNext,
   canRetry,
+  dismissResetKey = 0,
   onBackToOverview,
   onPrev,
   onNext,
 }: GameCompleteNavigationProps) {
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    setDismissed(false);
+  }, [questionNumber, dismissResetKey]);
+
   const handleStay = () => {
     if (canRetry) {
+      setDismissed(true);
       scrollToParticipantGameRetry();
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  if (dismissed) {
+    return null;
+  }
 
   return (
     <div
@@ -60,12 +77,12 @@ export function GameCompleteNavigation({
             <span className="ml-2 text-sm">Oppgaveliste</span>
           </button>
 
-          <div className="flex w-full items-center justify-center gap-3">
+          <div className="flex w-full items-center justify-center gap-2">
             <button
               type="button"
               onClick={onPrev}
               disabled={!canGoPrev}
-              className={`${navBtnClass} border-violet-200 bg-violet-50 text-violet-800 hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-35`}
+              className={`${arrowBtnClass} border-violet-200 bg-violet-50 text-violet-800 hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-35`}
               aria-label="Forrige oppgave"
             >
               <span aria-hidden>←</span>
@@ -73,7 +90,7 @@ export function GameCompleteNavigation({
             <button
               type="button"
               onClick={handleStay}
-              className={`${navBtnClass} min-w-[7.5rem] flex-1 max-w-[10rem] border-emerald-400 bg-emerald-100 text-emerald-950 hover:bg-emerald-200`}
+              className={`${navBtnClass} min-w-[7.5rem] flex-[1.4] max-w-[11rem] border-emerald-400 bg-emerald-100 text-emerald-950 hover:bg-emerald-200`}
             >
               <span className="text-sm">{canRetry ? 'Prøv igjen' : 'Bli her'}</span>
             </button>
@@ -81,7 +98,7 @@ export function GameCompleteNavigation({
               type="button"
               onClick={onNext}
               disabled={!canGoNext}
-              className={`${navBtnClass} border-violet-200 bg-violet-50 text-violet-800 hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-35`}
+              className={`${arrowBtnClass} border-violet-200 bg-violet-50 text-violet-800 hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-35`}
               aria-label="Neste oppgave"
             >
               <span aria-hidden>→</span>
