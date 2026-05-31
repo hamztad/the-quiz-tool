@@ -44,6 +44,7 @@ import type { HostQuestionDisplayStatus } from '../../lib/questionDisplayStatus'
 import { generateId } from '../../lib/id';
 import { SortableOrderingList } from '../ordering/SortableOrderingList';
 import { OrderingChoiceEditorFields } from '../ordering/OrderingChoiceEditorFields';
+import { ImageSearchModal } from '../media/ImageSearchModal';
 import { PixabayImagePicker } from '../media/PixabayImagePicker';
 import { QuestionDecorEmojiEditor } from '../question/QuestionDecorEmojiEditor';
 import {
@@ -275,12 +276,6 @@ export function HostQuestionEditorCard({
               />
             </WritingZoneCard>
 
-            {utilityPanel === 'image' && (
-              <UtilityPanelShell title="Bilde til spørsmålet" onClose={() => setUtilityPanel(null)}>
-                <ImageAttachmentEditor question={question} onChange={onChange} roomId={roomId} />
-              </UtilityPanelShell>
-            )}
-
             {utilityPanel === 'emoji' && showDecorEmoji && (
               <UtilityPanelShell title="Dekor-emoji" onClose={() => setUtilityPanel(null)}>
                 <QuestionDecorEmojiEditor question={question} onChange={onChange} />
@@ -374,6 +369,13 @@ export function HostQuestionEditorCard({
               </div>
             </details>
           </fieldset>
+          <ImageSearchModal
+            open={utilityPanel === 'image'}
+            onClose={() => setUtilityPanel(null)}
+            title="Bilde til spørsmålet"
+          >
+            <ImageAttachmentEditor question={question} onChange={onChange} roomId={roomId} />
+          </ImageSearchModal>
         </div>
       )}
     </article>
@@ -417,7 +419,8 @@ function ImageAttachmentEditor({
         onMediaChange={(media) =>
           onChange(applyQuestionMediaChange(question, media ? [media] : undefined))
         }
-        defaultSearchExpanded={false}
+        embeddedInModal
+        defaultSearchExpanded={!image}
         label="Bildesøk til spørsmålet"
         hint="Dette er bildesøk — ikke svaralternativer. Kilde og fotograf lagres automatisk."
       />

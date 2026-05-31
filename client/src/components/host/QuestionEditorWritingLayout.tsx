@@ -1,7 +1,13 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type MouseEvent } from 'react';
 import type { MediaAttachment } from '@quiz-tool/shared';
+import { ImageSearchModal } from '../media/ImageSearchModal';
 import { PixabayImagePicker } from '../media/PixabayImagePicker';
-import { Button } from '../ui/Button';
+
+function handlePanelClose(event: MouseEvent, onClose: () => void) {
+  event.preventDefault();
+  event.stopPropagation();
+  onClose();
+}
 
 export function EditorZoneLabel({
   children,
@@ -123,9 +129,14 @@ export function UtilityPanelShell({
     <div className="rounded-xl border-2 border-sky-300/50 bg-sky-50/60 p-3 space-y-2 min-w-0">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold uppercase tracking-wide text-sky-950">{title}</p>
-        <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-          Lukk
-        </Button>
+        <button
+          type="button"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-quiz-border/80 bg-white/90 text-xl font-bold leading-none text-quiz-muted transition-colors hover:border-sky-400/60 hover:text-quiz-text"
+          aria-label="Lukk panel"
+          onClick={(event) => handlePanelClose(event, onClose)}
+        >
+          <span aria-hidden>×</span>
+        </button>
       </div>
       {children}
     </div>
@@ -190,7 +201,10 @@ export function OptionImageAttachButton({
     <div className="min-w-0">
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen(true);
+        }}
         className={`shrink-0 flex h-11 w-11 items-center justify-center rounded-xl border-2 text-lg transition-colors ${
           open || media
             ? 'border-sky-500 bg-sky-100/80 text-sky-950'
@@ -199,28 +213,29 @@ export function OptionImageAttachButton({
         title={media ? 'Bytt bilde' : 'Legg til bilde'}
         aria-label={media ? 'Bytt bilde for alternativ' : 'Legg til bilde for alternativ'}
         aria-expanded={open}
+        aria-haspopup="dialog"
       >
         <span aria-hidden>📷</span>
       </button>
-      {open && (
-        <div className="mt-2 rounded-xl border border-sky-300/45 bg-sky-50/50 p-2">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-sky-900">
-            {label} — bildesøk
-          </p>
-          <PixabayImagePicker
-            roomId={roomId}
-            media={media}
-            onMediaChange={(next) => {
-              onMediaChange(next);
-              if (next) setOpen(false);
-            }}
-            compact
-            defaultSearchExpanded={false}
-            label={media ? 'Bytt bilde' : 'Søk bilde'}
-            hint="Dette er bildesøk — ikke svaralternativ."
-          />
-        </div>
-      )}
+      <ImageSearchModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={`${label} — bildesøk`}
+      >
+        <PixabayImagePicker
+          roomId={roomId}
+          media={media}
+          onMediaChange={(next) => {
+            onMediaChange(next);
+            if (next) setOpen(false);
+          }}
+          compact
+          embeddedInModal
+          defaultSearchExpanded={!media}
+          label={media ? 'Bytt bilde' : 'Søk bilde'}
+          hint="Dette er bildesøk — ikke svaralternativ."
+        />
+      </ImageSearchModal>
     </div>
   );
 }

@@ -19,6 +19,8 @@ interface PixabayImagePickerProps {
   compact?: boolean;
   /** When false, søkepanel er lukket til bruker åpner det (unngår forveksling med svarfelt). */
   defaultSearchExpanded?: boolean;
+  /** Inne i ImageSearchModal — skjul egen lukk/vis-toggle (modal har ×). */
+  embeddedInModal?: boolean;
   label?: string;
   hint?: string;
 }
@@ -29,6 +31,7 @@ export function PixabayImagePicker({
   onMediaChange,
   compact = false,
   defaultSearchExpanded,
+  embeddedInModal = false,
   label = 'Bilde fra Pixabay',
   hint,
 }: PixabayImagePickerProps) {
@@ -451,7 +454,7 @@ export function PixabayImagePicker({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-medium text-quiz-muted">{label}</p>
-        {(media || expanded) && (
+        {!embeddedInModal && (media || expanded) && (
           <Button
             type="button"
             variant="ghost"
@@ -464,6 +467,19 @@ export function PixabayImagePicker({
             }}
           >
             {expanded ? 'Skjul søk' : media ? 'Bytt bilde' : 'Lukk'}
+          </Button>
+        )}
+        {embeddedInModal && media && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setExpanded(true);
+              setResultsVisible(totalPages > 0);
+            }}
+          >
+            Bytt bilde
           </Button>
         )}
       </div>
