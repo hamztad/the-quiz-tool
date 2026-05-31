@@ -9,6 +9,7 @@ import {
   type AiShopTypeThemes,
 } from './aiQuizTypes.js';
 import type { AiShopSlot } from './aiQuizTypes.js';
+import type { RegneraceSlotPrefs } from './regneraceSlotPrefs.js';
 
 /** Forhåndsdefinert kurv tilsvarende tidligere «quizpakke» (5 oppgaver). */
 export const QUIZ_PACKAGE_PRESET_SLOTS: AiShopSlot[] = [
@@ -63,7 +64,7 @@ export function cartSlotsFromCounts(counts: {
   open: number;
   mc: number;
   ordering: number;
-  games: Array<{ gameId: GameId }>;
+  games: Array<{ gameId: GameId; regnerace?: RegneraceSlotPrefs }>;
   themes?: AiShopTypeThemes;
   orderingItemCount?: number;
 }): AiShopSlot[] {
@@ -91,7 +92,11 @@ export function cartSlotsFromCounts(counts: {
     });
   }
   for (const g of counts.games) {
-    slots.push({ type: 'game', gameId: g.gameId });
+    slots.push({
+      type: 'game',
+      gameId: g.gameId,
+      regnerace: g.gameId === 'mathExpression' ? g.regnerace : undefined,
+    });
   }
   return slots;
 }

@@ -5,12 +5,14 @@ import { createAnagramConfigForAnswer, validateAnagramAnswerText } from '../game
 import { createDefaultDropBallConfig } from '../games/modules/dropBall.js';
 import { createDefaultEmojiHuntConfig } from '../games/modules/emojiHunt.js';
 import {
-  createDefaultMathGameConfig,
   createDefaultMathRaceConfig,
+  normalizeMathRaceConfig,
   validateMathExpressionConfig,
 } from '../games/modules/mathExpression.js';
+import { normalizeRegneraceOperations } from '../games/modules/regneraceGenerator.js';
 import { createDefaultRainbowPuzzleConfig } from '../games/modules/rainbowPuzzle.js';
 import type { GameId, MathExpressionRaceConfig } from '../games/types.js';
+import { buildRegneraceConfigFromSlotAndAi } from './regneraceSlotPrefs.js';
 import { validateOrderingAfterAiParse } from '../ordering/orderingQuestionAiShop.js';
 import { AI_SHOP_ORDERING_DEFAULT_ITEMS } from './aiQuizTypes.js';
 import {
@@ -163,6 +165,7 @@ function parsePuzzleQuestion(raw: Record<string, unknown>, lines: ParsedAiQuizQu
 function parseRegistryGameQuestion(
   raw: Record<string, unknown>,
   lines: ParsedAiQuizQuestion['lines'],
+  slot?: AiShopSlot,
 ): ParsedAiQuizQuestion | null {
   const gameId = raw.gameId;
   if (typeof gameId !== 'string') return null;
@@ -170,13 +173,23 @@ function parseRegistryGameQuestion(
   if (!def) return null;
   const title = lines[0]?.text?.trim();
   const canonicalTitle = title || def.label;
+  if (def.id === 'mathExpression') {
+    const game = buildRegneraceConfigFromSlotAndAi(slot, raw);
+    if (!game) return null;
+    return {
+      type: 'game',
+      lines: withCanonicalTitle(lines, 'Regnerace'),
+      gameType: 'mathExpression',
+      game,
+      maxPoints: 5,
+    };
+  }
   return {
     type: 'game',
     lines: withCanonicalTitle(lines, canonicalTitle),
     gameType: def.id,
-    game:
-      def.id === 'mathExpression' ? createDefaultMathGameConfig() : def.createDefaultConfig(),
-    maxPoints: def.id === 'mathExpression' ? 5 : 5,
+    game: def.createDefaultConfig(),
+    maxPoints: 5,
   };
 }
 
@@ -184,10 +197,11 @@ function parseRegistryGameQuestion(
 function parseLegacyPackageGameQuestion(
   raw: Record<string, unknown>,
   lines: ParsedAiQuizQuestion['lines'],
+  slot?: AiShopSlot,
 ): ParsedAiQuizQuestion | null {
   const gameId = raw.gameId;
   if (gameId !== 'rainbowPuzzle' && gameId !== 'emojiHunt' && gameId !== 'dropBall') {
-    return parseRegistryGameQuestion(raw, lines);
+    return parseRegistryGameQuestion(raw, lines, slot);
   }
   const config =
     gameId === 'rainbowPuzzle'
@@ -274,7 +288,7 @@ function parseQuestion(raw: unknown, index: number, slot?: AiShopSlot): ParsedAi
   }
 
   if (type === 'game') {
-    return parseLegacyPackageGameQuestion(raw, lines);
+    return parseLegacyPackageGameQuestion(raw, lines, slot);
   }
 
   return null;
@@ -356,17 +370,29 @@ function questionTextLooksLikeArithmetic(text: string): boolean {
   return /^[\d\s+\-*/:xX.,=?()]+$/.test(trimmed);
 }
 
-/** Tving Regnerace-spillconfig — KI skal ikke levere enkeltregnestykker. */
+/** Tittel + brukervalg fra slot overstyrer KI for Regnerace. */
 function normalizeRegneraceGameQuestions(
   questions: ParsedAiQuizQuestion[],
+  slots?: AiShopSlot[],
 ): ParsedAiQuizQuestion[] {
-  return questions.map((q) => {
-    if (q.type !== 'game' || q.game?.gameId !== 'mathExpression') return q;
+  return questions.map((q, i) => {
+    if (q.type !== 'game' || q.game?.gameId !== 'mathExpression' || q.game.mode !== 'race') return q;
+    const slot = slots?.[i];
+    let game = q.game as MathExpressionRaceConfig;
+    if (slot?.regnerace?.answerMode) {
+      game = { ...game, answerMode: slot.regnerace.answerMode };
+    }
+    if (slot?.regnerace?.enabledOperations?.length) {
+      game = {
+        ...game,
+        enabledOperations: normalizeRegneraceOperations(slot.regnerace.enabledOperations),
+      };
+    }
     return {
       ...q,
       lines: withCanonicalTitle(q.lines, 'Regnerace'),
       gameType: 'mathExpression',
-      game: createDefaultMathGameConfig(),
+      game: normalizeMathRaceConfig(game),
       maxPoints: 5,
     };
   });
@@ -477,7 +503,10 @@ export function parseAiQuizJson(
     return { questions: [], errors };
   }
 
-  const normalized = normalizeRegneraceGameQuestions(shuffleAiGeneratedMcOptions(questions));
+  const normalized = normalizeRegneraceGameQuestions(
+    shuffleAiGeneratedMcOptions(questions),
+    slots,
+  );
   return { questions: normalized, errors: [] };
 }
 

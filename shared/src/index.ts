@@ -47,6 +47,7 @@ export * from './ai/buildAiGeneratePrompt.js';
 export * from './ai/resolveAiGeneration.js';
 export * from './ai/shuffleMcOptions.js';
 export * from './ai/aiQuizVariety.js';
+export * from './ai/regneraceSlotPrefs.js';
 export * from './quiz/quizComposition.js';
 export * from './quiz/liveQuizEdit.js';
 export * from './quiz/quizModes.js';

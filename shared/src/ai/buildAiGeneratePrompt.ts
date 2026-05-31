@@ -3,6 +3,7 @@ import { AI_SHOP_ORDERING_DEFAULT_ITEMS } from './aiQuizTypes.js';
 import { getBuiltInGame } from '../games/registry.js';
 import { buildAiQuizVarietyHints, formatVarietyBlock } from './aiQuizVariety.js';
 import { resolveAiGeneration } from './resolveAiGeneration.js';
+import { formatRegneraceSlotPromptLine } from './regneraceSlotPrefs.js';
 
 const DIFFICULTY_NO: Record<AiGenerateQuizRequest['difficulty'], string> = {
   easy: 'lett (de fleste spillere bør klare det)',
@@ -25,7 +26,7 @@ function slotTypeLabel(slot: AiShopSlot): string {
   const game = slot.gameId ? getBuiltInGame(slot.gameId) : undefined;
   const label = game?.label ?? slot.gameId ?? 'spill';
   if (slot.gameId === 'mathExpression') {
-    return `type "game" med gameId "mathExpression" (Regnerace — tittel f.eks. «Regnerace», IKKE enkeltregnestykke; oppgaver genereres under spillet)${topicHint}`;
+    return formatRegneraceSlotPromptLine(slot);
   }
   return `type "game" med gameId "${slot.gameId}" (tittel: ${label}) — ikke inkluder spillconfig`;
 }
@@ -80,6 +81,8 @@ Generelle krav:
 - Ikke inkluder maxPoints i JSON
 - Aldri lag frittstående regnestykker i type "open" eller "mc" (ingen 2+2, 12*3 osv. som åpne/MC)
 - gameId "mathExpression" er alltid Regnerace: bare spill-tittel, ingen expression eller regneoppgaver i JSON
+- For Regnerace uten fast svarform i oppgavelisten: inkluder regneraceAnswerMode ("input" eller "multipleChoice")
+- For Regnerace uten faste regnearter: inkluder regneraceOperations (array med minst én av add, subtract, multiply, divide)
 
 Svar KUN med gyldig JSON (ingen markdown, ingen forklaring):
 {

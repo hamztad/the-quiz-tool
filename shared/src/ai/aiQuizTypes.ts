@@ -1,5 +1,6 @@
 import type { Question } from '../types/room.js';
 import type { GameId } from '../games/types.js';
+import type { RegneraceSlotPrefs } from './regneraceSlotPrefs.js';
 
 export const AI_GENERATE_QUESTION_MIN = 2;
 export const AI_GENERATE_QUESTION_MAX = 10;
@@ -44,6 +45,8 @@ export interface AiShopTypeThemes {
 export interface AiShopSlot {
   type: AiShopSlotType;
   gameId?: GameId;
+  /** Kun for mathExpression: brukervalg eller KI-fyll for svarform og regnearter. */
+  regnerace?: RegneraceSlotPrefs;
   /** Tema for denne oppgaven (åpen / MC / rekkefølge). */
   topic?: string;
   /** Antall elementer i rekkefølge-oppgave (2–5, standard 4). */

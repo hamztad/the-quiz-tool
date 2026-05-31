@@ -16,12 +16,15 @@ import {
   type AiImageProvider,
   type AiQuizDifficulty,
   type AiShopTypeThemes,
+  regneraceAnswerModeLabel,
   type GameId,
   type Question,
+  type RegneraceSlotPrefs,
 } from '@quiz-tool/shared';
 import { requestAiQuizGeneration } from '../../lib/aiQuizApi';
 import { getHostSession } from '../../lib/tokens';
 import { AiShopGeneratingPanel } from './AiShopGeneratingPanel';
+import { RegneraceCartSetup } from './RegneraceCartSetup';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
@@ -60,17 +63,22 @@ const DEFAULT_TYPE_THEME: TypeThemeField = {
 const selectClassName =
   'box-border w-full min-w-0 max-w-full rounded-xl border border-quiz-border bg-quiz-surface-elevated px-4 py-3 text-sm text-quiz-text focus:border-quiz-accent focus:outline-none focus:ring-1 focus:ring-inset focus:ring-quiz-accent min-h-[44px]';
 
+interface CartGameEntry {
+  gameId: GameId;
+  regnerace?: RegneraceSlotPrefs;
+}
+
 interface CartCounts {
   open: number;
   mc: number;
   ordering: number;
-  gameIds: GameId[];
+  games: CartGameEntry[];
 }
 
-const EMPTY_CART: CartCounts = { open: 0, mc: 0, ordering: 0, gameIds: [] };
+const EMPTY_CART: CartCounts = { open: 0, mc: 0, ordering: 0, games: [] };
 
 function cartTotal(counts: CartCounts): number {
-  return counts.open + counts.mc + counts.ordering + counts.gameIds.length;
+  return counts.open + counts.mc + counts.ordering + counts.games.length;
 }
 
 function resolveThemeField(field: TypeThemeField): string {
@@ -111,12 +119,15 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gamePickerOpen, setGamePickerOpen] = useState(false);
+  const [regneraceSetup, setRegneraceSetup] = useState<{ mode: 'add' } | { mode: 'edit'; index: number } | null>(
+    null,
+  );
 
   const total = cartTotal(cart);
 
   const gameSlotsInCart = useMemo(
-    () => cart.gameIds.map((id) => getBuiltInGame(id)).filter(Boolean),
-    [cart.gameIds],
+    () => cart.games.map((g) => getBuiltInGame(g.gameId)).filter(Boolean),
+    [cart.games],
   );
 
   const adjust = (key: CartKey, delta: number) => {
@@ -128,18 +139,44 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
   };
 
   const addGame = (gameId: GameId) => {
+    if (cartTotal(cart) >= AI_GENERATE_QUESTION_MAX) return;
+    if (gameId === 'mathExpression') {
+      setRegneraceSetup({ mode: 'add' });
+      return;
+    }
     setCart((prev) => {
       if (cartTotal(prev) >= AI_GENERATE_QUESTION_MAX) return prev;
-      return { ...prev, gameIds: [...prev.gameIds, gameId] };
+      return { ...prev, games: [...prev.games, { gameId }] };
     });
+    setGamePickerOpen(false);
+  };
+
+  const confirmRegnerace = (prefs: RegneraceSlotPrefs) => {
+    setCart((prev) => {
+      if (regneraceSetup?.mode === 'edit') {
+        const games = prev.games.map((entry, i) =>
+          i === regneraceSetup.index ? { gameId: 'mathExpression' as const, regnerace: prefs } : entry,
+        );
+        return { ...prev, games };
+      }
+      if (cartTotal(prev) >= AI_GENERATE_QUESTION_MAX) return prev;
+      return {
+        ...prev,
+        games: [...prev.games, { gameId: 'mathExpression', regnerace: prefs }],
+      };
+    });
+    setRegneraceSetup(null);
     setGamePickerOpen(false);
   };
 
   const removeGameAt = (index: number) => {
     setCart((prev) => ({
       ...prev,
-      gameIds: prev.gameIds.filter((_, i) => i !== index),
+      games: prev.games.filter((_, i) => i !== index),
     }));
+    if (regneraceSetup?.mode === 'edit' && regneraceSetup.index === index) {
+      setRegneraceSetup(null);
+    }
   };
 
   const adjustOrderingItems = (delta: number) => {
@@ -168,7 +205,10 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
             open: cart.open,
             mc: cart.mc,
             ordering: cart.ordering,
-            games: cart.gameIds.map((gameId) => ({ gameId })),
+            games: cart.games.map((entry) => ({
+              gameId: entry.gameId,
+              regnerace: entry.gameId === 'mathExpression' ? entry.regnerace : undefined,
+            })),
             themes,
             orderingItemCount: cart.ordering > 0 ? orderingItemCount : undefined,
           })
@@ -328,7 +368,20 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
             + Spill
           </Button>
         </div>
-        {gamePickerOpen && (
+        {regneraceSetup && (
+          <RegneraceCartSetup
+            disabled={loading}
+            initial={
+              regneraceSetup.mode === 'edit'
+                ? cart.games[regneraceSetup.index]?.regnerace
+                : undefined
+            }
+            confirmLabel={regneraceSetup.mode === 'edit' ? 'Lagre' : 'Legg til Regnerace'}
+            onConfirm={confirmRegnerace}
+            onCancel={() => setRegneraceSetup(null)}
+          />
+        )}
+        {gamePickerOpen && !regneraceSetup && (
           <div className="grid gap-2 sm:grid-cols-2">
             {CART_GAMES.map((game) => (
               <button
@@ -342,21 +395,39 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
             ))}
           </div>
         )}
-        {cart.gameIds.map((id, index) => {
-          const label = getBuiltInGame(id)?.label ?? id;
+        {cart.games.map((entry, index) => {
+          const label = getBuiltInGame(entry.gameId)?.label ?? entry.gameId;
+          const regneraceHint =
+            entry.gameId === 'mathExpression' && entry.regnerace?.answerMode
+              ? ` · ${regneraceAnswerModeLabel(entry.regnerace.answerMode)}`
+              : '';
           return (
             <div
-              key={`${id}-${index}`}
-              className="flex items-center justify-between rounded-lg border border-quiz-border/50 px-3 py-2 text-sm"
+              key={`${entry.gameId}-${index}`}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-quiz-border/50 px-3 py-2 text-sm"
             >
-              <span>🎮 {label}</span>
-              <button
-                type="button"
-                className="text-quiz-muted hover:text-red-500"
-                onClick={() => removeGameAt(index)}
-              >
-                Fjern
-              </button>
+              <span>
+                🎮 {label}
+                {regneraceHint}
+              </span>
+              <div className="flex items-center gap-2">
+                {entry.gameId === 'mathExpression' && (
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-indigo-300 hover:text-indigo-100"
+                    onClick={() => setRegneraceSetup({ mode: 'edit', index })}
+                  >
+                    Innstillinger
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="text-quiz-muted hover:text-red-500"
+                  onClick={() => removeGameAt(index)}
+                >
+                  Fjern
+                </button>
+              </div>
             </div>
           );
         })}
@@ -376,16 +447,20 @@ export function AiShopWizard({ roomId, onGenerated }: AiShopWizardProps) {
       open: slots.filter((s) => s.type === 'open').length,
       mc: slots.filter((s) => s.type === 'mc').length,
       ordering: slots.filter((s) => s.type === 'ordering').length,
-      gameIds: slots
+      games: slots
         .filter((s) => s.type === 'game' && s.gameId)
-        .map((s) => s.gameId!),
+        .map((s) => ({
+          gameId: s.gameId!,
+          regnerace: s.gameId === 'mathExpression' ? s.regnerace : undefined,
+        })),
     };
   }
 
   const themeBlock = (
     <div className="space-y-4 min-w-0">
       <p className="text-sm text-quiz-muted">
-        Velg tema per oppgavetype. Spill bruker standardoppsett og påvirkes ikke av tema her.
+        Velg tema per oppgavetype. Regnerace bruker valgene du gjorde i kurven; andre spill bruker
+        standardoppsett.
       </p>
       {cart.open > 0 && typeThemeEditor('open')}
       {cart.mc > 0 && typeThemeEditor('mc')}
