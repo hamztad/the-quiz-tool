@@ -101,41 +101,43 @@ function MathSingleView({
           {config.expression}
         </p>
       </div>
-      <label className="block">
-        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-quiz-muted">
-          Svar
-        </span>
-        <input
-          type="text"
-          inputMode="decimal"
-          enterKeyHint="done"
-          autoComplete="off"
-          value={answer}
-          disabled={disabled}
-          onChange={(event) => setAnswer(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter') return;
-            event.preventDefault();
-            if (answer.trim() && !disabled) onSubmit(answer);
-          }}
-          className="box-border w-full rounded-2xl border-2 border-sky-300/45 bg-sky-300/10 px-4 py-4 text-center text-3xl font-black tabular-nums text-sky-900 outline-none focus:border-sky-400 disabled:opacity-60 sm:text-4xl"
-          placeholder="?"
-          aria-label="Skriv svaret"
-        />
-      </label>
-      {latestAnswer && (
-        <p className="mt-3 rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-semibold text-green-900">
-          Svar sendt: {latestAnswer}
-        </p>
-      )}
-      <button
-        type="button"
-        disabled={!answer.trim() || disabled}
-        onClick={() => onSubmit(answer)}
-        className="mt-4 inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl border-2 border-sky-200/30 bg-gradient-to-r from-sky-500 via-blue-500 to-purple-500 px-6 py-3 text-base font-black text-white shadow-[0_0_22px_rgba(125,211,252,0.2)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          const value = answer.trim();
+          if (value && !disabled) onSubmit(value);
+        }}
       >
-        Send svar
-      </button>
+        <label className="block">
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-quiz-muted">
+            Svar
+          </span>
+          <input
+            type="text"
+            inputMode="decimal"
+            enterKeyHint="go"
+            autoComplete="off"
+            value={answer}
+            disabled={disabled}
+            onChange={(event) => setAnswer(event.target.value)}
+            className="box-border w-full rounded-2xl border-2 border-sky-300/45 bg-sky-300/10 px-4 py-4 text-center text-3xl font-black tabular-nums text-sky-900 outline-none focus:border-sky-400 disabled:opacity-60 sm:text-4xl"
+            placeholder="?"
+            aria-label="Skriv svaret"
+          />
+        </label>
+        {latestAnswer && (
+          <p className="mt-3 rounded-2xl border border-green-500/45 bg-green-200/35 px-4 py-3 text-sm font-semibold text-green-900">
+            Svar sendt: {latestAnswer}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={!answer.trim() || disabled}
+          className="mt-4 inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl border-2 border-sky-200/30 bg-gradient-to-r from-sky-500 via-blue-500 to-purple-500 px-6 py-3 text-base font-black text-white shadow-[0_0_22px_rgba(125,211,252,0.2)] transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+        >
+          Send svar
+        </button>
+      </form>
     </div>
   );
 }
@@ -411,33 +413,34 @@ function MathRaceView({
               ))}
             </div>
           ) : (
-            <div className="space-y-3">
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const value = answer.trim();
+                if (value) submitAnswer(value);
+              }}
+            >
               <input
                 ref={answerInputRef}
                 type="text"
                 inputMode="numeric"
-                enterKeyHint="done"
+                enterKeyHint="go"
                 autoComplete="off"
                 value={answer}
                 onChange={(event) => setAnswer(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter') return;
-                  event.preventDefault();
-                  if (answer.trim()) submitAnswer(answer);
-                }}
                 className="box-border w-full rounded-2xl border-2 border-indigo-300/45 bg-indigo-300/10 px-4 py-4 text-center text-3xl font-black tabular-nums text-indigo-900 outline-none focus:border-indigo-400 sm:text-4xl"
                 placeholder="?"
                 aria-label="Skriv svaret (heltall)"
               />
               <button
-                type="button"
+                type="submit"
                 disabled={!answer.trim()}
-                onClick={() => submitAnswer(answer)}
                 className="inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-6 py-3 font-black text-white disabled:opacity-50 sm:w-auto"
               >
                 Svar
               </button>
-            </div>
+            </form>
           )}
           {message && (
             <p className="mt-3 rounded-2xl border border-amber-400/45 bg-amber-200/40 px-4 py-2 text-sm font-bold text-amber-900">
