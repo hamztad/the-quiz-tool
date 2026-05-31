@@ -27,6 +27,7 @@ import {
   validateMathExpressionConfig,
   validateMcChoices,
   validateOrderingChoiceItems,
+  questionHasDecorImage,
   resolveQuestionDecorEmoji,
 } from '@quiz-tool/shared';
 import { ImageOnlyOptionsSetting } from './ImageOnlyOptionsSetting';
@@ -45,6 +46,16 @@ import { SortableOrderingList } from '../ordering/SortableOrderingList';
 import { OrderingChoiceEditorFields } from '../ordering/OrderingChoiceEditorFields';
 import { PixabayImagePicker } from '../media/PixabayImagePicker';
 import { QuestionDecorEmojiEditor } from '../question/QuestionDecorEmojiEditor';
+import {
+  AnswerZoneCard,
+  CollapsibleEditorSection,
+  EditorZoneLabel,
+  mcOptionLetter,
+  OptionImageAttachButton,
+  QuestionEditorToolbar,
+  UtilityPanelShell,
+  WritingZoneCard,
+} from './QuestionEditorWritingLayout';
 import { QuestionTimerEditor } from './QuestionTimerEditor';
 
 interface HostQuestionEditorCardProps {
@@ -88,12 +99,21 @@ export function HostQuestionEditorCard({
   const previewDecorEmoji = resolveQuestionDecorEmoji(question);
 
   const [moreOpen, setMoreOpen] = useState(hasHint || hasBody);
+  const [utilityPanel, setUtilityPanel] = useState<'image' | 'emoji' | null>(null);
+  const extrasDetailsRef = useRef<HTMLDetailsElement>(null);
+  const questionImage = question.media?.find((m) => m.type === 'image');
+  const showDecorEmoji = !questionHasDecorImage(question);
+  const decorEmojiPreview = resolveQuestionDecorEmoji(question);
 
   useEffect(() => {
     if (isHighlighted && isExpanded) {
       titleRef.current?.focus();
     }
   }, [isHighlighted, isExpanded, titleRef]);
+
+  useEffect(() => {
+    setUtilityPanel(null);
+  }, [question.id]);
 
   useEffect(() => {
     if (hasHint || hasBody) {
@@ -221,96 +241,138 @@ export function HostQuestionEditorCard({
               kan du rette og åpne på nytt.
             </p>
           )}
-          <fieldset disabled={readOnly} className={readOnly ? 'min-w-0 space-y-3 opacity-80' : 'min-w-0 space-y-3 border-0 p-0 m-0'}>
-          <div className="min-w-0">
-            <label className="block text-xs font-semibold text-quiz-text mb-1">Spørsmål</label>
-            <EditorTextArea
-              ref={titleRef}
-              value={getQuestionTitle(question)}
-              onChange={(e) => updateTitle(e.target.value)}
-              placeholder="Skriv spørsmål her..."
-              minRows={1}
-              className="text-sm sm:text-base font-medium bg-quiz-bg border-quiz-accent/30 py-2"
-            />
-          </div>
-          <ImageAttachmentEditor question={question} onChange={onChange} roomId={roomId} />
-          <QuestionDecorEmojiEditor question={question} onChange={onChange} />
-
-          {question.type === 'open' ? (
-            <OpenAnswersEditor question={question} onChange={onChange} />
-          ) : question.type === 'mc' ? (
-            <McOptionsEditor question={question} onChange={onChange} roomId={roomId} />
-          ) : question.type === 'ordering' ? (
-            <OrderingQuestionEditor question={question} onChange={onChange} roomId={roomId} />
-          ) : (
-            <GameQuestionEditor
-              question={question}
-              onChange={onChange}
-              roomId={roomId}
-              performanceScoring={performanceScoring}
-            />
-          )}
-
-          <details
-            open={moreOpen}
-            onToggle={(e) => setMoreOpen((e.target as HTMLDetailsElement).open)}
-            className="rounded-lg border border-quiz-border/70 bg-quiz-surface/50 min-w-0 max-w-full overflow-hidden group"
-          >
-            <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-medium text-quiz-muted hover:text-quiz-text min-h-[44px] flex items-center gap-2 [&::-webkit-details-marker]:hidden">
-              <span className="text-quiz-muted group-open:rotate-180 transition-transform shrink-0" aria-hidden>
-                ▸
-              </span>
-              <span className="min-w-0 break-words">
-                Flere valg: hint, tilleggstekst og poeng
-              </span>
-              {(hasHint || hasBody) && !moreOpen && (
-                <span className="text-[10px] text-quiz-accent shrink-0">(utfylt)</span>
-              )}
-            </summary>
-            <div className="space-y-3 px-3 pb-3 pt-0 border-t border-quiz-border/50">
-              <div className="min-w-0">
-                <label className="block text-xs font-medium text-quiz-muted mb-1">Hint</label>
-                <EditorTextArea
-                  value={question.hint ?? ''}
-                  onChange={(e) => updateHint(e.target.value)}
-                  placeholder="F.eks. begynner med P"
-                  minRows={1}
-                  className="bg-quiz-bg py-2 text-sm"
-                />
-              </div>
-
-              <div className="min-w-0">
-                <label className="block text-xs font-medium text-quiz-muted mb-1">
-                  Tilleggstekst (valgfritt)
-                </label>
-                <EditorTextArea
-                  value={bodyLines}
-                  onChange={(e) => updateBody(e.target.value)}
-                  placeholder="Ekstra info under spørsmålet…"
-                  minRows={1}
-                  className="bg-quiz-bg py-2 text-sm"
-                />
-              </div>
-
-              <div className="min-w-0 max-w-[8rem]">
-                <label className="block text-xs font-medium text-quiz-muted mb-1">Poeng</label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={QUIZ_MAX_POINTS_PER_QUESTION}
-                  value={question.maxPoints}
-                  onChange={(e) => updatePoints(Number(e.target.value))}
-                  className="bg-quiz-bg py-2 min-h-[44px]"
-                  aria-label="Poeng for spørsmålet"
-                />
-              </div>
-
-              <QuestionTimerEditor
-                question={question}
-                onChange={(timer) => onChange({ ...question, timer })}
+          <fieldset disabled={readOnly} className={readOnly ? 'min-w-0 space-y-3 opacity-80' : 'min-w-0 space-y-2 border-0 p-0 m-0'}>
+            <WritingZoneCard>
+              <EditorZoneLabel>Spørsmål</EditorZoneLabel>
+              <EditorTextArea
+                ref={titleRef}
+                value={getQuestionTitle(question)}
+                onChange={(e) => updateTitle(e.target.value)}
+                placeholder="Skriv spørsmål her..."
+                minRows={1}
+                className="text-sm sm:text-base font-semibold bg-white/90 border-violet-200/60 py-2"
               />
-            </div>
-          </details>
+              <QuestionEditorToolbar
+                hasImage={Boolean(questionImage)}
+                showEmoji={showDecorEmoji}
+                emojiPreview={decorEmojiPreview}
+                utilityPanel={utilityPanel}
+                onToggleImage={() =>
+                  setUtilityPanel((current) => (current === 'image' ? null : 'image'))
+                }
+                onToggleEmoji={() =>
+                  setUtilityPanel((current) => (current === 'emoji' ? null : 'emoji'))
+                }
+                onOpenExtras={() => {
+                  setUtilityPanel(null);
+                  setMoreOpen(true);
+                  const node = extrasDetailsRef.current;
+                  if (node) {
+                    node.open = true;
+                    node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  }
+                }}
+              />
+            </WritingZoneCard>
+
+            {utilityPanel === 'image' && (
+              <UtilityPanelShell title="Bilde til spørsmålet" onClose={() => setUtilityPanel(null)}>
+                <ImageAttachmentEditor question={question} onChange={onChange} roomId={roomId} />
+              </UtilityPanelShell>
+            )}
+
+            {utilityPanel === 'emoji' && showDecorEmoji && (
+              <UtilityPanelShell title="Dekor-emoji" onClose={() => setUtilityPanel(null)}>
+                <QuestionDecorEmojiEditor question={question} onChange={onChange} />
+              </UtilityPanelShell>
+            )}
+
+            {question.type === 'open' ? (
+              <OpenAnswersEditor question={question} onChange={onChange} />
+            ) : question.type === 'mc' ? (
+              <McOptionsEditor question={question} onChange={onChange} roomId={roomId} />
+            ) : question.type === 'ordering' ? (
+              <OrderingQuestionEditor question={question} onChange={onChange} roomId={roomId} />
+            ) : (
+              <CollapsibleEditorSection
+                title="Spillinnstillinger"
+                badge={incomplete ? 'Utkast' : undefined}
+                defaultOpen={incomplete}
+              >
+                <GameQuestionEditor
+                  question={question}
+                  onChange={onChange}
+                  roomId={roomId}
+                  performanceScoring={performanceScoring}
+                />
+              </CollapsibleEditorSection>
+            )}
+
+            <details
+              ref={extrasDetailsRef}
+              open={moreOpen}
+              onToggle={(e) => setMoreOpen((e.target as HTMLDetailsElement).open)}
+              className="rounded-lg border border-quiz-border/70 bg-quiz-surface/50 min-w-0 max-w-full overflow-hidden group"
+            >
+              <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-medium text-quiz-muted hover:text-quiz-text min-h-[44px] flex items-center gap-2 [&::-webkit-details-marker]:hidden">
+                <span
+                  className="text-quiz-muted group-open:rotate-90 transition-transform shrink-0"
+                  aria-hidden
+                >
+                  ▸
+                </span>
+                <span className="min-w-0 break-words">Hint, tilleggstekst, poeng og timer</span>
+                {(hasHint || hasBody) && !moreOpen && (
+                  <span className="text-[10px] text-quiz-accent shrink-0">(utfylt)</span>
+                )}
+              </summary>
+              <div className="space-y-3 px-3 pb-3 pt-0 border-t border-quiz-border/50">
+                {(question.type === 'mc' || question.type === 'ordering') && (
+                  <ImageOnlyOptionsSetting question={question} onChange={onChange} disabled={readOnly} />
+                )}
+                <div className="min-w-0">
+                  <label className="block text-xs font-medium text-quiz-muted mb-1">Hint</label>
+                  <EditorTextArea
+                    value={question.hint ?? ''}
+                    onChange={(e) => updateHint(e.target.value)}
+                    placeholder="F.eks. begynner med P"
+                    minRows={1}
+                    className="bg-quiz-bg py-2 text-sm"
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <label className="block text-xs font-medium text-quiz-muted mb-1">
+                    Tilleggstekst (valgfritt)
+                  </label>
+                  <EditorTextArea
+                    value={bodyLines}
+                    onChange={(e) => updateBody(e.target.value)}
+                    placeholder="Ekstra info under spørsmålet…"
+                    minRows={1}
+                    className="bg-quiz-bg py-2 text-sm"
+                  />
+                </div>
+
+                <div className="min-w-0 max-w-[8rem]">
+                  <label className="block text-xs font-medium text-quiz-muted mb-1">Poeng</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={QUIZ_MAX_POINTS_PER_QUESTION}
+                    value={question.maxPoints}
+                    onChange={(e) => updatePoints(Number(e.target.value))}
+                    className="bg-quiz-bg py-2 min-h-[44px]"
+                    aria-label="Poeng for spørsmålet"
+                  />
+                </div>
+
+                <QuestionTimerEditor
+                  question={question}
+                  onChange={(timer) => onChange({ ...question, timer })}
+                />
+              </div>
+            </details>
           </fieldset>
         </div>
       )}
@@ -348,17 +410,18 @@ function ImageAttachmentEditor({
   const image = question.media?.find((m) => m.type === 'image');
 
   return (
-    <section className="rounded-lg border border-quiz-border bg-quiz-bg p-3 min-w-0 max-w-full overflow-hidden">
+    <div className="min-w-0 max-w-full overflow-hidden">
       <PixabayImagePicker
         roomId={roomId}
         media={image}
         onMediaChange={(media) =>
           onChange(applyQuestionMediaChange(question, media ? [media] : undefined))
         }
-        label="Søk bilde fra Pixabay"
-        hint="Valgfritt bilde til spørsmålsteksten. Kilde og fotograf lagres automatisk."
+        defaultSearchExpanded={false}
+        label="Bildesøk til spørsmålet"
+        hint="Dette er bildesøk — ikke svaralternativer. Kilde og fotograf lagres automatisk."
       />
-    </section>
+    </div>
   );
 }
 
@@ -390,8 +453,9 @@ function OpenAnswersEditor({
   };
 
   return (
-    <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 space-y-2 min-w-0 max-w-full overflow-x-hidden">
-      <p className="text-xs font-semibold text-green-800">Godkjente svar (fasit)</p>
+    <AnswerZoneCard>
+      <EditorZoneLabel tone="emerald">Godkjente svar</EditorZoneLabel>
+      <p className="text-xs text-emerald-900/80 -mt-1">Ett eller flere godkjente svar (fasit)</p>
       {answers.map((a, i) => (
         <div key={i} className="flex gap-1.5 items-start min-w-0">
           <EditorTextArea
@@ -417,7 +481,7 @@ function OpenAnswersEditor({
       <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={addAnswer}>
         + Flere godkjente svar
       </Button>
-    </div>
+    </AnswerZoneCard>
   );
 }
 
@@ -1327,13 +1391,11 @@ function McOptionsEditor({
   const choiceErrors = validateMcChoices(options, question.imageOnlyOptions);
 
   return (
-    <div className="rounded-lg border border-quiz-border bg-quiz-bg p-3 space-y-2 min-w-0 max-w-full overflow-x-hidden">
-      <p className="text-xs font-semibold text-quiz-text">Svaralternativer — trykk for riktig</p>
-      <p className="text-xs text-quiz-muted">
-        Hvert alternativ må ha tekst (fasit/etikett). Bilde er valgfritt, eller påkrevd ved «Bruk kun
-        bildene».
+    <AnswerZoneCard>
+      <EditorZoneLabel tone="emerald">Alternativer</EditorZoneLabel>
+      <p className="text-xs text-emerald-900/80 -mt-1">
+        Trykk bokstav for riktig svar. Tekst er fasit — bilder via 📷.
       </p>
-      <ImageOnlyOptionsSetting question={question} onChange={onChange} />
       {choiceErrors.map((message) => (
         <p key={message} className="text-xs font-medium text-amber-900">
           {message}
@@ -1342,53 +1404,50 @@ function McOptionsEditor({
       {options.map((opt, i) => (
         <div
           key={opt.id}
-          className="space-y-2 rounded-xl border border-quiz-border/60 bg-quiz-surface/30 p-2 min-w-0"
+          className="flex gap-1.5 items-start min-w-0 rounded-lg border border-emerald-200/50 bg-white/70 p-1.5"
         >
-          <div className="flex gap-1.5 items-start min-w-0">
-            <button
-              type="button"
-              onClick={() => setCorrect(opt.id)}
-              className={`shrink-0 h-11 w-11 rounded-full border-2 text-xs font-bold transition-colors ${
-                opt.isCorrect
-                  ? 'border-green-500 bg-green-500/25 text-green-900'
-                  : 'border-quiz-border text-quiz-muted hover:border-quiz-muted'
-              }`}
-              title="Riktig svar"
-            >
-              {opt.isCorrect ? '✓' : i + 1}
-            </button>
-            <EditorTextArea
-              value={opt.text}
-              onChange={(e) => setOptionText(opt.id, e.target.value)}
-              placeholder={`Etikett / fasit for alternativ ${i + 1}…`}
-              minRows={1}
-              className="flex-1 min-w-0 bg-quiz-surface py-2 text-sm"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="shrink-0 min-h-[44px] min-w-[44px] px-0"
-              onClick={() => removeOption(opt.id)}
-              disabled={options.length <= 2}
-              aria-label="Fjern alternativ"
-            >
-              ×
-            </Button>
-          </div>
-          <PixabayImagePicker
+          <button
+            type="button"
+            onClick={() => setCorrect(opt.id)}
+            className={`shrink-0 h-11 w-11 rounded-xl border-2 text-sm font-black transition-colors ${
+              opt.isCorrect
+                ? 'border-green-600 bg-green-500 text-white shadow-sm'
+                : 'border-emerald-300/70 bg-emerald-50 text-emerald-900 hover:border-green-500/50'
+            }`}
+            title="Marker som riktig"
+          >
+            {opt.isCorrect ? '✓' : mcOptionLetter(i)}
+          </button>
+          <EditorTextArea
+            value={opt.text}
+            onChange={(e) => setOptionText(opt.id, e.target.value)}
+            placeholder={`Alternativ ${mcOptionLetter(i)}…`}
+            minRows={1}
+            className="flex-1 min-w-0 bg-white py-2 text-sm font-medium border-emerald-200/40"
+          />
+          <OptionImageAttachButton
             roomId={roomId}
+            label={`Alternativ ${mcOptionLetter(i)}`}
             media={opt.media}
             onMediaChange={(media) => setOptionMedia(opt.id, media)}
-            compact
-            label={`Bilde for alternativ ${i + 1}`}
           />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 min-h-[44px] min-w-[44px] px-0"
+            onClick={() => removeOption(opt.id)}
+            disabled={options.length <= 2}
+            aria-label="Fjern alternativ"
+          >
+            ×
+          </Button>
         </div>
       ))}
       <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto" onClick={addOption}>
         + Alternativ
       </Button>
-    </div>
+    </AnswerZoneCard>
   );
 }
 
@@ -1445,16 +1504,11 @@ function OrderingQuestionEditor({
   };
 
   return (
-    <div className="rounded-lg border border-quiz-border bg-quiz-bg p-3 space-y-3 min-w-0 max-w-full overflow-x-hidden">
-      <div>
-        <p className="text-xs font-semibold text-quiz-text">Rekkefølge — fasit er topp til bunn</p>
-        <p className="mt-1 text-xs text-quiz-muted">
-          Dra elementene i riktig vertikal rekkefølge. Hvert element må ha tekst (fasit/etikett).
-          Bilde er valgfritt, eller påkrevd ved «Bruk kun bildene».
-        </p>
-      </div>
-
-      <ImageOnlyOptionsSetting question={question} onChange={onChange} />
+    <AnswerZoneCard>
+      <EditorZoneLabel tone="emerald">Rekkefølge (fasit)</EditorZoneLabel>
+      <p className="text-xs text-emerald-900/80 -mt-1">
+        Dra elementene — topp til bunn. Tekst er fasit; bilder i elementredigering.
+      </p>
       {choiceErrors.map((message) => (
         <p key={message} className="text-xs font-medium text-amber-900">
           {message}
@@ -1523,6 +1577,6 @@ function OrderingQuestionEditor({
         </Button>
         <span className="text-xs text-quiz-muted">{items.length}/5 elementer</span>
       </div>
-    </div>
+    </AnswerZoneCard>
   );
 }

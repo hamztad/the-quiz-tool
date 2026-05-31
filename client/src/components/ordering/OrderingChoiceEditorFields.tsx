@@ -1,6 +1,6 @@
 import type { OrderingItem } from '@quiz-tool/shared';
 import { ChoiceMediaDisplay } from '../media/ChoiceMediaDisplay';
-import { PixabayImagePicker } from '../media/PixabayImagePicker';
+import { OptionImageAttachButton } from '../host/QuestionEditorWritingLayout';
 import { Button } from '../ui/Button';
 import { EditorTextArea } from '../ui/Input';
 
@@ -24,15 +24,21 @@ export function OrderingChoiceEditorFields({
   onRemove,
 }: OrderingChoiceEditorFieldsProps) {
   return (
-    <div className="min-w-0 max-w-full flex-1 space-y-2 overflow-hidden">
+    <div className="min-w-0 max-w-full flex-1 space-y-1 overflow-hidden">
       <div className="flex min-h-[52px] min-w-0 items-start gap-2">
         {item.media && <ChoiceMediaDisplay media={item.media} variant="editor-preview" />}
         <EditorTextArea
           value={item.text}
           onChange={(event) => onTextChange(event.target.value)}
-          placeholder={`Etikett / fasit for element ${index + 1}…`}
+          placeholder={`Element ${index + 1}…`}
           minRows={1}
-          className="min-w-0 flex-1 bg-quiz-surface py-2 text-sm"
+          className="min-w-0 flex-1 bg-white py-2 text-sm font-medium border-emerald-200/40"
+        />
+        <OptionImageAttachButton
+          roomId={roomId}
+          label={`Element ${index + 1}`}
+          media={item.media}
+          onMediaChange={onMediaChange}
         />
         <Button
           type="button"
@@ -46,14 +52,6 @@ export function OrderingChoiceEditorFields({
           ×
         </Button>
       </div>
-      <PixabayImagePicker
-        roomId={roomId}
-        media={item.media}
-        onMediaChange={onMediaChange}
-        compact
-        label="Bilde (valgfritt)"
-        hint="Tekst er alltid påkrevd. Bilde er valgfritt (påkrevd ved «Bruk kun bildene»)."
-      />
     </div>
   );
 }

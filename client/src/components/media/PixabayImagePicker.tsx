@@ -17,6 +17,8 @@ interface PixabayImagePickerProps {
   media?: MediaAttachment;
   onMediaChange: (media: MediaAttachment | undefined) => void;
   compact?: boolean;
+  /** When false, søkepanel er lukket til bruker åpner det (unngår forveksling med svarfelt). */
+  defaultSearchExpanded?: boolean;
   label?: string;
   hint?: string;
 }
@@ -26,11 +28,14 @@ export function PixabayImagePicker({
   media,
   onMediaChange,
   compact = false,
+  defaultSearchExpanded,
   label = 'Bilde fra Pixabay',
   hint,
 }: PixabayImagePickerProps) {
   const [provider, setProvider] = useState<ImageProvider>(media?.source ?? 'pixabay');
-  const [expanded, setExpanded] = useState(!media);
+  const [expanded, setExpanded] = useState(
+    defaultSearchExpanded ?? (compact ? false : !media),
+  );
   const [error, setError] = useState<string | null>(null);
   const [pixabayQuery, setPixabayQuery] = useState('');
   const [pixabayLoading, setPixabayLoading] = useState<'nb' | 'en' | null>(null);
@@ -446,7 +451,7 @@ export function PixabayImagePicker({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-medium text-quiz-muted">{label}</p>
-        {media && (
+        {(media || expanded) && (
           <Button
             type="button"
             variant="ghost"
@@ -458,7 +463,7 @@ export function PixabayImagePicker({
               }
             }}
           >
-            {expanded ? 'Skjul søk' : 'Bytt bilde'}
+            {expanded ? 'Skjul søk' : media ? 'Bytt bilde' : 'Lukk'}
           </Button>
         )}
       </div>
@@ -502,10 +507,14 @@ export function PixabayImagePicker({
             </Button>
           </div>
         </div>
-      ) : (
+      ) : expanded ? (
         <p className="text-xs text-quiz-muted">
           Søk og klikk et bilde i trefflisten for å legge det inn med én gang.
         </p>
+      ) : (
+        <Button type="button" variant="secondary" size="sm" onClick={() => setExpanded(true)}>
+          Åpne bildesøk
+        </Button>
       )}
 
       {searchPanel}
