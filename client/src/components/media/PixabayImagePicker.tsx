@@ -254,47 +254,23 @@ export function PixabayImagePicker({
     }
   };
 
+  const providerOptionClass = (active: boolean) =>
+    `flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+      active
+        ? 'border-quiz-accent bg-quiz-accent/10 text-quiz-text'
+        : 'border-quiz-border/60 bg-quiz-surface/60 text-quiz-text hover:border-quiz-accent/40'
+    }`;
+
   const searchPanel = expanded ? (
-    <div className="space-y-2 rounded-xl border border-quiz-border/60 bg-quiz-surface/40 p-3">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Input
-          value={pixabayQuery}
-          onChange={(e) => setPixabayQuery(e.target.value)}
-          placeholder="Søk på norsk eller engelsk"
-          className="text-sm"
-        />
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <label className="col-span-2 text-xs text-quiz-text font-semibold">Bildekilde</label>
-        <label className="flex items-center gap-2 rounded-lg border border-quiz-border/60 bg-quiz-surface/60 px-2 py-1.5 text-xs">
-          <input
-            type="radio"
-            name={`${label}-provider`}
-            checked={provider === 'pixabay'}
-            onChange={() => setProvider('pixabay')}
-          />
-          Pixabay
-        </label>
-        <label className="flex items-center gap-2 rounded-lg border border-quiz-border/60 bg-quiz-surface/60 px-2 py-1.5 text-xs">
-          <input
-            type="radio"
-            name={`${label}-provider`}
-            checked={provider === 'wikimedia'}
-            onChange={() => setProvider('wikimedia')}
-          />
-          Wikimedia Commons
-        </label>
-        <label className="flex items-center gap-2 rounded-lg border border-quiz-border/60 bg-quiz-surface/60 px-2 py-1.5 text-xs">
-          <input
-            type="radio"
-            name={`${label}-provider`}
-            checked={provider === 'upload'}
-            onChange={() => setProvider('upload')}
-          />
-          Last opp bilde
-        </label>
-      </div>
-      {provider !== 'upload' ? (
+    <div className="space-y-3 rounded-xl border border-quiz-border/60 bg-quiz-surface/40 p-3">
+      <Input
+        value={pixabayQuery}
+        onChange={(e) => setPixabayQuery(e.target.value)}
+        placeholder="Søk på norsk eller engelsk"
+        className="text-sm"
+        disabled={provider === 'upload'}
+      />
+      {provider !== 'upload' && (
         <div className="grid grid-cols-2 gap-2">
           <Button
             type="button"
@@ -317,7 +293,43 @@ export function PixabayImagePicker({
             {pixabayLoading === 'en' ? '…' : '🇬🇧 EN'}
           </Button>
         </div>
-      ) : (
+      )}
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold text-quiz-text">Bildekilde</p>
+        <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Bildekilde">
+          <label className={providerOptionClass(provider === 'upload')}>
+            <input
+              type="radio"
+              name={`${label}-provider`}
+              className="shrink-0"
+              checked={provider === 'upload'}
+              onChange={() => setProvider('upload')}
+            />
+            Lokalt
+          </label>
+          <label className={providerOptionClass(provider === 'pixabay')}>
+            <input
+              type="radio"
+              name={`${label}-provider`}
+              className="shrink-0"
+              checked={provider === 'pixabay'}
+              onChange={() => setProvider('pixabay')}
+            />
+            Pixabay
+          </label>
+          <label className={providerOptionClass(provider === 'wikimedia')}>
+            <input
+              type="radio"
+              name={`${label}-provider`}
+              className="shrink-0"
+              checked={provider === 'wikimedia'}
+              onChange={() => setProvider('wikimedia')}
+            />
+            Wikimedia Commons
+          </label>
+        </div>
+      </div>
+      {provider === 'upload' ? (
         <div
           className={`rounded-xl border border-dashed p-3 ${dragActive ? 'border-quiz-accent bg-quiz-accent/10' : 'border-quiz-border/70 bg-quiz-surface/40'}`}
           onDragOver={(e) => {
@@ -361,7 +373,7 @@ export function PixabayImagePicker({
           </div>
           {uploading && <p className="mt-2 text-xs text-quiz-muted">Laster opp…</p>}
         </div>
-      )}
+      ) : null}
       {searchNotice && <p className="text-xs text-quiz-muted break-words">{searchNotice}</p>}
       {provider !== 'upload' && totalPages > 0 && (
         <div className="space-y-2">
